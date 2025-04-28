@@ -2,13 +2,14 @@
 
 import geopandas as gpd
 import pandas as pd
-from pyiceberg.table import Table
+from pyiceberg.expressions import BooleanExpression
+from pyiceberg.table import ALWAYS_TRUE, Table
 from shapely import wkb
 
 
 def to_geopandas(
     table: Table,
-    row_filter: str | None = "",
+    row_filter: str | BooleanExpression = ALWAYS_TRUE,
     case_sensitive: bool | None = True,
     snapshot_id: int | None = None,
     limit: int | None = None
