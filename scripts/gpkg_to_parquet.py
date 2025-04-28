@@ -1,7 +1,7 @@
 """A simple script to convert the v2.2 hydrofabric to parquet"""
 
-import geopandas as gpd
 import fiona
+import geopandas as gpd
 
 input_file = "data/conus_nextgen.gpkg"
 available_layers = fiona.listlayers(input_file)
