@@ -10,5 +10,5 @@ print(f"Layers in GeoPackage: {available_layers}")
 for layer in available_layers:
     gdf = gpd.read_file(input_file, layer=layer)
     output_file = f"data/parquet/{layer}.parquet"
-    gdf.to_parquet(output_file)    
+    gdf.to_parquet(output_file)
     print(f"Converted layer '{layer}' to {output_file}")

@@ -1,53 +1,17 @@
-[build-system]
-build-backend = "hatchling.build"
-requires = ["hatchling", "hatch-vcs"]
-
-[tool.hatch]
-version.source = "vcs"
-build.hooks.vcs.version-file = "./src/icefabric/_version.py"
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/icefabric"]
-
-[tool.hatch.build.targets.sdist]
-packages = ["src/icefabric"]
-
 [project]
 name = "icefabric"
-description = "A tool for training deep learning models for FIM"
+version = "0.1.0"
+description = "An Apache Iceberg implementation of the Hydrofabric"
 readme = "README.md"
 dynamic = ["version"]
-requires-python = ">=3.11.0"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
-authors = [{ name = "Tadd Bindas" }]
-maintainers = [{ name = "Tadd Bindas", email = "taddbindas@gmail.com" }]
+authors = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
+maintainers = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
 
-dependencies = [
-  "numpy==2.2.5",
-  "fiona==1.10.1",
-  "pandas==2.2.3",
-  "cubed-xarray==0.0.7",
-  "geopandas==1.0.1",
-  "pydantic==2.10.6",
-  "xarray==2025.3.1",
-  "scipy==1.15.1",
-  "tqdm==4.67.1",
-  "zarr==3.0.7",
-  "sympy==1.13.1",
-  "scikit-learn==1.6.1",
-  "matplotlib==3.10.0",
-  "s3fs==2025.3.2",
-  "pyarrow==19.0.1",
-  "pyiceberg==0.9.0",
-]
+dependencies = []
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov"]
-dev = ["pre-commit", "ruff", "black", "mypy"]
-
 docs = [
   "pillow",
   "cairosvg",
@@ -58,7 +22,30 @@ docs = [
   "mkdocs-git-revision-date-localized-plugin",
 ]
 
-jupyter = ["ipykernel", "jupyterlab"]
+[tool.uv.sources]
+icefabric_tools = { workspace = true }
+icefabric_manage = { workspace = true }
+examples = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+  "examples/*", "src/*"
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pre-commit>=3.8.0",
+    "ipykernel>=6.29.5",
+    "jupyterlab",
+    "pytest>=8.3.2",
+    "ruff",
+    "black",
+    "mypy",
+    "icefabric_manage",
+    "icefabric_tools",
+    "examples",
+]
+package = false
 
 [tool.black]
 line-length = 110

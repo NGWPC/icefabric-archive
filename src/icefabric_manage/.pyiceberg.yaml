@@ -1,0 +1,5 @@
+catalog:
+  hydrofabric:
+    type: sql
+    uri: sqlite:///../..//warehouse/icefabric_catalog.db
+    warehouse: file:///../..//warehouse
