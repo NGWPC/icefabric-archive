@@ -2,12 +2,28 @@
 
 import geopandas as gpd
 import pandas as pd
+from pyiceberg.catalog import Catalog, load_catalog
 from pyiceberg.expressions import BooleanExpression
 from pyiceberg.table import ALWAYS_TRUE, Table
 from shapely import wkb
 
 
-def to_geopandas(
+def load_hydrofabric(catalog_settings: dict[str, str]) -> Catalog:
+    """A function to read in the hydrofabric catalog
+
+    Parameters
+    ----------
+    catalog_settings : dict[str, str]
+        The settings to read the hydrofabric catalog
+
+    Returns
+    -------
+    Catalog
+        The Iceberg catalog
+    """
+    return load_catalog("hydrofabric", **catalog_settings)
+
+def table_to_geopandas(
     table: Table,
     row_filter: str | BooleanExpression = ALWAYS_TRUE,
     case_sensitive: bool | None = True,
@@ -35,11 +51,6 @@ def to_geopandas(
     -------
     gpd.DataFrame
         The resulting queried row, but in a geodataframe
-
-    Raises
-    ------
-    ValueError
-        Raised if the table does not have a geometry column
     """
     df = table.scan(
         row_filter=row_filter,
@@ -47,12 +58,37 @@ def to_geopandas(
         snapshot_id=snapshot_id,
         limit=limit,
     ).to_pandas()
-    if "geometry" in df.columns:
-        df["geometry"] = df["geometry"].apply(lambda x: wkb.loads(x) if x is not None else None)
-        return gpd.GeoDataFrame(df, geometry="geometry", crs="EPSG:5070")
-    else:
-        raise ValueError("The provided table does not have a geometery column.")
-    return df
+    return to_geopandas(df)
+
+
+def to_geopandas(
+    df: pd.DataFrame,
+    crs: str = "EPSG:5070"
+) -> gpd.GeoDataFrame:
+    """Converts the geometries in a pandas df to a geopandas dataframe
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        The iceberg table you are trying to read from
+    crs: str, optional
+        A string representing the CRS to set in the gdf, by default "EPSG:5070"
+
+    Returns
+    -------
+    gpd.DataFrame
+        The resulting queried row, but in a geodataframe
+
+    Raises
+    ------
+    ValueError
+        Raised if the table does not have a geometry column
+    """
+    if "geometry" not in df.columns:
+        raise ValueError("The provided table does not have a geometry column.")
+
+    geometry = df["geometry"].apply(lambda x: wkb.loads(x) if x is not None else None)
+    return gpd.GeoDataFrame(df, geometry=geometry, crs=crs)
 
 
 def find_origin(network_table: Table, identifier: str, id_type: str ="hl_uri") -> pd.DataFrame:

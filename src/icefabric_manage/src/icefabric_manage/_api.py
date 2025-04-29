@@ -4,8 +4,6 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 from pyiceberg.catalog import Catalog
-from pyiceberg.exceptions import NoSuchTableError
-from pyiceberg.table import Table
 
 
 def _add_parquet_to_catalog(catalog: Catalog, file_path: Path, table_name: str):
