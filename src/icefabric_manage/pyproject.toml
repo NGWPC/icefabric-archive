@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "All functionality for creating, updating, and deleting information from the icefabric catalog"
 authors = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
 maintainers = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
-requires-python = ">=3.11"
 readme = "README.md"
 dependencies = [
   "numpy==2.2.5",

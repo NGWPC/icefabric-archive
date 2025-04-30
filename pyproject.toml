@@ -3,7 +3,7 @@ name = "icefabric"
 version = "0.1.0"
 description = "An Apache Iceberg implementation of the Hydrofabric"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
 maintainers = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
