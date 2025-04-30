@@ -27,7 +27,8 @@ icefabric_manage = { workspace = true }
 
 [tool.uv.workspace]
 members = [
-    "src/*"
+    "src/icefabric_manage",
+    "src/icefabric_tools",
 ]
 
 [tool.uv]
