@@ -132,6 +132,9 @@ class IcebergTable(object):
                              the Iceberg catalog.
 
         Return: None
+
+        Note: The following warning is expected:
+        Iceberg does not have a dictionary type. <class 'pyarrow.lib.DictionaryType'> will be inferred as int32 on read.
         
         '''
         
@@ -183,6 +186,7 @@ class IcebergTable(object):
                                Default: 'default' 
     
         Return: None
+        
         '''
         # Instantiate bucket of interest.
         session = boto3.Session(profile_name=profile_name)
