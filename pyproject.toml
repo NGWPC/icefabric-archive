@@ -43,6 +43,7 @@ dev-dependencies = [
     "icefabric_manage",
     "icefabric_tools",
     "examples",
+    "boto3",
 ]
 package = false
 
