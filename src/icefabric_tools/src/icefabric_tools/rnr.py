@@ -59,13 +59,14 @@ def get_rnr_segment(catalog: Catalog, reach_id: str, output_file: str) -> gpd.Ge
     # Get full river network
     filtered_nexus_points = table_to_geopandas(table=nexus, row_filter=In("id", filtered_flowpaths["toid"]))
     filtered_divides = table_to_geopandas(table=divides, row_filter=In("divide_id", filtered_flowpaths["divide_id"]))
-    filtered_network = network.scan(row_filter=In("id", np.concatenate([filtered_flowpaths["toid"].values, filtered_flowpaths["id"].values]))).to_pandas()
     filtered_divide_attr = divides_attr.scan(row_filter=In("divide_id", filtered_flowpaths["divide_id"])).to_pandas()
-    filtered_flowpath_attr = flowpath_attr.scan(row_filter=In("id", filtered_flowpaths["toid"])).to_pandas()
-    filtered_flowpath_attr_ml = flowpath_attr_ml.scan(row_filter=In("id", filtered_flowpaths["toid"])).to_pandas()
+    filtered_flowpath_attr = flowpath_attr.scan(row_filter=In("id", filtered_flowpaths["id"])).to_pandas()
+    filtered_flowpath_attr_ml = flowpath_attr_ml.scan(row_filter=In("id", filtered_flowpaths["id"])).to_pandas()
     filtered_pois = pois.scan(row_filter=In("poi_id", filtered_poi_list)).to_pandas()
     filtered_hydrolocations = hydrolocations.scan(row_filter=In("poi_id", filtered_poi_list)).to_pandas()
     filtered_flowpaths = to_geopandas(filtered_flowpaths)
+    filtered_network = network.scan(row_filter=In("id", np.concatenate([filtered_flowpaths["toid"].values, filtered_flowpaths["id"].values]))).to_pandas()
+
 
     layers = {
         "flowpaths": filtered_flowpaths,
