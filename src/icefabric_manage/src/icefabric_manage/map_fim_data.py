@@ -13,6 +13,8 @@ warnings.filterwarnings('ignore')
 
 class MapData(object):
     '''
+    Maps FIM XS data to IDs & categorize by HUC. At this time, ensure FIM mip data sample is saved 
+    to local disk. 
     '''
     def __init__(self, data_dir):
         self.data_dir = data_dir
