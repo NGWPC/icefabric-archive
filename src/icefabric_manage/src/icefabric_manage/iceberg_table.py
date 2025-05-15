@@ -245,35 +245,3 @@ class IcebergTable(object):
                                           data_table, 
                                           schema)
         return
-            
-        
-# if __name__ == '__main__': 
-
-    # Instantiate class
-    #obj = IcebergTable()
-    
-    # ======= For ml_auxiliary_data application =======
-
-    ## Extract list of parquets
-    #parquet_list = obj.read_data_dirs(data_dir=f'{os.getcwd()}/data/bathymetry/ml_auxiliary_data/')
-    
-    ## Establish new Iceberg catalog
-    #obj.establish_catalog(catalog_name='bathymetry_ml_auxiliary_dev',
-    #                       namespace='bathymetry_ml_auxiliary')
-    
-    ## Generate tables w/in the new Iceberg catalog for all parquets detected 
-    #obj.create_table_for_all_parquets(parquet_list, 
-    #                                  app_name='bathymetry_ml_auxiliary')
-    
-    # ======= For mip xs data application =======
-
-    # Extract list of parquets
-    #file_list = obj.read_data_dirs(data_dir=f'{os.getcwd()}/xs_data/')
-    #parquet_list = [file for file in file_list if file.endswith('.parquet')]
-
-    #Establish new Iceberg catalog for XS data
-    #obj.establish_catalog(catalog_name='xs',
-    #                      namespace='mip')
-
-    # Generate tables w/in the new Iceberg catalog for all parquets detected
-    #obj.create_table_for_all_parquets(parquet_list, app_name='mip-xs')
