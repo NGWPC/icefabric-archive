@@ -15,8 +15,9 @@ class IcebergTable(object):
     '''
     Create a Iceberg table per parquet file w/ its inherited schema set.
 
-    Note: It is okay to expect following warning statements throughout process:
-    "Iceberg does not have a dictionary type. <class 'pyarrow.lib.DictionaryType'> will be inferred as string on read."
+    Note: Allows for user to have the option to read parquets from S3 or locally. It is okay to expect
+    following warning statements throughout process: "Iceberg does not have a dictionary type. <class
+    'pyarrow.lib.DictionaryType'> will be inferred as string on read."
     
     '''
     def __init__(self):
