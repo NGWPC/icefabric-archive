@@ -1,12 +1,24 @@
 [project]
 name = "icefabric"
-version = "0.1.0"
+version = "2025.5"
 description = "An Apache Iceberg implementation of the Hydrofabric"
 readme = "README.md"
-requires-python = ">3.10,<3.13"
+requires-python = ">=3.11,<3.13"
 license = { file = "LICENSE" }
-authors = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
-maintainers = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
+authors = [
+  { name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" },
+  { name = "Sylvia Chin", email = "sylvia.c.chin@rtx.com" },
+  { name = "Daniel Cumpton", email = "dcumpton@rtx.com" },
+  { name = "Quercus Hamlin", email = "qhamlin@asrcfederal.com" },
+  { name = "Brock Hinkson", email = "brock.w.hinkson@rtx.com" },
+]
+maintainers = [
+  { name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" },
+  { name = "Sylvia Chin", email = "sylvia.c.chin@rtx.com" },
+  { name = "Daniel Cumpton", email = "dcumpton@rtx.com" },
+  { name = "Quercus Hamlin", email = "qhamlin@asrcfederal.com" },
+  { name = "Brock Hinkson", email = "brock.w.hinkson@rtx.com" },
+]
 
 dependencies = []
 
@@ -26,24 +38,21 @@ icefabric_tools = { workspace = true }
 icefabric_manage = { workspace = true }
 
 [tool.uv.workspace]
-members = [
-    "src/icefabric_manage",
-    "src/icefabric_tools",
-]
+members = ["src/icefabric_manage", "src/icefabric_tools"]
 
 [tool.uv]
 dev-dependencies = [
-    "pre-commit>=3.8.0",
-    "ipykernel>=6.29.5",
-    "jupyterlab",
-    "pytest>=8.3.2",
-    "ruff",
-    "black",
-    "mypy",
-    "icefabric_manage",
-    "icefabric_tools",
-    "examples",
-    "boto3",
+  "pre-commit>=3.8.0",
+  "ipykernel>=6.29.5",
+  "jupyterlab==4.4.2",
+  "pytest>=8.3.2",
+  "ruff==0.11.0",
+  "black==25.1.0",
+  "mypy==1.15.0",
+  "icefabric_manage",
+  "icefabric_tools",
+  "examples",
+  "boto3",
 ]
 package = false
 
@@ -62,6 +71,7 @@ lint.select = [
   "I",      # isort
   "D",      # pydocstyle
   "B",      # flake8-bugbear
+  "Q",      # flake8-quotes
   "TID",    # flake8-tidy-imports
   "C4",     # flake8-comprehensions
   "BLE",    # flake8-blind-except
