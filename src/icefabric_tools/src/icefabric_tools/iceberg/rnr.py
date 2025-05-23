@@ -38,35 +38,45 @@ def get_rnr_segment(catalog: Catalog, reach_id: str, output_file: str) -> gpd.Ge
     hydrolocations = catalog.load_table("hydrofabric.hydrolocations")
 
     origin_row = network.scan(row_filter=f"hf_id = {reach_id}").to_pandas()
-    mainstem_expression = EqualTo("hf_mainstem", origin_row['hf_mainstem'].values[0])
-    hydroseq_expression = LessThanOrEqual("hydroseq", origin_row['hydroseq'].values[0])
+    mainstem_expression = EqualTo("hf_mainstem", origin_row["hf_mainstem"].values[0])
+    hydroseq_expression = LessThanOrEqual("hydroseq", origin_row["hydroseq"].values[0])
     combined_filter = And(mainstem_expression, hydroseq_expression)
 
     # Find all streams with the same stream order
     # TODO Determine lakes to break segments
     mainstem_features = network.scan(row_filter=combined_filter).to_pandas()
-    segment_flowpaths = flowpaths.scan(row_filter=In("divide_id", mainstem_features["divide_id"].drop_duplicates().values)).to_pandas()
-    joined_df = pd.merge(
-        mainstem_features,
-        segment_flowpaths,
-        on="divide_id",
-        how="outer"
-    )
+    segment_flowpaths = flowpaths.scan(
+        row_filter=In("divide_id", mainstem_features["divide_id"].drop_duplicates().values)
+    ).to_pandas()
+    joined_df = pd.merge(mainstem_features, segment_flowpaths, on="divide_id", how="outer")
     stream_order = joined_df[joined_df["hf_id"] == reach_id]["order"].values[0]
     filtered_flowpaths = segment_flowpaths[segment_flowpaths["order"] == stream_order]
-    filtered_poi_list = [int(_id) for _id in segment_flowpaths[segment_flowpaths["order"] == stream_order]["poi_id"].values if _id is not None]
+    filtered_poi_list = [
+        int(_id)
+        for _id in segment_flowpaths[segment_flowpaths["order"] == stream_order]["poi_id"].values
+        if _id is not None
+    ]
 
     # Get full river network
     filtered_nexus_points = table_to_geopandas(table=nexus, row_filter=In("id", filtered_flowpaths["toid"]))
-    filtered_divides = table_to_geopandas(table=divides, row_filter=In("divide_id", filtered_flowpaths["divide_id"]))
-    filtered_divide_attr = divides_attr.scan(row_filter=In("divide_id", filtered_flowpaths["divide_id"])).to_pandas()
+    filtered_divides = table_to_geopandas(
+        table=divides, row_filter=In("divide_id", filtered_flowpaths["divide_id"])
+    )
+    filtered_divide_attr = divides_attr.scan(
+        row_filter=In("divide_id", filtered_flowpaths["divide_id"])
+    ).to_pandas()
     filtered_flowpath_attr = flowpath_attr.scan(row_filter=In("id", filtered_flowpaths["id"])).to_pandas()
-    filtered_flowpath_attr_ml = flowpath_attr_ml.scan(row_filter=In("id", filtered_flowpaths["id"])).to_pandas()
+    filtered_flowpath_attr_ml = flowpath_attr_ml.scan(
+        row_filter=In("id", filtered_flowpaths["id"])
+    ).to_pandas()
     filtered_pois = pois.scan(row_filter=In("poi_id", filtered_poi_list)).to_pandas()
     filtered_hydrolocations = hydrolocations.scan(row_filter=In("poi_id", filtered_poi_list)).to_pandas()
     filtered_flowpaths = to_geopandas(filtered_flowpaths)
-    filtered_network = network.scan(row_filter=In("id", np.concatenate([filtered_flowpaths["toid"].values, filtered_flowpaths["id"].values]))).to_pandas()
-
+    filtered_network = network.scan(
+        row_filter=In(
+            "id", np.concatenate([filtered_flowpaths["toid"].values, filtered_flowpaths["id"].values])
+        )
+    ).to_pandas()
 
     layers = {
         "flowpaths": filtered_flowpaths,
@@ -81,4 +91,4 @@ def get_rnr_segment(catalog: Catalog, reach_id: str, output_file: str) -> gpd.Ge
         "hydrolocations": filtered_hydrolocations,
     }
     for table, layer in layers.items():
-        gpd.GeoDataFrame(layer).to_file(output_file, layer=table, driver='GPKG')
+        gpd.GeoDataFrame(layer).to_file(output_file, layer=table, driver="GPKG")
