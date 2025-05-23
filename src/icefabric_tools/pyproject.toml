@@ -1,7 +1,6 @@
 [project]
 name = "icefabric_tools"
 version = "2025.5"
-version = "2025.5"
 description = "All functionality for creating, updating, and deleting information from the icefabric catalog"
 authors = [
   { name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" },
