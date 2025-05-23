@@ -49,8 +49,8 @@ def build(catalog: Catalog, file_dir: Path) -> None:
     file_dir : Path
         The path to the parquet files to add into the iceberg catalog
     """
-    if not any(ns == ('hydrofabric',) for ns in catalog.list_namespaces()):
-        catalog.create_namespace('hydrofabric')
+    if not any(ns == ("hydrofabric",) for ns in catalog.list_namespaces()):
+        catalog.create_namespace("hydrofabric")
         print("Created 'hydrofabric' namespace")
 
     parquet_files = list(file_dir.glob("*.parquet"))

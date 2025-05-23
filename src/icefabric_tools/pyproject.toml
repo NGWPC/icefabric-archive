@@ -38,7 +38,8 @@ dependencies = [
   "h5py==3.13.0",
   "h5netcdf==1.6.1",
   "fsspec==2025.5.0",
-
+  "dask==2025.5.1",
+  "netCDF4==1.7.2",
 ]
 
 [build-system]
