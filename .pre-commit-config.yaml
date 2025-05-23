@@ -21,4 +21,3 @@ repos:
     rev: 0.5.7
     hooks:
       - id: uv-lock
-
