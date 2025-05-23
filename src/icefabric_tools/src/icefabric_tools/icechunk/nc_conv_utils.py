@@ -6,6 +6,7 @@ import subprocess
 from netCDF4 import Dataset as NCDataset
 from tqdm import tqdm
 
+import icefabric_tools.icechunk.arch_weather_file_utils as awf_utils
 from icefabric_tools.icechunk import S3Path
 
 
