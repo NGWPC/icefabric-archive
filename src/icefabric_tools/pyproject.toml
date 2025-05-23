@@ -2,8 +2,20 @@
 name = "icefabric_tools"
 version = "2025.5"
 description = "All functionality for creating, updating, and deleting information from the icefabric catalog"
-authors = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
-maintainers = [{ name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" }]
+authors = [
+  { name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" },
+  { name = "Sylvia Chin", email = "sylvia.c.chin@rtx.com" },
+  { name = "Daniel Cumpton", email = "dcumpton@rtx.com" },
+  { name = "Quercus Hamlin", email = "qhamlin@asrcfederal.com" },
+  { name = "Brock Hinkson", email = "brock.w.hinkson@rtx.com" },
+]
+maintainers = [
+  { name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" },
+  { name = "Sylvia Chin", email = "sylvia.c.chin@rtx.com" },
+  { name = "Daniel Cumpton", email = "dcumpton@rtx.com" },
+  { name = "Quercus Hamlin", email = "qhamlin@asrcfederal.com" },
+  { name = "Brock Hinkson", email = "brock.w.hinkson@rtx.com" },
+]
 readme = "README.md"
 dependencies = [
   "numpy==2.2.6",

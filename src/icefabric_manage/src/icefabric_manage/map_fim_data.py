@@ -12,23 +12,24 @@ import pandas as pd
 warnings.filterwarnings("ignore")
 
 
-class MapData:
-    """
-    Maps FIM XS data to IDs & categorize by HUC. At this time, ensure FIM mip data sample is saved
-    to local disk.
-    """
-
-    def __init__(self, data_dir):
+class MapData(object):
+    '''
+    Maps FIM MIP & BLE XS datasets to relevant IDs & categorize by HUC. 
+    At this time, ensure FIM datasets are saved to local disk. 
+    
+    '''
+    def __init__(self, data_dir, subfolder_key_prefix):
         self.data_dir = data_dir
+        self.subfolder_key_prefix = subfolder_key_prefix
 
-        # Parent directory of the FIM-C files.
-        # Note: All the jsons & geopackages are relevant
+        # Parent directory of the FIM files.
+        # Note: All the jsons & geopackages are relevant 
         # to map the files to IDs.
         self.fim_data_dirs = []
 
-        # List of directories associated with each file type of
-        # the FIM-C data sample (e.g. geopackage of a given model @ HUC#, json,
-        # source_models.gpkg, ripple.gpkg)
+        # List of directories associated with each file type of 
+        # the FIM data sample (e.g. geopackage of a given model @ HUC#, json, 
+        # source_models.gpkg, ripple.gpkg) 
         self.model_gpkg_dirs = []
         self.src_models_gpkg_dirs = []
         self.rip_gpkg_dirs = []
@@ -53,7 +54,7 @@ class MapData:
         self.consolidated_id2xs = geopandas.GeoDataFrame()
 
         self.read_data_dirs()
-        self.cat_data_dirs()
+        self.cat_data_dirs(self.subfolder_key_prefix)
         self.map_model2huc()
         self.filter_model2huc_map(
             keys_to_drop={"metrics", "low_flow", "high_flow", "eclipsed", "lengths", "coverage"}
@@ -85,18 +86,16 @@ class MapData:
         self.save_xsbyhuc_data()
 
     def read_data_dirs(self):
-        """
-        Extract the list of fim-c data sample's directories.
-
+        '''
+        Extract the list of FIM data sample's directories.
+        
         Args:
-            data_dir (str): Parent directory of the fim-c files.
-                            Note: All the jsons & geopackages are relevant
-                            to map the files to IDs.
+            None
 
-        Return (list): List of directories associated with each file type of
-        the FIM-C data sample.
-
-        """
+        Return (list): List of directories associated with each file type of 
+        the FIM data sample.
+        
+        '''         
         fim_data_dirs = []
         for folder, subfolders, files in os.walk(self.data_dir):
             if folder != self.data_dir:
@@ -104,13 +103,14 @@ class MapData:
                     self.fim_data_dirs.append(f"{folder}/{file}")
 
         return
-
-    def cat_data_dirs(self):
-        """
-        Categorize FIM-C data sample files.
-
+        
+    def cat_data_dirs(self, subfolder_key_prefix):
+        '''
+        Categorize FIM data sample files.
+        
         Args:
-            None
+            subfolder_key_prefix (str): Prefix of the FIM subfolder's data of interest
+                                        Options: 'mip' or 'ble'
 
         Return: None
 
@@ -122,7 +122,7 @@ class MapData:
             # contains collection_id & model_id)
             if re.search("ripple.gpkg", x):
                 self.rip_gpkg_dirs.append(x)
-                t = re.search("/mip(.*)", x)
+                t = re.search(f'/{subfolder_key_prefix}(.*)', x)
                 rip_gpkg_tblname = t.group()
                 self.rip_gpkg_tablenames.append(rip_gpkg_tblname.lstrip("/").replace("/", "_"))
 
@@ -133,33 +133,33 @@ class MapData:
                 and not re.search("ripple.gpkg", x)
             ):
                 self.model_gpkg_dirs.append(x)
-                t = re.search("/mip(.*)", x)
+                t = re.search(f'/{subfolder_key_prefix}(.*)', x)
                 model_gpkg_tblname = t.group()
                 self.model_gpkg_tablenames.append(model_gpkg_tblname.lstrip("/").replace("/", "_"))
 
             # Covers all HEC-RAS models gpkg featuring 1D model flowlines per HUC (contains model_id & their HEC-RAS 1D model flowlines)
             elif x.endswith("source_models.gpkg"):
                 self.src_models_gpkg_dirs.append(x)
-                t = re.search("/mip(.*)", x)
+                t = re.search(f'/{subfolder_key_prefix}(.*)', x)
                 src_models_gpkg_tblname = t.group()
                 self.src_models_gpkg_tablenames.append(src_models_gpkg_tblname.lstrip("/").replace("/", "_"))
 
             # Covers all HEC-RAS models + Ripple gpkg per HUC
             if x.endswith(".gpkg"):
                 self.gpkg_dirs.append(x)
-                t = re.search("/mip(.*)", x)
+                t = re.search(f'/{subfolder_key_prefix}(.*)', x)
                 gpkg_tblname = t.group()
                 self.gpkg_tablenames.append(gpkg_tblname.lstrip("/").replace("/", "_"))
 
             # Covers each HEC-RAS models' result of conflating its model w/ the NWM network
             elif x.endswith(".json"):
                 self.json_dirs.append(x)
-                t = re.search("/mip(.*)", x)
+                t = re.search(f'/{subfolder_key_prefix}(.*)', x)
                 json_tblname = t.group()
                 self.json_tablenames.append(json_tblname.lstrip("/").replace("/", "_"))
 
         return
-
+    
     def drop_nested_keys(self, map_dict, keys_to_drop):
         """
         Drop keys irrelevant for linking each XS to IDs
@@ -184,9 +184,9 @@ class MapData:
             return map_dict
 
     def map_model2huc(self):
-        """
-        Map each conflation json file to their corresponding model_id & HUC #.
-
+        '''
+        Map each conflation json file to their corresponding model ID & HUC #.
+        
         Args:
             None
 
@@ -294,9 +294,9 @@ class MapData:
         return
 
     def map_model2huc_gpkg(self):
-        """
-        Map model_id & HUC # to each HEC-RAS model's geopackage.
-
+        '''
+        Map model ID & HUC # to each HEC-RAS model's geopackage.
+        
         Args:
             None
 
@@ -414,10 +414,7 @@ class MapData:
 
             # Covers us_xs
             if (model_id, huc_num) in self.us_ref_dict:
-                df["us_ids"] = df.set_index(["river_reach_rs", "thalweg", "xs_max_elevation"]).index.map(
-                    self.us_ref_dict[(model_id, huc_num)].get
-                )
-                # print(f"The model_id @ HUC# ({(model_id, huc_num)}) IS featured in current model @ HUC's conflation json file.")
+                df['us_ids'] = df.set_index(["river_reach_rs", "thalweg", "xs_max_elevation"]).index.map(self.us_ref_dict[(model_id, huc_num)].get)
             else:
                 print(
                     f"The model_id @ HUC# ({(model_id, huc_num)}) IS NOT featured in current model @ HUC's conflation json file."
@@ -426,30 +423,30 @@ class MapData:
 
             # Covers ds_xs
             if (model_id, huc_num) in self.ds_ref_dict:
-                df["ds_ids"] = df.set_index(["river_reach_rs", "thalweg", "xs_max_elevation"]).index.map(
-                    self.ds_ref_dict[(model_id, huc_num)].get
-                )
-                # print(f"The model_id @ HUC# ({(model_id, huc_num)}) IS featured in current model @ HUC's conflation json file.")
+                df['ds_ids'] = df.set_index(["river_reach_rs", "thalweg", "xs_max_elevation"]).index.map(self.ds_ref_dict[(model_id, huc_num)].get)
             else:
                 print(
                     f"The model_id @ HUC# ({(model_id, huc_num)}) IS NOT featured in current model @ HUC's conflation json file."
                 )
                 continue
 
-            # Extracts & appends reach_id & network_to_id to each model @ HUC's unique XS
-            us_id_df = df["us_ids"].apply(pd.Series)
-            us_id_df.columns = ["us_reach_id", "us_network_to_id"]
-            ds_id_df = df["ds_ids"].apply(pd.Series)
-            ds_id_df.columns = ["ds_reach_id", "ds_network_to_id"]
+            # Extracts & appends reach_id & network_to_id to each model @ HUC's unique XS 
+            # Should the ids not be available in the conflation, must initialize columns
+            us_id_df = df['us_ids'].apply(pd.Series)
+            if us_id_df.shape[1]==0:
+                us_id_df = pd.DataFrame(np.nan, index=range(us_id_df.shape[0]), columns=[0, 1])
+            us_id_df.columns=['us_reach_id', 'us_network_to_id']
 
-            # Fill any nan to string
-            us_id_df[["us_reach_id", "us_network_to_id"]] = us_id_df[
-                ["us_reach_id", "us_network_to_id"]
-            ].fillna("None")
-            ds_id_df[["ds_reach_id", "ds_network_to_id"]] = ds_id_df[
-                ["ds_reach_id", "ds_network_to_id"]
-            ].fillna("None")
-            df = df.fillna("None")
+            # Should the ids not be available in the conflation, must initialize columns
+            ds_id_df = df['ds_ids'].apply(pd.Series)
+            if ds_id_df.shape[1]==0:
+                ds_id_df = pd.DataFrame(np.nan, index=range(ds_id_df.shape[0]), columns=[0, 1])
+            ds_id_df.columns=['ds_reach_id', 'ds_network_to_id']
+            
+            # Fill any nan to string 
+            us_id_df[['us_reach_id', 'us_network_to_id']] = us_id_df[['us_reach_id', 'us_network_to_id']].fillna('None')
+            ds_id_df[['ds_reach_id', 'ds_network_to_id']] = ds_id_df[['ds_reach_id', 'ds_network_to_id']].fillna('None')
+            df = df.fillna('None')
             df = pd.concat([df, us_id_df, ds_id_df], axis=1)
             df = df.drop(["us_ids", "ds_ids"], axis=1)
 
@@ -570,12 +567,13 @@ class MapData:
 
         return
 
-    def save_xsbyhuc_data(self):
-        """
+    def save_xsbyhuc_data(self, xs_data_type):
+        '''
         Consolidate HEC-RAS models cross-sections based on HUC & save to storage
 
         Args:
-            None
+            xs_data_type (str): Cross-section data type to be saved either 'mip' or 'ble' cross-section type.
+                                Options: 'mip' or 'ble'
 
         Return: None
 
@@ -586,18 +584,22 @@ class MapData:
         unique_huc_nums = set(self.consolidated_id2xs["huc"])
         for huc_num in unique_huc_nums:
             # Generate data folder per HUC
-            if not os.path.exists(f"{os.getcwd()}/xs_data/mip_{huc_num}"):
-                os.makedirs(f"{os.getcwd()}/xs_data/mip_{huc_num}")
-
+            if not os.path.exists(f'{os.getcwd()}/xs_data/{xs_data_type}_{huc_num}'):
+                os.makedirs(f'{os.getcwd()}/xs_data/{xs_data_type}_{huc_num}')
+                
             # Filter consolidated XS geopanda dataframe by HUC
             filterbyhuc = self.consolidated_id2xs[self.consolidated_id2xs["huc"] == huc_num]
 
             # Save XS as geoparquet per HUC
-            filterbyhuc.to_parquet(
-                f"{os.getcwd()}/xs_data/mip_{huc_num}/huc_{huc_num}.parquet", engine="pyarrow"
-            )
-
+            filterbyhuc['thalweg'] = filterbyhuc['thalweg'].astype(str)
+            filterbyhuc['xs_max_elevation'] = filterbyhuc['xs_max_elevation'].astype(str)
+            filterbyhuc.to_parquet(f'{os.getcwd()}/xs_data/{xs_data_type}_{huc_num}/huc_{huc_num}.parquet', 
+                                    engine="pyarrow")
+        
             # Save XS as geopackage per HUC
-            filterbyhuc.to_file(f"{os.getcwd()}/xs_data/mip_{huc_num}/huc_{huc_num}.gpkg", driver="GPKG")
-
+            filterbyhuc.to_file(f'{os.getcwd()}/xs_data/{xs_data_type}_{huc_num}/huc_{huc_num}.gpkg', 
+                                  driver='GPKG')
+            
+            print(f'{xs_data_type}_{huc_num}')
+            
         return
