@@ -1040,7 +1040,7 @@ wheels = [
 
 [[package]]
 name = "icefabric"
-version = "0.2.0"
+version = "2025.5"
 source = { virtual = "." }
 
 [package.optional-dependencies]
@@ -1097,7 +1097,7 @@ dev = [
 
 [[package]]
 name = "icefabric-manage"
-version = "0.1.0"
+version = "2025.5"
 source = { editable = "src/icefabric_manage" }
 dependencies = [
     { name = "fiona" },
@@ -1122,7 +1122,7 @@ requires-dist = [
 
 [[package]]
 name = "icefabric-tools"
-version = "0.1.0"
+version = "2025.5"
 source = { editable = "src/icefabric_tools" }
 dependencies = [
     { name = "fiona" },
