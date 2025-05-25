@@ -15,6 +15,9 @@ source .venv/bin/activate
 uv sync
 ```
 
+### Development
+To ensure that icefabric follows the specified structure, be sure to install the local dev dependencies and run `pre-commit install`
+
 ### Documentation
 To build the user guide documentation for Icefabric locally, run the following commands:
 ```sh
