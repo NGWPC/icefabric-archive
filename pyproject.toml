@@ -32,7 +32,11 @@ icefabric_tools = { workspace = true }
 icefabric_manage = { workspace = true }
 
 [tool.uv.workspace]
-members = ["src/icefabric_manage", "src/icefabric_tools"]
+members = [
+    "src/icefabric_manage",
+ "src/icefabric_tools",
+ "src/icefabric_api",
+]
 
 [tool.uv]
 dev-dependencies = [
