@@ -1,11 +1,14 @@
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pyiceberg.catalog import load_catalog
 
 from icefabric_manage import build
 
+load_dotenv()
+
 if __name__ == "__main__":
-    warehouse_path = Path("../data/warehouse")
+    warehouse_path = Path("/tmp/warehouse")
     warehouse_path.mkdir(exist_ok=True)
     catalog_settings = {
         "type": "sql",
@@ -15,13 +18,10 @@ if __name__ == "__main__":
 
     namespace = "observations"
     catalog = load_catalog(namespace, **catalog_settings)
-
-    data_dir = Path("../data/observations/")
-    if data_dir.exists() is False:
-        raise FileNotFoundError("Cannot find parquet data dir")
     build(
         catalog=catalog,
-        file_dir=data_dir,
-        namespace=namespace
+        parquet_file="s3://hydrofabric-data/icefabric/observations/usgs_hourly.parquet",
+        namespace=namespace,
+        table_name="usgs_hourly",
     )
     print("Build successful")
