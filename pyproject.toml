@@ -28,14 +28,15 @@ docs = [
 ]
 
 [tool.uv.sources]
-icefabric_tools = { workspace = true }
+icefabric_api = { workspace = true }
 icefabric_manage = { workspace = true }
+icefabric_tools = { workspace = true }
 
 [tool.uv.workspace]
 members = [
+    "src/icefabric_api",
     "src/icefabric_manage",
- "src/icefabric_tools",
- "src/icefabric_api",
+    "src/icefabric_tools",
 ]
 
 [tool.uv]
@@ -47,10 +48,11 @@ dev-dependencies = [
   "ruff==0.11.0",
   "black==25.1.0",
   "mypy==1.15.0",
-  "icefabric_manage",
-  "icefabric_tools",
   "examples",
   "boto3",
+  "icefabric_api",
+  "icefabric_manage",
+  "icefabric_tools",
 ]
 package = false
 

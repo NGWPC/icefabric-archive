@@ -1,6 +1,6 @@
 [project]
 name = "icefabric-api"
-version = "0.1.0"
+version = "2025.5.0"
 description = "A FastAPI API for querying apache iceberg tables"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"

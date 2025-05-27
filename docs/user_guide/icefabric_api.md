@@ -8,14 +8,18 @@ The Icefabric API is a FastAPI-based service that provides access to EDFS data s
 
 The API consists of several key components:
 
-1. **Main Application** (`main.py`) - FastAPI application with health checks and router configuration
+1. **Main Application** (`app/main.py`) - FastAPI application with health checks and router configuration
 2. **Data Routers** - Handles all data endpoints. Currently only working with streamflow observations
 3. **Apache Iceberg Backend** - SQLite-backed catalog stored in `/tmp/warehouse` built using `icefabric_manage`
 
-## How It Works
+## Building the API through Docker
+To run the API locally, ensure your `.env` file in your project root has the right credentials, then run
+```sh
+docker compose -f docker/compose.yaml up
+```
+This should spin up the API services
 
-!!! info "API Overview"
-    The API provides RESTful endpoints to query, filter, and export streamflow observations in multiple formats (CSV, Parquet) with comprehensive metadata support.
+## How It Works
 
 ### Data Flow
 
@@ -26,6 +30,7 @@ The API consists of several key components:
 
 ### Supported Data Sources
 
+#### Observations
 Currently supports:
 - **USGS** - United States Geological Survey hourly streamflow data
 
@@ -104,7 +109,7 @@ catalog_settings = {
 uv sync
 
 # Start development server
-python src/icefabric_api/main.py
+python src/icefabric_api/app/main.py
 ```
 
 ### Adding New Data Sources
