@@ -38,5 +38,5 @@ RUN python build_hydrofabric.py
 RUN python build_usgs_streamflow_observations.py
 
 # Run the API
-WORKDIR /app
-CMD ["python", "/app/src/icefabric_api/app/main.py"]
+WORKDIR /app/src/icefabric_api
+CMD ["python", "-m", "app.main"]
