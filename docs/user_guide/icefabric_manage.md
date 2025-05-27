@@ -9,7 +9,7 @@ IceFabric Manage is a Python package that simplifies building Apache Iceberg cat
 The system consists of two main components:
 
 1. **Core API** (`src/icefabric_manage/_api.py`) - Contains the table building logic
-2. **Build Scripts** (`scripts/`) - Orchestrates the catalog creation process for specific datasets
+2. **Build Scripts** (`builds/`) - Orchestrates the catalog creation process
 
 ## How It Works
 
@@ -31,12 +31,15 @@ The system consists of two main components:
 ```text
 project/
 ├── src/icefabric_manage/
-│   └── _api.py                      # Core table building functions
-├── scripts/
-│   ├── build_hydrofabric.py         # Hydrofabric dataset build script
-│   └── build_usgs_streamflow_observations.py  # USGS observations build script
-/tmp/warehouse/                  # Iceberg catalog storage (auto-created)
-└── pyiceberg_catalog.db
+│   └── _api.py                 # Core table building functions
+├── build_hydrofabric.py        # Main build script
+└── data/
+    ├── warehouse/              # Iceberg catalog storage (auto-created)
+    │   └── pyiceberg_catalog.db
+    └── hydrofabric/            # Source Parquet files
+        ├── divides.parquet
+        ├── nexus.parquet
+        └── ...
 ```
 
 ## Usage
@@ -234,65 +237,25 @@ catalog_settings = {
 !!! tip "Recommendations"
     1. **Table Naming** - Use descriptive table names that reflect the data content
     2. **Data Preparation** - Ensure timestamps are properly formatted before building
-    3. **Incremental Builds** - The system skips existing tables, making it safe to re-run
-    4. **Environment Variables** - Use `.env` files for configuration management
-    5. **S3 Credentials** - Ensure proper AWS credentials for S3 access
-    6. **Testing** - Test with individual files before processing large datasets
 
-## Troubleshooting
+In most functions, it's predefined to the user's `/tmp` dir since it's the same per each user's machine
 
-### Common Errors
+## Customization
 
-!!! failure "Timestamp Precision Error"
-    ```text
-    TypeError: Iceberg does not yet support 'ns' timestamp precision
-    ```
-    **Solution:** Convert timestamps to microsecond precision in your Parquet files
+The following customizations can be done to update where/what is being added to the PyIceberg table
 
-!!! failure "S3 Access Denied"
-    ```text
-    AccessDenied: Access Denied
-    ```
-    **Solution:** Verify AWS credentials and S3 bucket permissions
+### Changing Data Directory
 
-!!! failure "File Not Found"
-    ```text
-    FileNotFoundError: Cannot find parquet file
-    ```
-    **Solution:** Verify the S3 URL or local file path is correct
-
-!!! info "Table Already Exists"
-    ```text
-    Table {table_name} already exists. Skipping build
-    ```
-    **Solution:** This is expected behavior - existing tables are skipped safely
-
-### Verification
-
-After building, verify your catalog:
+Modify the `data_dir` path in `build_hydrofabric.py`:
 
 ```python
-from pyiceberg.catalog import load_catalog
-
-catalog_settings = {
-    "type": "sql",
-    "uri": "sqlite:////tmp/warehouse/pyiceberg_catalog.db",
-    "warehouse": "file:///tmp/warehouse",
-}
-
-catalog = load_catalog("hydrofabric", **catalog_settings)
-print(catalog.list_tables("hydrofabric"))  # List all tables
-table = catalog.load_table("hydrofabric.divides")  # Load specific table
-print(table.scan().to_pandas().head())  # Query sample data
+data_dir = Path("/path/to/your/parquet/files")
 ```
 
-## Next Steps
+### Different Namespace
 
-Once tables are built, you can:
-- Query data using PyIceberg's scan API
-- Build FastAPI endpoints to serve data
-- Connect to analytics tools that support Iceberg
-- Perform time-series analysis on the structured data
-- Use the tables for geospatial analysis and visualization
+Change the namespace name:
 
-The Iceberg format provides ACID transactions, schema evolution, and efficient querying capabilities for your hydrofabric and observational datasets.
+```python
+namespace = "your_namespace"
+```

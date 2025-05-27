@@ -31,6 +31,8 @@ docker compose -f docker/compose.yaml build --no-cache
 docker compose -f docker/compose.yaml up
 ```
 This should spin up the API services
+```
+
 
 ### Development
 To ensure that icefabric follows the specified structure, be sure to install the local dev dependencies and run `pre-commit install`
