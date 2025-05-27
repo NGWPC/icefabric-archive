@@ -176,3 +176,5 @@ cython_debug/
 .qodo
 _version.py
 data/
+.db
+.zarr

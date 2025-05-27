@@ -6,7 +6,10 @@ to S3 pathing and Icechunk repos
 """
 
 import subprocess
+import warnings
 from enum import Enum
+from pathlib import Path
+from typing import Any
 
 import icechunk as ic
 import xarray as xr
@@ -218,6 +221,11 @@ class IcechunkS3Repo:
         """
         session = self.create_session(read_only, branch)
         ds = xr.open_zarr(session.store, consolidated=False, chunks={})
+
+        # geotiff rasters saved in zarr need to be convereted to spatial-aware xarray with rioxarray
+        if "spatial_ref" in ds.data_vars:
+            ds.rio.write_crs(ds.spatial_ref.spatial_ref, inplace=True)
+
         return ds
 
     def write_dataset(
@@ -274,6 +282,103 @@ class IcechunkS3Repo:
         snapshot = session.commit(commit)
         print(f"Dataset has been appended on the {append_dim} dimension. Commit: {snapshot}")
 
+    def retrieve_and_convert_to_tif(
+        self,
+        dest: str | Path,
+        var_name: str = None,
+        branch: str | None = "main",
+        compress: str = "lzw",
+        tiled: bool = True,
+        minx: float | None = None,
+        miny: float | None = None,
+        maxx: float | None = None,
+        maxy: float | None = None,
+        profile_kwargs: dict[Any, Any] = None,
+    ) -> None:
+        """A function to retrieve a raster icechunk dataset and download as a tif.
+
+        Parameters
+        ----------
+        dest : str | Path
+            Destination file path for tiff
+        var_name : str, optional
+            Name of xarray variable to be used for raster data, by default None
+        branch : str | None, optional
+            Icechunk repo branch to be opened, by default "main"
+        compress : str, optional
+            Specify a compression type for raster, by default "lzw"
+        tiled : bool, optional
+           Specify if raster should be tiled or not. Cloud-Optimized Geotiffs (COG) must be tiled, by default True
+        minx : float | None, optional
+            Specify a bounding box minimum x. Must have all [minx, miny, maxx, maxy] specified, by default None
+        miny : float | None, optional
+           Specify a bounding box minimum y. Must have all [minx, miny, maxx, maxy] specified, by default None
+        maxx : float | None, optional
+           Specify a bounding box maximum x. Must have all [minx, miny, maxx, maxy] specified, by default None
+        maxy : float | None, optional
+            Specify a bounding box maximum x. Must have all [minx, miny, maxx, maxy] specified, by default None
+        profile_kwargs : dict[Any, Any], optional
+            Any additional profile keywords accepted by GDAL geotiff driver
+            (https://gdal.org/en/stable/drivers/raster/gtiff.html#creation-options), by default None
+
+
+        Raises
+        ------
+        AttributeError
+            If an xarray dataset does not have a "band" attribute in coordinates, the file is not deemed a raster
+            and will raise error.
+        """
+        ds = self.retrieve_dataset(self.repo, read_only=True, branch=branch)
+
+        try:
+            _ = ds.coords.band
+        except AttributeError as e:
+            raise AttributeError("Dataset needs a 'band' coordinate to export geotiff") from e
+
+        # infer variable name if none provided - MAY HAVE UNEXPECTED RESULTS
+        if not var_name:
+            var_name = self._infer_var_name_for_geotiff(list(ds.data_vars.variables))
+
+        # clip to window
+        if minx and miny and maxx and maxy:
+            subset = ds.rio.clip_box(minx=minx, miny=miny, maxx=maxx, maxy=maxy)
+            subset[var_name].rio.to_raster(dest, compress=compress, tiled=tiled, **profile_kwargs)
+            del subset
+            print(f"Saved clipped window to {dest}")
+
+        else:
+            ds[var_name].rio.to_raster(dest, compress=compress, tiled=tiled, **profile_kwargs)
+            del ds
+            print(f"Saved dataset to {dest}")
+
+    def _infer_var_name_for_geotiff(self, variable_list: list) -> str:
+        """Infer a variable name for saving a geotiff from xarray variables
+
+        Picks the first variable that isn't 'spatial_ref'. In zarr, 'spatial_ref' from CRS is moved
+        from coordinates to variables. We want a variable that is not it.
+        This arbitarily picks the first variable.
+
+        Parameters
+        ----------
+        variable_list : list
+            Output of list(ds.data_vars.variables)
+
+        Returns
+        -------
+        str
+            Variable name to use for geotif generation
+        """
+        if "spatial_ref" in variable_list:
+            variable_list.remove("spatial_ref")
+        var_name = variable_list[0]
+        warnings.warn(
+            UserWarning,
+            f"Inferring xarray variable name {var_name} for raster data. This may have unintended consequences."
+            "Open dataset separately to check variable names to insure correct output.",
+            stacklevel=2,
+        )
+        return var_name
+
 
 @staticmethod
 def set_up_virtual_chunk_container(bucket: str, region: str) -> ic.VirtualChunkContainer:
@@ -304,5 +409,4 @@ def set_up_virtual_chunk_container(bucket: str, region: str) -> ic.VirtualChunkC
 @staticmethod
 def get_icechunk_data(repo: NGWPCLocations) -> xr.Dataset:
     """Return data from a designated NGWPCLocations Icechunk repo"""
-    ic_repo = IcechunkS3Repo(location=repo.path)
-    return ic_repo.retrieve_dataset()
+    return IcechunkS3Repo(location=repo.path).retrieve_dataset()
