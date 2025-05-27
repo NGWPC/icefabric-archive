@@ -7,10 +7,20 @@
 
 An [Apache Iceberg](https://py.iceberg.apache.org/) implementation of the Hydrofabric to disseminate continental hydrologic data
 
-#### Credits:
-
-Lynker and its contributors
+### Getting Started
+This repo is managed through [UV](https://docs.astral.sh/uv/getting-started/installation/) and can be installed through:
+```sh
+uv venv
+source .venv/bin/activate
+uv sync
 ```
-Johnson, J. M. (2022). National Hydrologic Geospatial Fabric (hydrofabric) for the Next Generation (NextGen) Hydrologic Modeling Framework,
-HydroShare http://www.hydroshare.org/resource/129787b468aa4d55ace7b124ed27dbde
+
+### Development
+To ensure that icefabric follows the specified structure, be sure to install the local dev dependencies and run `pre-commit install`
+
+### Documentation
+To build the user guide documentation for Icefabric locally, run the following commands:
+```sh
+uv pip install ".[docs]"
+mkdocs serve
 ```
