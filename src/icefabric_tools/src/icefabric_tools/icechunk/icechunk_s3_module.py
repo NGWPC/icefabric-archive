@@ -328,16 +328,17 @@ class IcechunkS3Repo:
             If an xarray dataset does not have a "band" attribute in coordinates, the file is not deemed a raster
             and will raise error.
         """
-        ds = self.retrieve_dataset(self.repo, read_only=True, branch=branch)
+        ds = self.retrieve_dataset(read_only=True, branch=branch)
 
-        try:
-            _ = ds.coords.band
-        except AttributeError as e:
-            raise AttributeError("Dataset needs a 'band' coordinate to export geotiff") from e
+        if "band" not in ds.coords.dims:
+            raise AttributeError("Dataset needs a 'band' coordinate to export geotiff")
 
         # infer variable name if none provided - MAY HAVE UNEXPECTED RESULTS
         if not var_name:
             var_name = self._infer_var_name_for_geotiff(list(ds.data_vars.variables))
+
+        # initialize keywords dict if none
+        profile_kwargs = {} if not profile_kwargs else profile_kwargs
 
         # clip to window
         if minx and miny and maxx and maxy:
@@ -406,7 +407,6 @@ def set_up_virtual_chunk_container(bucket: str, region: str) -> ic.VirtualChunkC
     )
 
 
-@staticmethod
 def get_icechunk_data(repo: NGWPCLocations) -> xr.Dataset:
-    """Return data from a designated NGWPCLocations Icechunk repo"""
+    """Convenience wrapper to return data from a designated NGWPCLocations Icechunk repo"""
     return IcechunkS3Repo(location=repo.path).retrieve_dataset()

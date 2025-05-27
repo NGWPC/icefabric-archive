@@ -176,5 +176,8 @@ cython_debug/
 .qodo
 _version.py
 data/
-.db
+*.db
+*.zarr
 .zarr
+*.tiff
+*.tif

@@ -40,6 +40,7 @@ dependencies = [
   "fsspec==2025.5.0",
   "dask==2025.5.1",
   "netCDF4==1.7.2",
+  "dotenv",
 ]
 
 [build-system]
