@@ -24,4 +24,4 @@ if __name__ == "__main__":
         namespace=namespace,
         table_name="usgs_hourly",
     )
-    print("Build successful")
+    print(f"Build successful. Files written into metadata store @ {warehouse_path}")
