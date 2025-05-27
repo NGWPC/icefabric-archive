@@ -23,12 +23,13 @@ def load_hydrofabric(catalog_settings: dict[str, str]) -> Catalog:
     """
     return load_catalog("hydrofabric", **catalog_settings)
 
+
 def table_to_geopandas(
     table: Table,
     row_filter: str | BooleanExpression = ALWAYS_TRUE,
     case_sensitive: bool | None = True,
     snapshot_id: int | None = None,
-    limit: int | None = None
+    limit: int | None = None,
 ) -> gpd.GeoDataFrame:
     """Converts a table to a geopandas dataframe
 
@@ -61,10 +62,7 @@ def table_to_geopandas(
     return to_geopandas(df)
 
 
-def to_geopandas(
-    df: pd.DataFrame,
-    crs: str = "EPSG:5070"
-) -> gpd.GeoDataFrame:
+def to_geopandas(df: pd.DataFrame, crs: str = "EPSG:5070") -> gpd.GeoDataFrame:
     """Converts the geometries in a pandas df to a geopandas dataframe
 
     Parameters
@@ -91,7 +89,7 @@ def to_geopandas(
     return gpd.GeoDataFrame(df, geometry=geometry, crs=crs)
 
 
-def find_origin(network_table: Table, identifier: str, id_type: str ="hl_uri") -> pd.DataFrame:
+def find_origin(network_table: Table, identifier: str, id_type: str = "hl_uri") -> pd.DataFrame:
     """Find an origin point in the hydrofabric network.
 
     This function handles the case where multiple records match the identifier.
