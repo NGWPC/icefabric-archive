@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI, status
 from pydantic import BaseModel
 
-from .routers.streamflow_observations.router import api_router as streamflow_api_router
+from app.routers.streamflow_observations.router import api_router as streamflow_api_router
 
 app = FastAPI(
     title="Icefabric API",
@@ -37,4 +37,4 @@ def get_health() -> HealthCheck:
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")

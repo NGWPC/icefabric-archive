@@ -15,9 +15,19 @@ source .venv/bin/activate
 uv sync
 ```
 
-### Building the API through Docker
+### Running the API locally
 To run the API locally, ensure your `.env` file in your project root has the right credentials, then run
 ```sh
+uv pip install -e src/icefabric_api
+cd src/icefabric_api
+python -m app.main
+```
+This should spin up the API services
+
+### Building the API through Docker
+To run the API locally with Docker, ensure your `.env` file in your project root has the right credentials, then run
+```sh
+docker compose -f docker/compose.yaml build --no-cache
 docker compose -f docker/compose.yaml up
 ```
 This should spin up the API services

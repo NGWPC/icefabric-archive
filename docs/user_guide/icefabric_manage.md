@@ -143,7 +143,7 @@ Each layer is read from `s3://hydrofabric-data/icefabric/hydrofabric/{layer}.par
 ### USGS Streamflow Observations Build Script
 
 The `build_usgs_streamflow_observations.py` script processes USGS hourly streamflow data:
-- Source: `s3://hydrofabric-data/icefabric/observations/usgs_hourly.parquet`
+- Source: `s3://hydrofabric-data/icefabric/streamflow_observations/usgs_hourly.parquet`
 - Namespace: `observations`
 - Table: `usgs_hourly`
 

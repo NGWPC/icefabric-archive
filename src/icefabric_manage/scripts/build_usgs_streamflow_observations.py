@@ -20,7 +20,7 @@ if __name__ == "__main__":
     catalog = load_catalog(namespace, **catalog_settings)
     build(
         catalog=catalog,
-        parquet_file="s3://hydrofabric-data/icefabric/observations/usgs_hourly.parquet",
+        parquet_file="s3://hydrofabric-data/icefabric/streamflow_observations/usgs_hourly.parquet",
         namespace=namespace,
         table_name="usgs_hourly",
     )

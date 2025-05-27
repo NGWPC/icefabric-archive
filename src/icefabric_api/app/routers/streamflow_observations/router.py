@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Path, Query
 from fastapi.responses import Response
 from pyiceberg.catalog import load_catalog
 
-api_router = APIRouter(prefix="/observations")
+api_router = APIRouter(prefix="/streamflow_observations")
 
 catalog_settings: dict = {
     "type": "sql",
@@ -58,12 +58,58 @@ def validate_identifier(data_source: DataSource, identifier: str):
     return catalog, table, config
 
 
+@api_router.get("/{data_source}/available")
+async def get_available_identifiers(
+    data_source: DataSource = Path(..., description="Data source type"),
+    limit: int = Query(100, description="Maximum number of IDs to return"),
+):
+    """
+    Get list of available identifiers for a data source
+
+    Examples
+    --------
+    GET /data/usgs/available
+    GET /data/usgs/available?limit=50
+    """
+    try:
+        _, table, config = get_catalog_and_table(data_source)
+
+        schema = table.schema()
+        # Get all columns except time column
+        identifier_columns = [field.name for field in schema.fields if field.name != config["time_column"]]
+
+        return {
+            "data_source": data_source.value,
+            "description": config["description"],
+            "total_identifiers": len(identifier_columns),
+            "identifiers": sorted(identifier_columns)[:limit],
+            "showing": min(limit, len(identifier_columns)),
+            "units": config["units"],
+        }
+
+    except HTTPException as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 @api_router.get("/{data_source}/csv")
 async def get_data_csv(
     data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Query(..., description="Station/gauge ID", examples="01010000"),
-    start_date: datetime | None = Query(None, description="Start date", examples="2021-12-31T14:00:00"),
-    end_date: datetime | None = Query(None, description="End date", examples="2022-01-01T14:00:00"),
+    identifier: str = Query(
+        ...,
+        description="Station/gauge ID",
+        examples=["01010000"],
+        openapi_examples={"station_example": {"summary": "USGS Gauge", "value": "01010000"}},
+    ),
+    start_date: datetime | None = Query(
+        None,
+        description="Start Date",
+        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2021-12-31T14:00:00"}},
+    ),
+    end_date: datetime | None = Query(
+        None,
+        description="End Date",
+        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2022-01-01T14:00:00"}},
+    ),
     include_headers: bool = Query(True, description="Include CSV headers"),
 ):
     """
@@ -121,9 +167,22 @@ async def get_data_csv(
 @api_router.get("/{data_source}/parquet")
 async def get_data_parquet(
     data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Query(..., description="Station/gauge ID", examples="01010000"),
-    start_date: datetime | None = Query(None, description="Start date", examples="2021-12-31T14:00:00"),
-    end_date: datetime | None = Query(None, description="End date", examples="2022-01-01T14:00:00"),
+    identifier: str = Query(
+        ...,
+        description="Station/gauge ID",
+        examples=["01010000"],
+        openapi_examples={"station_example": {"summary": "USGS Gauge", "value": "01010000"}},
+    ),
+    start_date: datetime | None = Query(
+        None,
+        description="Start Date",
+        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2021-12-31T14:00:00"}},
+    ),
+    end_date: datetime | None = Query(
+        None,
+        description="End Date",
+        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2022-01-01T14:00:00"}},
+    ),
 ):
     """
     Get data as Parquet file for any data source
@@ -184,16 +243,52 @@ async def get_data_parquet(
 
 
 @api_router.get("/{data_source}/info")
-async def get_data_info(
+async def get_data_source_info(
     data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Query(..., description="Station/gauge ID"),
 ):
     """
     Get information about dataset size and recommendations
 
     Examples
     --------
-    GET /data/usgs/info?identifier=01031500
+    GET /data/usgs/info
+    """
+    try:
+        _, table, config = get_catalog_and_table(data_source)
+
+        df = table.inspect.snapshots().to_pandas()
+
+        # Converting to an int rather than a numpy.int64
+        latest_snapshot_id = int(df.loc[df["committed_at"].idxmax(), "snapshot_id"])
+        snapshots = table.inspect.snapshots().to_pydict()
+
+        snapshots = dict(snapshots)
+        # Converting to an int rather than a numpy.int64
+        if "snapshot_id" in snapshots and snapshots["snapshot_id"]:
+            snapshots["snapshot_id"] = [int(sid) for sid in snapshots["snapshot_id"]]
+
+        return {
+            "data_source": data_source.value,
+            "latest_snapshot": latest_snapshot_id,
+            "description": config["description"],
+            "units": config["units"],
+            "snapshots": snapshots,
+        }
+    except HTTPException as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@api_router.get("/{data_source}/{identifier}/info")
+async def get_data_info(
+    data_source: DataSource = Path(..., description="Data source type"),
+    identifier: str = Path(..., description="Station/gauge ID", examples=["01031500"]),
+):
+    """
+    Get information about dataset size and recommendations
+
+    Examples
+    --------
+    GET /data/usgs/01031500/info
     """
     try:
         _, table, config = validate_identifier(data_source, identifier)
@@ -222,67 +317,6 @@ async def get_data_info(
         raise
     except ValueError as e:
         Response(content=f"Error: {str(e)}", status_code=500, media_type="text/plain")
-
-
-@api_router.get("/{data_source}/available")
-async def get_available_identifiers(
-    data_source: DataSource = Path(..., description="Data source type"),
-    limit: int = Query(100, description="Maximum number of IDs to return"),
-):
-    """
-    Get list of available identifiers for a data source
-
-    Examples
-    --------
-    GET /data/usgs/available
-    GET /data/usgs/available?limit=50
-    """
-    try:
-        _, table, config = get_catalog_and_table(data_source)
-
-        schema = table.schema()
-        # Get all columns except time column
-        identifier_columns = [field.name for field in schema.fields if field.name != config["time_column"]]
-
-        return {
-            "data_source": data_source.value,
-            "description": config["description"],
-            "total_identifiers": len(identifier_columns),
-            "identifiers": sorted(identifier_columns)[:limit],
-            "showing": min(limit, len(identifier_columns)),
-            "units": config["units"],
-        }
-
-    except HTTPException as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@api_router.get("/{data_source}")
-async def get_data_source_info(
-    data_source: DataSource = Path(..., description="Data source type"),
-):
-    """
-    Get information about dataset size and recommendations
-
-    Examples
-    --------
-    GET /data/usgs/
-    """
-    try:
-        _, table, config = get_catalog_and_table(data_source)
-
-        snapshots = table.inspect.snapshots().to_pandas()
-        latest_snapshot_id = snapshots.loc[snapshots["committed_at"].idxmax(), "snapshot_id"]
-
-        return {
-            "data_source": data_source.value,
-            "latest_snapshot": latest_snapshot_id,
-            "description": config["description"],
-            "units": config["units"],
-            "snapshots": snapshots.to_pydict(),
-        }
-    except HTTPException as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @api_router.get("/sources")

@@ -12,9 +12,19 @@ The API consists of several key components:
 2. **Data Routers** - Handles all data endpoints. Currently only working with streamflow observations
 3. **Apache Iceberg Backend** - SQLite-backed catalog stored in `/tmp/warehouse` built using `icefabric_manage`
 
-## Building the API through Docker
+### Running the API locally
 To run the API locally, ensure your `.env` file in your project root has the right credentials, then run
 ```sh
+uv pip install -e src/icefabric_api
+cd src/icefabric_api
+python -m app.main
+```
+This should spin up the API services
+
+### Building the API through Docker
+To run the API locally with Docker, ensure your `.env` file in your project root has the right credentials, then run
+```sh
+docker compose -f docker/compose.yaml build --no-cache
 docker compose -f docker/compose.yaml up
 ```
 This should spin up the API services
@@ -47,7 +57,7 @@ import pandas as pd
 from io import StringIO, BytesIO
 
 # Base URL
-base_url = "http://localhost:8000/v1/observations"
+base_url = "http://localhost:8000/v1/streamflow_observations"
 
 # Get station information
 response = requests.get(f"{base_url}/usgs/info", params={"identifier": "01031500"})
@@ -156,17 +166,17 @@ Test your API setup:
 ```bash
 
 # List available sources
-curl http://localhost:8000/v1/observations/sources
+curl http://localhost:8000/v1/streamflow_observations/sources
 
 # Test with a known identifier
-curl "http://localhost:8000/v1/observations/usgs/available?limit=1"
+curl "http://localhost:8000/v1/streamflow_observations/usgs/available?limit=1"
 
 # Get a CSV reponse
-curl "http://localhost:8000/v1/observations/usgs/csv?identifier=01010000&include_headers=true"
+curl "http://localhost:8000/v1/streamflow_observations/usgs/csv?identifier=01010000&include_headers=true"
 
 # Fitler based on timestamps
-curl "http://localhost:8000/v1/observations/usgs/csv?identifier=01010000&start_date=2021-12-31T14%3A00%3A00&end_date=2022-01-01T14%3A00%3A00&include_headers=true"
+curl "http://localhost:8000/v1/streamflow_observations/usgs/csv?identifier=01010000&start_date=2021-12-31T14%3A00%3A00&end_date=2022-01-01T14%3A00%3A00&include_headers=true"
 
 # Get a Parquet Response
-curl "http://localhost:8000/v1/observations/usgs/parquet\?identifier\=01010000\&start_date\=2021-12-31T14%3A00%3A00\&end_date\=2022-01-01T14%3A00%3A00" -o "output.parquet"
+curl "http://localhost:8000/v1/streamflow_observations/usgs/parquet\?identifier\=01010000\&start_date\=2021-12-31T14%3A00%3A00\&end_date\=2022-01-01T14%3A00%3A00" -o "output.parquet"
 ```
