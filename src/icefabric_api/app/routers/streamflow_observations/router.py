@@ -216,10 +216,6 @@ async def get_data_info(
                 "csv_mb": round(len(df_clean) * 25 / 1024 / 1024, 2),
                 "parquet_mb": round(len(df_clean) * 8 / 1024 / 1024, 2),
             },
-            "recommendations": {
-                "best_format": "parquet" if len(df_clean) > 50000 else "csv",
-                "use_date_filters": len(df_clean) > 200000,
-            },
         }
 
     except HTTPException:
@@ -257,6 +253,34 @@ async def get_available_identifiers(
             "units": config["units"],
         }
 
+    except HTTPException as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@api_router.get("/{data_source}")
+async def get_data_source_info(
+    data_source: DataSource = Path(..., description="Data source type"),
+):
+    """
+    Get information about dataset size and recommendations
+
+    Examples
+    --------
+    GET /data/usgs/
+    """
+    try:
+        _, table, config = get_catalog_and_table(data_source)
+
+        snapshots = table.inspect.snapshots().to_pandas()
+        latest_snapshot_id = snapshots.loc[snapshots["committed_at"].idxmax(), "snapshot_id"]
+
+        return {
+            "data_source": data_source.value,
+            "latest_snapshot": latest_snapshot_id,
+            "description": config["description"],
+            "units": config["units"],
+            "snapshots": snapshots.to_pydict(),
+        }
     except HTTPException as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
