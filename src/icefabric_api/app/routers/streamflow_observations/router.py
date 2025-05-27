@@ -61,9 +61,9 @@ def validate_identifier(data_source: DataSource, identifier: str):
 @api_router.get("/{data_source}/csv")
 async def get_data_csv(
     data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Query(..., description="Station/gauge ID", example="01010000"),
-    start_date: datetime | None = Query(None, description="Start date", example="2021-12-31T14:00:00"),
-    end_date: datetime | None = Query(None, description="End date", example="2022-01-01T14:00:00"),
+    identifier: str = Query(..., description="Station/gauge ID", examples="01010000"),
+    start_date: datetime | None = Query(None, description="Start date", examples="2021-12-31T14:00:00"),
+    end_date: datetime | None = Query(None, description="End date", examples="2022-01-01T14:00:00"),
     include_headers: bool = Query(True, description="Include CSV headers"),
 ):
     """
@@ -121,9 +121,9 @@ async def get_data_csv(
 @api_router.get("/{data_source}/parquet")
 async def get_data_parquet(
     data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Query(..., description="Station/gauge ID", example="01010000"),
-    start_date: datetime | None = Query(None, description="Start date", example="2021-12-31T14:00:00"),
-    end_date: datetime | None = Query(None, description="End date", example="2022-01-01T14:00:00"),
+    identifier: str = Query(..., description="Station/gauge ID", examples="01010000"),
+    start_date: datetime | None = Query(None, description="Start date", examples="2021-12-31T14:00:00"),
+    end_date: datetime | None = Query(None, description="End date", examples="2022-01-01T14:00:00"),
 ):
     """
     Get data as Parquet file for any data source

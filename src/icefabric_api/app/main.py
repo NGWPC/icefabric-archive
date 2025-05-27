@@ -1,7 +1,8 @@
 import uvicorn
 from fastapi import FastAPI, status
 from pydantic import BaseModel
-from routers.streamflow_observations.router import api_router as streamflow_api_router
+
+from .routers.streamflow_observations.router import api_router as streamflow_api_router
 
 app = FastAPI(
     title="Icefabric API",
