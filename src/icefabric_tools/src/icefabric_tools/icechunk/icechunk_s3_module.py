@@ -303,6 +303,5 @@ def set_up_virtual_chunk_container(bucket: str, region: str) -> ic.VirtualChunkC
 
 @staticmethod
 def get_icechunk_data(repo: NGWPCLocations) -> xr.Dataset:
-    """Return data from a designated NGWPCLocations Icechunk repo"""
-    ic_repo = IcechunkS3Repo(location=repo.path)
-    return ic_repo.retrieve_dataset()
+    """Wrapper to return data from a designated NGWPCLocations Icechunk repo"""
+    return IcechunkS3Repo(location=repo.path).retrieve_dataset()
