@@ -61,9 +61,9 @@ def validate_identifier(data_source: DataSource, identifier: str):
 @api_router.get("/{data_source}/csv")
 async def get_data_csv(
     data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Query(..., description="Station/gauge ID"),
-    start_date: datetime | None = Query(None, description="Start date (yyyy-mm-ddTHH:MM:SS)"),
-    end_date: datetime | None = Query(None, description="End date (yyyy-mm-ddTHH:MM:SS)"),
+    identifier: str = Query(..., description="Station/gauge ID", example="01010000"),
+    start_date: datetime | None = Query(None, description="Start date", example="2021-12-31T14:00:00"),
+    end_date: datetime | None = Query(None, description="End date", example="2022-01-01T14:00:00"),
     include_headers: bool = Query(True, description="Include CSV headers"),
 ):
     """
@@ -77,9 +77,9 @@ async def get_data_csv(
         _, table, config = validate_identifier(data_source, identifier)
         scan_builder = table.scan(selected_fields=[config["time_column"], identifier])
         if start_date:
-            scan_builder = scan_builder.filter(f"{config['time_column']} >= '{start_date}'")
+            scan_builder = scan_builder.filter(f"{config['time_column']} >= '{start_date.isoformat()}'")
         if end_date:
-            scan_builder = scan_builder.filter(f"{config['time_column']} <= '{end_date}'")
+            scan_builder = scan_builder.filter(f"{config['time_column']} <= '{end_date.isoformat()}'")
 
         df = scan_builder.to_pandas()
 
@@ -116,16 +116,14 @@ async def get_data_csv(
 
     except HTTPException:
         raise
-    except ValueError as e:
-        return Response(content=f"Error: {str(e)}", status_code=500, media_type="text/plain")
 
 
 @api_router.get("/{data_source}/parquet")
 async def get_data_parquet(
     data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Query(..., description="Station/gauge ID"),
-    start_date: datetime | None = Query(None, description="Start date (yyyy-mm-ddTHH:MM:SS)"),
-    end_date: datetime | None = Query(None, description="End date (yyyy-mm-ddTHH:MM:SS)"),
+    identifier: str = Query(..., description="Station/gauge ID", example="01010000"),
+    start_date: datetime | None = Query(None, description="Start date", example="2021-12-31T14:00:00"),
+    end_date: datetime | None = Query(None, description="End date", example="2022-01-01T14:00:00"),
 ):
     """
     Get data as Parquet file for any data source
@@ -141,9 +139,9 @@ async def get_data_parquet(
         scan_builder = table.scan(selected_fields=[config["time_column"], identifier])
 
         if start_date:
-            scan_builder = scan_builder.filter(f"{config['time_column']} >= '{start_date}'")
+            scan_builder = scan_builder.filter(f"{config['time_column']} >= '{start_date.isoformat()}'")
         if end_date:
-            scan_builder = scan_builder.filter(f"{config['time_column']} <= '{end_date}'")
+            scan_builder = scan_builder.filter(f"{config['time_column']} <= '{end_date.isoformat()}'")
 
         df = scan_builder.to_pandas()
         if df.empty:
@@ -202,7 +200,7 @@ async def get_data_info(
 
         # Get data info
         df = table.scan(selected_fields=[config["time_column"], identifier]).to_pandas()
-        df_clean = df.dropna(subset=[identifier])
+        df_clean = df.dropna(subset=[identifier])  # Droping NA to determine full date range
 
         return {
             "data_source": data_source.value,
