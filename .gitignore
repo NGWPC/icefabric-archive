@@ -179,3 +179,8 @@ Pipfile
 .qodo
 _version.py
 data/
+*.db
+*.zarr
+.zarr
+*.tiff
+*.tif
