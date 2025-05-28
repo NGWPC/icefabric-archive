@@ -19,7 +19,6 @@ maintainers = [
 readme = "README.md"
 dependencies = [
   "numpy==2.2.6",
-  "fiona==1.10.1",
   "pandas==2.2.3",
   "geopandas==1.0.1",
   "matplotlib==3.10.3",
