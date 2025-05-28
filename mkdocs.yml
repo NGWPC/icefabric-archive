@@ -51,3 +51,5 @@ nav:
   - User Guide:
     - user_guide/index.md
     - Icefabric Manage: user_guide/icefabric_manage.md
+    - Icefabric Tools: user_guide/icefabric_tools.md
+    - Icefabric API: user_guide/icefabric_api.md
