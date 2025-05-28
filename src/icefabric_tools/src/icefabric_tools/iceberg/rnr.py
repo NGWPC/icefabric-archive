@@ -6,7 +6,7 @@ import pandas as pd
 from pyiceberg.catalog import Catalog
 from pyiceberg.expressions import And, EqualTo, In, LessThanOrEqual
 
-from icefabric_tools import table_to_geopandas, to_geopandas
+from icefabric_tools.iceberg.utils import table_to_geopandas, to_geopandas
 
 
 def get_rnr_segment(catalog: Catalog, reach_id: str, output_file: str) -> gpd.GeoDataFrame:
