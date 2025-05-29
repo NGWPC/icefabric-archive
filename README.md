@@ -31,7 +31,6 @@ docker compose -f docker/compose.yaml build --no-cache
 docker compose -f docker/compose.yaml up
 ```
 This should spin up the API services
-```
 
 
 ### Development
