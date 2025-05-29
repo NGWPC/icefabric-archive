@@ -34,7 +34,7 @@ class IdType(str, Enum):
 
 
 # For catchments that may extend in many VPUs
-UPSTREAM_VPUS: dict[str, list[str]] = {"08": ["11", "10U", "10L", "07", "05"]}
+UPSTREAM_VPUS: dict[str, list[str]] = {"08": ["11", "10U", "10L", "08", "07", "05"]}
 
 
 def get_sorted_network(network_df: pd.DataFrame, outlets: list[str] | str) -> pd.DataFrame:
@@ -319,15 +319,13 @@ def subset(
     print(f"Found {len(all_upstream_ids)} upstream segments")
 
     id_filter = In("id", all_upstream_ids)
-    all_upstream = network.scan(row_filter=id_filter).to_pandas()
-
-    filtered_network = network.scan(row_filter=In("id", all_upstream["id"].values)).to_pandas()
+    filtered_network = network.scan(row_filter=id_filter).to_pandas()
     filtered_network["poi_id"] = filtered_network["poi_id"].apply(
         lambda x: str(int(x)) if pd.notna(x) else None
     )
 
     # Get flowpaths for all upstream segments (filter out None values)
-    valid_divide_ids = all_upstream["divide_id"].dropna().drop_duplicates().values.tolist()
+    valid_divide_ids = filtered_network["divide_id"].dropna().drop_duplicates().values.tolist()
     assert valid_divide_ids is not None, "No valid divide_ids found"
     filtered_flowpaths = flowpaths.scan(row_filter=In("divide_id", valid_divide_ids)).to_pandas()
 
