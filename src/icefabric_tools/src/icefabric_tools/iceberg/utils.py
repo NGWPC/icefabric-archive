@@ -2,26 +2,9 @@
 
 import geopandas as gpd
 import pandas as pd
-from pyiceberg.catalog import Catalog, load_catalog
 from pyiceberg.expressions import BooleanExpression
 from pyiceberg.table import ALWAYS_TRUE, Table
 from shapely import wkb
-
-
-def load_hydrofabric(catalog_settings: dict[str, str]) -> Catalog:
-    """A function to read in the hydrofabric catalog
-
-    Parameters
-    ----------
-    catalog_settings : dict[str, str]
-        The settings to read the hydrofabric catalog
-
-    Returns
-    -------
-    Catalog
-        The Iceberg catalog
-    """
-    return load_catalog("hydrofabric", **catalog_settings)
 
 
 def table_to_geopandas(
@@ -151,7 +134,7 @@ def find_origin(network_table: Table, identifier: str, id_type: str = "hl_uri") 
             # Sort by hydroseq and take the minimum
             origin = origin.sort_values("hydroseq").iloc[0:1]
 
-    # If we still have multiple records, it's a problem
+    # Throwing an error for multiple origin points
     if len(origin) > 1:
         raise ValueError(f"Multiple origins found: {origin['id'].tolist()}")
 
