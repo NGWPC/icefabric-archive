@@ -6,19 +6,19 @@ from sqlalchemy.exc import OperationalError
 
 sample_gauges = [
     "gages-01010000",
-    # "gages-02450825",
-    # "gages-03173000",
-    # "gages-04100500",
-    # "gages-05473450",
-    # "gages-06823500",
-    # "gages-07060710",
-    # "gages-08070000",
-    # "gages-09253000",
-    # "gages-10316500",
-    # "gages-11456000",
-    # "gages-12411000",
-    # "gages-13337000",
-    # "gages-14020000",
+    "gages-02450825",
+    "gages-03173000",
+    "gages-04100500",
+    "gages-05473450",
+    "gages-06823500",
+    "gages-07060710",
+    "gages-08070000",
+    "gages-09253000",
+    "gages-10316500",
+    "gages-11456000",
+    "gages-12411000",
+    "gages-13337000",
+    "gages-14020000",
 ]
 
 
@@ -50,7 +50,7 @@ def gauge_hf_uri(request) -> str:
 @pytest.fixture
 def testing_dir() -> Path:
     """Returns the testing data dir"""
-    return Path("tests/data/")
+    return Path(__file__).parent / "data/"
 
 
 def pytest_configure(config):
