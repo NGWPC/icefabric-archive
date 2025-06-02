@@ -27,7 +27,7 @@ class IcebergTable:
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Generate folder for iceberg catalog
         if not os.path.exists(f"{os.getcwd()}/iceberg_catalog"):
             os.makedirs(f"{os.getcwd()}/iceberg_catalog")
@@ -38,7 +38,7 @@ class IcebergTable:
         # Initialize namespace to be set for Iceberg catalog
         self.namespace = ""
 
-    def read_data_dirs(self, data_dir):
+    def read_data_dirs(self, data_dir: str) -> list:
         """
         Extract the list of parquet directories.
 
@@ -52,14 +52,14 @@ class IcebergTable:
 
         """
         parquet_list = []
-        for folder, subfolders, files in os.walk(data_dir):
+        for folder, _subfolders, files in os.walk(data_dir):
             if folder != data_dir:
                 for file in files:
                     parquet_list.append(f"{folder}/{file}")
 
         return parquet_list
 
-    def read_data(self, parquet_file_path):
+    def read_data(self, parquet_file_path: str) -> pa.Table:
         """
         Load a single parquet as a Pyarrow table.
 
@@ -74,7 +74,7 @@ class IcebergTable:
 
         return data
 
-    def establish_catalog(self, catalog_name, namespace):
+    def establish_catalog(self, catalog_name: str, namespace: str) -> None:
         """
         Creates a new Iceberg catalog.
 
@@ -98,7 +98,7 @@ class IcebergTable:
 
         return
 
-    def convert_pyarrow_to_iceberg_schema(self, arrow_schema):
+    def convert_pyarrow_to_iceberg_schema(self, arrow_schema: Schema) -> Schema:
         """
         Translate a given Pyarrow schema into a schema acceptable by Iceberg.
 
@@ -106,7 +106,7 @@ class IcebergTable:
             arrow_schema (object): Pyarrow schema read from the loaded
                                    parquet of interest.
 
-        Return (object): Iceberg schema
+        Return (Iceberge.Schema): Iceberg schema
 
         """
         fields = []
@@ -145,7 +145,7 @@ class IcebergTable:
 
         return schema
 
-    def create_table_for_parquet(self, iceberg_tablename, data_table, schema):
+    def create_table_for_parquet(self, iceberg_tablename: str, data_table: pa.Table, schema: Schema) -> None:
         """
         Convert parquet Pyarrow table to iceberg table & allocate Iceberg catalog under the ./iceberg_catalog directory.
 
@@ -174,7 +174,7 @@ class IcebergTable:
 
         return
 
-    def create_table_for_all_parquets(self, parquet_files, app_name="mip-xs"):
+    def create_table_for_all_parquets(self, parquet_files: list[str], app_name: str = "mip-xs") -> None:
         """
         Convert parquets to Iceberg tables - each w/ their inherited schema.
 
@@ -190,7 +190,7 @@ class IcebergTable:
         'bathymetry_ml_auxiliary' S3 buckets differ.
 
         """
-        for idx, parquet_file in enumerate(parquet_files):
+        for _idx, parquet_file in enumerate(parquet_files):
             if app_name == "mip_xs":
                 iceberg_tablename = f"{os.path.split(os.path.split(parquet_file)[1])[1].split('.')[0]}"
 
@@ -203,12 +203,12 @@ class IcebergTable:
             self.create_table_for_parquet(iceberg_tablename, data_table, schema)
         return
 
-    def create_table_for_all_s3parquets(self, app_name, bucket_name, profile_name="default"):
+    def create_table_for_all_s3parquets(self, app_name: str, bucket_name: str) -> None:
         """
         Convert parquets from S3 to Iceberg tables - each w/ their inherited schema.
 
         Args:
-            bucket_name (list): S3 bucket name.
+            bucket_name (str): S3 bucket name.
 
             app_name (str): Application to create Iceberg tables.
                             Options: 'mip_xs' & 'bathymetry_ml_auxiliary'
@@ -216,14 +216,15 @@ class IcebergTable:
             namespace (str): Namespace for which the Iceberg table will reside within
                              the Iceberg catalog.
 
-            profile_name (str: Profile name declared in the AWS configuration file.
-                               Default: 'default'
-
         Return: None
 
         """
         # Instantiate bucket of interest.
-        session = boto3.Session(profile_name=profile_name)
+        session = boto3.Session(
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+            aws_session_token=os.environ["AWS_SESSION_TOKEN"],
+        )
         s3 = session.resource("s3")
         bucket_ob = s3.Bucket(bucket_name)
         pyarrow_table = {}

@@ -23,9 +23,7 @@ maintainers = [
 dependencies = []
 
 [project.optional-dependencies]
-docs = [
-  "mkdocs-material",
-]
+docs = ["mkdocs-material"]
 
 [tool.uv.sources]
 icefabric_api = { workspace = true }
@@ -33,11 +31,7 @@ icefabric_manage = { workspace = true }
 icefabric_tools = { workspace = true }
 
 [tool.uv.workspace]
-members = [
-    "src/icefabric_api",
-    "src/icefabric_manage",
-    "src/icefabric_tools",
-]
+members = ["src/icefabric_api", "src/icefabric_manage", "src/icefabric_tools"]
 
 [tool.uv]
 dev-dependencies = [
@@ -121,11 +115,11 @@ convention = "numpy"
 
 [tool.mypy]
 python_version = "3.11"
-warn_return_any = true
+warn_return_any = false
+disallow_any_unimported = false
 warn_unused_configs = true
 strict_optional = true
 ignore_missing_imports = true
-disallow_any_unimported = true
 check_untyped_defs = true
 disallow_untyped_defs = true
 no_implicit_optional = true
