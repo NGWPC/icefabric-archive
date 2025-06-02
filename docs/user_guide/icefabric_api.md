@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Icefabric API is a FastAPI-based service that provides access to EDFS data stored in Apache Iceberg format. The API offers multiple data export formats and comprehensive metadata endpoints for hydrology and water resources applications.
+The Icefabric API is a FastAPI-based service that provides access to EDFS data stored in Apache Iceberg format. The API offers multiple data export formats and metadata endpoints for the hydrofabric and streamflow observations.
 
 ## Architecture
 
@@ -44,38 +44,47 @@ This should spin up the API services
 Currently supports:
 - **USGS** - United States Geological Survey hourly streamflow data
 
+#### Hydrofabric
+Provides geospatial watershed data:
+- **Subset Generation** - Creates upstream watershed subsets from identifiers
+
 !!! note "Data Storage"
     All data is stored as Apache Iceberg tables in a SQLite-backed catalog locally built at `/tmp/warehouse/pyiceberg_catalog.db`
 
 ## Usage Examples
 
-### Python Client
+### Streamflow Observations
 
 ```python
 import requests
 import pandas as pd
 from io import StringIO, BytesIO
 
-# Base URL
 base_url = "http://localhost:8000/v1/streamflow_observations"
 
-# Get station information
-response = requests.get(f"{base_url}/usgs/info", params={"identifier": "01031500"})
-info = response.json()
-print(f"Station has {info['total_records']} records")
+# Get available data sources
+sources = requests.get(f"{base_url}/sources").json()
 
-# Download CSV data
+# Get available identifiers for USGS
+identifiers = requests.get(f"{base_url}/usgs/available", params={"limit": 10}).json()
+
+# Get station information
+station_info = requests.get(f"{base_url}/usgs/01031500/info").json()
+print(f"Station has {station_info['total_records']} records")
+
+# Download CSV data with date filtering
 csv_response = requests.get(
     f"{base_url}/usgs/csv",
     params={
         "identifier": "01031500",
         "start_date": "2023-01-01T00:00:00",
-        "end_date": "2023-01-31T23:59:59"
+        "end_date": "2023-01-31T00:00:00",
+        "include_headers": True
     }
 )
 df_csv = pd.read_csv(StringIO(csv_response.text))
 
-# Download Parquet data (more efficient for large datasets)
+# Download Parquet data (recommended for large datasets)
 parquet_response = requests.get(
     f"{base_url}/usgs/parquet",
     params={
@@ -84,6 +93,22 @@ parquet_response = requests.get(
     }
 )
 df_parquet = pd.read_parquet(BytesIO(parquet_response.content))
+```
+
+### Hydrofabric Subset
+
+```python
+import requests
+
+# Download hydrofabric subset as geopackage
+response = requests.get("http://localhost:8000/v1/hydrofabric/01010000/gpkg")
+
+if response.status_code == 200:
+    with open("hydrofabric_subset_01010000.gpkg", "wb") as f:
+        f.write(response.content)
+    print(f"Downloaded {len(response.content)} bytes")
+else:
+    print(f"Error: {response.status_code}")
 ```
 
 ## Performance Considerations
@@ -122,7 +147,7 @@ uv sync
 python src/icefabric_api/app/main.py
 ```
 
-### Adding New Data Sources
+### Adding New Data Observation Sources
 
 To add a new data source, update the configuration in your router:
 
@@ -158,25 +183,46 @@ The API provides interactive documentation at:
 
 Access the OpenAPI schema at: `http://localhost:8000/openapi.json`
 
+## Verification
 
-### Verification
-
-Test your API setup:
+### Observations
 
 ```bash
-
-# List available sources
+# List available data sources
 curl http://localhost:8000/v1/streamflow_observations/sources
 
-# Test with a known identifier
-curl "http://localhost:8000/v1/streamflow_observations/usgs/available?limit=1"
+# Get available identifiers (limit results)
+curl "http://localhost:8000/v1/streamflow_observations/usgs/available?limit=5"
 
-# Get a CSV reponse
+# Get data source information
+curl http://localhost:8000/v1/streamflow_observations/usgs/info
+
+# Get specific station information
+curl http://localhost:8000/v1/streamflow_observations/usgs/01010000/info
+
+# Download CSV with headers
 curl "http://localhost:8000/v1/streamflow_observations/usgs/csv?identifier=01010000&include_headers=true"
 
-# Fitler based on timestamps
+# Download CSV with date filtering
 curl "http://localhost:8000/v1/streamflow_observations/usgs/csv?identifier=01010000&start_date=2021-12-31T14%3A00%3A00&end_date=2022-01-01T14%3A00%3A00&include_headers=true"
 
-# Get a Parquet Response
-curl "http://localhost:8000/v1/streamflow_observations/usgs/parquet\?identifier\=01010000\&start_date\=2021-12-31T14%3A00%3A00\&end_date\=2022-01-01T14%3A00%3A00" -o "output.parquet"
+# Download Parquet file
+curl "http://localhost:8000/v1/streamflow_observations/usgs/parquet?identifier=01010000&start_date=2021-12-31T14%3A00%3A00&end_date=2022-01-01T14%3A00%3A00" -o "output.parquet"
+```
+
+### Hydrofabric
+
+```bash
+# Download hydrofabric subset
+curl "http://localhost:8000/v1/hydrofabric/01010000/gpkg" -o "subset.gpkg"
+
+# Download with different identifier
+curl "http://localhost:8000/v1/hydrofabric/01031500/gpkg" -o "subset.gpkg"
+```
+
+### Health Check
+
+```bash
+# Check API health
+curl http://localhost:8000/health
 ```
