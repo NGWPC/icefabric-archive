@@ -207,45 +207,47 @@ class IcebergTable:
         """
         Convert parquets from S3 to Iceberg tables - each w/ their inherited schema.
 
-        Args:
-            bucket_name (str): S3 bucket name.
+        Parameters
+        ----------
+        app_name : str
+            Application to create Iceberg tables.
+            Options: 'mip_xs', 'ble_xs' & 'bathymetry_ml_auxiliary'
+        bucket_name : str
+            S3 bucket name.
 
-            app_name (str): Application to create Iceberg tables.
-                            Options: 'mip_xs' & 'bathymetry_ml_auxiliary'
-
-            namespace (str): Namespace for which the Iceberg table will reside within
-                             the Iceberg catalog.
-
-        Return: None
+        Returns
+        -------
+        None
 
         """
-        # Instantiate bucket of interest.
-        session = boto3.Session(
-            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-            aws_session_token=os.environ["AWS_SESSION_TOKEN"],
+        fs = s3fs.S3FileSystem(
+            key=os.environ.get("AWS_ACCESS_KEY_ID"),
+            secret=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+            token=os.environ.get("AWS_SESSION_TOKEN")
         )
-        s3 = session.resource("s3")
-        bucket_ob = s3.Bucket(bucket_name)
-        pyarrow_table = {}
-        for s3obj in bucket_ob.objects.all():
-            # For sourcing the preprocessed XS parquets from S3
-            if app_name == "mip_xs" and re.match(r"^xs_data/.*\.parquet$", s3obj.key):
-                iceberg_tablename = f"{os.path.split(os.path.split(s3obj.key)[1])[1].split('.')[0]}"
-                pyarrow_table[iceberg_tablename] = pq.read_table(
-                    f"s3://{bucket_name}/{s3obj.key}", filesystem=s3fs.S3FileSystem()
-                )
+        glob_patterns = {
+            "mip_xs": f"{bucket_name}/full_mip_xs_data/**/*.parquet",
+            "ble_xs": f"{bucket_name}/full_ble_xs_data/**/*.parquet",
+            "bathymetry_ml_auxiliary": f"{bucket_name}/hydrofabric/v2.2/conus/bathymetry/**/*.parquet",
+        }
+        if app_name not in glob_patterns:
+            raise KeyError(f"App {app_name} not supported. Please add your app to the glob_patterns")
 
-            # For sourcing the bathymetry_ml_auxiliary parquets from S3
-            elif app_name == "bathymetry_ml_auxiliary":
-                iceberg_tablename = f"{os.path.split(os.path.split(s3obj.key)[0])[1]}"
-                pyarrow_table[iceberg_tablename] = pq.read_table(
-                    f"s3://{bucket_name}/{s3obj.key}", filesystem=s3fs.S3FileSystem()
-                )
+        # Table Name Factory
+        parquet_files = fs.glob(glob_patterns[app_name])
+        pyarrow_tables = {}
+        for file_path in parquet_files:
+            if app_name in {"mip_xs", "ble_xs"}:
+                # Extracts the HUC as the table name
+                table_name = file_path.split('/')[-1].removesuffix('.parquet')
+            elif app_name in {"bathymetry_ml_auxiliary"}:
+                # Extract vpuid from directory structure
+                table_name = file_path.split('/')[-2]
+            else:
+                raise KeyError(f"App {app_name} not supported. Please add your app the table name factory")
+            s3_uri = f"s3://{file_path}"
+            pyarrow_tables[table_name] = pq.read_table(s3_uri, filesystem=fs)
 
-        # Xforming each unique parquet to an iceberg table
-        for key, data_table in pyarrow_table.items():
-            data_pyarrow_schema = data_table.schema
-            schema = self.convert_pyarrow_to_iceberg_schema(data_pyarrow_schema)
-            self.create_table_for_parquet(key, data_table, schema)
-        return
+        for table_name, data_table in pyarrow_tables.items():
+            schema = self.convert_pyarrow_to_iceberg_schema(data_table.schema)
+            self.create_table_for_parquet(table_name, data_table, schema)
