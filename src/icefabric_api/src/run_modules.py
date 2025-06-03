@@ -1,16 +1,13 @@
 import pandas as pd
-from hf_attributes import *
+from hf_attributes import get_hydrofabric_attributes
+import json
+import re
+import os
 
-gpkg_file = "../data/gauge_06710385.gpkg"
-version = "2.2"
-domain = "CONUS"
-
-# Get divide attributes from the geopackage
-attr = get_hydrofabric_attributes(gpkg_file, version, domain)
-# Get list of divide IDs
+ROOT_DIR = os.path.abspath(os.curdir)
 
 
-def module_ipe(module, attr, domain, version):
+def module_ipe(module, attr, domain, version, cfg_write=None):
     # Create empty dataframe for csv parameters
     csv_params = pd.DataFrame()
 
@@ -18,8 +15,12 @@ def module_ipe(module, attr, domain, version):
     divides = attr["divide_id"].to_list()
 
     # Look up parameter csv file for module
-    module_df = pd.read_csv("../data/modules.csv")
+    has_output_vars = True
+    module_df = pd.read_csv(f"{ROOT_DIR}/data/modules.csv")
     param_file = module_df.loc[module_df["module"] == module]["file"].to_string(index=False)
+    out_file = module_df.loc[module_df["module"] == module]["outputs"].to_string(index=False)
+    if out_file == "NaN":
+        has_output_vars = False
 
     # Get module parameters
     datatypes = {
@@ -35,7 +36,16 @@ def module_ipe(module, attr, domain, version):
         "divide_attr_name": "object",
         "source_file": "object",
     }
-    module_params = pd.read_csv(f"../data/{param_file}", dtype=datatypes)
+    # Get output vars
+    out_datatypes = {
+        "variable": "object",
+        "description": "object"
+    }
+
+    module_params = pd.read_csv(f"{ROOT_DIR}/data/{param_file}", dtype=datatypes)
+    output_vars = pd.DataFrame()
+    if has_output_vars:
+        output_vars = pd.read_csv(f"{ROOT_DIR}/data/{out_file}", dtype=out_datatypes)
 
     # Filter data frame for parameter names and default values.  Create dictionary to collect
     # parameters for cfg files.
@@ -64,7 +74,7 @@ def module_ipe(module, attr, domain, version):
         csv_file = module_params.loc[module_params["source"] == "csv"]["source_file"].to_list()
         csv_file = csv_file[0]
         csv_file = f"{csv_file}_{domain}_{version}.csv"
-        csv_params = pd.read_csv(f"../data/{csv_file}")
+        csv_params = pd.read_csv(f"{ROOT_DIR}/data/{csv_file}")
 
     for divide in divides:
         attr_div = attr.loc[attr["divide_id"] == divide]
@@ -76,9 +86,10 @@ def module_ipe(module, attr, domain, version):
             all_cats[divide].update(csv_params_div)
         # print(all_cats[divide])
 
-    write_cfg(all_cats)
+    if cfg_write:
+        write_cfg(all_cats)
     s3_uri = "s3://"
-    module_json = write_json(all_cats[divides[1]], module_params, module, s3_uri)
+    module_json = write_json(all_cats[divides[1]], module_params, output_vars, module, s3_uri)
     return module_json
 
 
@@ -86,7 +97,7 @@ def write_cfg(params):
     divides = params.keys()
     for divide in divides:
         cfg_file = f"{divide}_bmi_config_cfe.txt"
-        f = open(cfg_file, "x")
+        f = open(cfg_file, "w")
 
         for key, value in params[divide].items():
             f.write(f"{key}={value}\n")
@@ -94,7 +105,7 @@ def write_cfg(params):
     f.close()
 
 
-def write_json(params, all_params, module, s3_uri):
+def write_json(params, all_params, output_vars, module, s3_uri):
     json_columns = ["name", "description", "default_value", "min", "max", "data_type", "units"]
     all_params = all_params.loc[all_params["calibratable"] == True, json_columns]
     all_params = all_params.to_dict(orient="records")
@@ -109,19 +120,8 @@ def write_json(params, all_params, module, s3_uri):
         "parameter_file": {"uri": s3_uri},
         "calibrate_parameters": all_params,
     }
+    if not output_vars.empty:
+        output_vars = output_vars.to_dict(orient="records")
+        module_dict.update({"output_variables": output_vars})
 
     return module_dict
-
-
-all_modules = []
-
-# modules = ['CFE-X', 'Noah-OWP-Modular']
-modules = ["UEB"]
-
-for module in modules:
-    module_json = module_ipe(module, attr, domain, version)
-    all_modules.append(module_json)
-
-final_json = {"modules": all_modules}
-
-print(final_json)
