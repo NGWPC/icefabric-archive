@@ -77,6 +77,7 @@ class IcebergTable:
 
         Defaults to saving in ./iceberg_catalog/{catalog_name}_catalog.db if no uri
         specified in catalog_settings
+        Specify 'uri' and 'warehouse' to select location for catalog and files
 
         Args:
             catalog_name (str): Name of the catalog to be created.
@@ -87,7 +88,7 @@ class IcebergTable:
         Return: None
 
         """
-        # Check if catalog settings exist, if not initialize a URI to default location
+        # Check if catalog settings exist, if not initialize a URI and warehouse to default location
         if not catalog_settings or not isinstance(catalog_settings, dict):
             catalog_settings = {}
         catalog_settings["uri"] = (
