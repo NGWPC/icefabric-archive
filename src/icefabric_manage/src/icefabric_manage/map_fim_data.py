@@ -525,9 +525,9 @@ class MapData:
                 self.crs_dict[(huc_num, model_id)].update(
                     {
                         river_name: (
-                            f"ESPG: {
+                            f"""ESPG: {
                                 str(filterbyriver.crs.to_epsg()) if filterbyriver.crs.to_epsg() else None
-                            }, {filterbyriver.crs.name},"
+                            }, {filterbyriver.crs.name},"""
                         )
                     }
                 )
