@@ -185,3 +185,4 @@ data/
 .zarr
 *.tiff
 *.tif
+examples/iceberg_catalog/metadata/

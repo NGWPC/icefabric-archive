@@ -15,44 +15,44 @@ warnings.filterwarnings("ignore")
 class MapData:
     """
     Maps FIM MIP & BLE XS datasets to relevant IDs & categorize by HUC.
-    At this time, ensure FIM datasets are saved to local disk.
 
+    At this time, ensure FIM datasets are saved to local disk.
     """
 
-    def __init__(self, data_dir, subfolder_key_prefix):
+    def __init__(self, data_dir: str, subfolder_key_prefix: str) -> None:
         self.data_dir = data_dir
         self.subfolder_key_prefix = subfolder_key_prefix
 
         # Parent directory of the FIM files.
         # Note: All the jsons & geopackages are relevant
         # to map the files to IDs.
-        self.fim_data_dirs = []
+        self.fim_data_dirs: list[str] = []
 
         # List of directories associated with each file type of
         # the FIM data sample (e.g. geopackage of a given model @ HUC#, json,
         # source_models.gpkg, ripple.gpkg)
-        self.model_gpkg_dirs = []
-        self.src_models_gpkg_dirs = []
-        self.rip_gpkg_dirs = []
-        self.gpkg_dirs = []
-        self.json_dirs = []
-        self.xs_df_list = []
+        self.model_gpkg_dirs: list[str] = []
+        self.src_models_gpkg_dirs: list[str] = []
+        self.rip_gpkg_dirs: list[str] = []
+        self.gpkg_dirs: list[str] = []
+        self.json_dirs: list[str] = []
+        self.xs_df_list: list[geopandas.GeoDataFrame] = []
 
         # Variables to be used later
-        self.model_gpkg_tablenames = []
-        self.src_models_gpkg_tablenames = []
-        self.rip_gpkg_tablenames = []
-        self.gpkg_tablenames = []
-        self.json_tablenames = []
+        self.model_gpkg_tablenames: list[str] = []
+        self.src_models_gpkg_tablenames: list[str] = []
+        self.rip_gpkg_tablenames: list[str] = []
+        self.gpkg_tablenames: list[str] = []
+        self.json_tablenames: list[str] = []
 
-        self.id2json = collections.defaultdict(dict)
-        self.model_id2gpkg = collections.defaultdict(dict)
-        self.us_ref_dict = collections.defaultdict(dict)
-        self.ds_ref_dict = collections.defaultdict(dict)
-        self.rip_huc2gpkg = collections.defaultdict(dict)
-        self.groupbyriver_dict = collections.defaultdict(dict)
-        self.crs_dict = collections.defaultdict(dict)
-        self.consolidated_id2xs = geopandas.GeoDataFrame()
+        self.id2json: dict = collections.defaultdict(dict)
+        self.model_id2gpkg: dict = collections.defaultdict(dict)
+        self.us_ref_dict: dict = collections.defaultdict(dict)
+        self.ds_ref_dict: dict = collections.defaultdict(dict)
+        self.rip_huc2gpkg: dict = collections.defaultdict(dict)
+        self.groupbyriver_dict: dict = collections.defaultdict(dict)
+        self.crs_dict: dict = collections.defaultdict(dict)
+        self.consolidated_id2xs: geopandas.GeoDataFrame = geopandas.GeoDataFrame()
 
         self.read_data_dirs()
         self.cat_data_dirs(self.subfolder_key_prefix)
@@ -84,9 +84,10 @@ class MapData:
         self.consolidate_id2xs_dfs()
 
         # Save HEC RAS models' cross-sections consolidated by HUC as geoparquets & geopackages
+        # TODO: does this need to be called with a `xs_data_type` ?
         self.save_xsbyhuc_data()
 
-    def read_data_dirs(self):
+    def read_data_dirs(self) -> None:
         """
         Extract the list of FIM data sample's directories.
 
@@ -97,15 +98,14 @@ class MapData:
         the FIM data sample.
 
         """
-        fim_data_dirs = []
-        for folder, subfolders, files in os.walk(self.data_dir):
+        for folder, _subfolders, files in os.walk(self.data_dir):
             if folder != self.data_dir:
                 for file in files:
                     self.fim_data_dirs.append(f"{folder}/{file}")
 
         return
 
-    def cat_data_dirs(self, subfolder_key_prefix):
+    def cat_data_dirs(self, subfolder_key_prefix: str) -> None:
         """
         Categorize FIM data sample files.
 
@@ -124,7 +124,7 @@ class MapData:
             if re.search("ripple.gpkg", x):
                 self.rip_gpkg_dirs.append(x)
                 t = re.search(f"/{subfolder_key_prefix}(.*)", x)
-                rip_gpkg_tblname = t.group()
+                rip_gpkg_tblname = t.group()  # type: ignore[union-attr]
                 self.rip_gpkg_tablenames.append(rip_gpkg_tblname.lstrip("/").replace("/", "_"))
 
             # Covers all HEC-RAS models gpkg featuring XS per HUC (contains model_id)
@@ -135,33 +135,33 @@ class MapData:
             ):
                 self.model_gpkg_dirs.append(x)
                 t = re.search(f"/{subfolder_key_prefix}(.*)", x)
-                model_gpkg_tblname = t.group()
+                model_gpkg_tblname = t.group()  # type: ignore[union-attr]
                 self.model_gpkg_tablenames.append(model_gpkg_tblname.lstrip("/").replace("/", "_"))
 
             # Covers all HEC-RAS models gpkg featuring 1D model flowlines per HUC (contains model_id & their HEC-RAS 1D model flowlines)
             elif x.endswith("source_models.gpkg"):
                 self.src_models_gpkg_dirs.append(x)
                 t = re.search(f"/{subfolder_key_prefix}(.*)", x)
-                src_models_gpkg_tblname = t.group()
+                src_models_gpkg_tblname = t.group()  # type: ignore[union-attr]
                 self.src_models_gpkg_tablenames.append(src_models_gpkg_tblname.lstrip("/").replace("/", "_"))
 
             # Covers all HEC-RAS models + Ripple gpkg per HUC
             if x.endswith(".gpkg"):
                 self.gpkg_dirs.append(x)
                 t = re.search(f"/{subfolder_key_prefix}(.*)", x)
-                gpkg_tblname = t.group()
+                gpkg_tblname = t.group()  # type: ignore[union-attr]
                 self.gpkg_tablenames.append(gpkg_tblname.lstrip("/").replace("/", "_"))
 
             # Covers each HEC-RAS models' result of conflating its model w/ the NWM network
             elif x.endswith(".json"):
                 self.json_dirs.append(x)
                 t = re.search(f"/{subfolder_key_prefix}(.*)", x)
-                json_tblname = t.group()
+                json_tblname = t.group()  # type: ignore[union-attr]
                 self.json_tablenames.append(json_tblname.lstrip("/").replace("/", "_"))
 
         return
 
-    def drop_nested_keys(self, map_dict, keys_to_drop):
+    def drop_nested_keys(self, map_dict: dict, keys_to_drop: dict) -> dict | list:
         """
         Drop keys irrelevant for linking each XS to IDs
 
@@ -184,7 +184,7 @@ class MapData:
         else:
             return map_dict
 
-    def map_model2huc(self):
+    def map_model2huc(self) -> None:
         """
         Map each conflation json file to their corresponding model ID & HUC #.
 
@@ -209,7 +209,7 @@ class MapData:
 
         return
 
-    def filter_model2huc_map(self, keys_to_drop):
+    def filter_model2huc_map(self, keys_to_drop: dict) -> None:
         """
         Extract only relevant keys from model2huc map for linking each XS to a feature ID.
 
@@ -225,7 +225,7 @@ class MapData:
 
         return
 
-    def map_modelhuc_xs2ids(self):
+    def map_modelhuc_xs2ids(self) -> None:
         """
         Parse JSONs & map model_id & HUC # to xs to reach ID & "network_to_id"
 
@@ -294,7 +294,7 @@ class MapData:
 
         return
 
-    def map_model2huc_gpkg(self):
+    def map_model2huc_gpkg(self) -> None:
         """
         Map model ID & HUC # to each HEC-RAS model's geopackage.
 
@@ -335,7 +335,7 @@ class MapData:
 
         return
 
-    def map_huc2ripple_gpkg(self):
+    def map_huc2ripple_gpkg(self) -> None:
         """
         Map HUC # to ripple geopackage (features HEC RAS 1D model flowlines).
 
@@ -395,7 +395,7 @@ class MapData:
                 pass
         return
 
-    def map_model_xs2ids(self):
+    def map_model_xs2ids(self) -> None:
         """
         Map each cross-section instance featured in HEC-RAS model's cross-section layer to their corresponding IDs.
 
@@ -464,7 +464,7 @@ class MapData:
 
         return
 
-    def save_xs_data(self):
+    def save_xs_data(self) -> None:
         """
         Consolidate HEC-RAS models cross-sections based on HUC & river & save to storage
 
@@ -476,7 +476,7 @@ class MapData:
         Note: These saved parquet files will preserve each river @ HUC's inherited CRS.
 
         """
-        for (model_id, huc_num), model_gpkg_dict in self.model_id2gpkg.items():
+        for (model_id, huc_num), _model_gpkg_dict in self.model_id2gpkg.items():
             # Generate data folder per HUC
             if not os.path.exists(f"{os.getcwd()}/xs_data/huc_{huc_num}"):
                 os.makedirs(f"{os.getcwd()}/xs_data/huc_{huc_num}")
@@ -500,7 +500,7 @@ class MapData:
 
         return
 
-    def save_crs_map(self):
+    def save_crs_map(self) -> None:
         """
         Consolidate HEC-RAS models cross-sections based on HUC & river & save to storage
 
@@ -513,7 +513,7 @@ class MapData:
         analyze & reference.
 
         """
-        for (model_id, huc_num), model_gpkg_dict in self.model_id2gpkg.items():
+        for (model_id, huc_num), _model_gpkg_dict in self.model_id2gpkg.items():
             # Generate data folder per HUC
             if not os.path.exists(f"{os.getcwd()}/xs_data/crs_map"):
                 os.makedirs(f"{os.getcwd()}/xs_data/crs_map")
@@ -524,9 +524,11 @@ class MapData:
                 filterbyriver = grouped_xslayers.get_group(river_name)
                 self.crs_dict[(huc_num, model_id)].update(
                     {
-                        river_name: f"""ESPG: {
-                            str(filterbyriver.crs.to_epsg()) if filterbyriver.crs.to_epsg() else None
-                        }, {filterbyriver.crs.name},"""
+                        river_name: (
+                            f"""ESPG: {
+                                str(filterbyriver.crs.to_epsg()) if filterbyriver.crs.to_epsg() else None
+                            }, {filterbyriver.crs.name},"""
+                        )
                     }
                 )
 
@@ -536,7 +538,7 @@ class MapData:
 
         return
 
-    def consolidate_id2xs_dfs(self):
+    def consolidate_id2xs_dfs(self) -> None:
         """
         Consolidate HEC-RAS models cross-sections featuring their corresponding IDs.
 
@@ -576,7 +578,7 @@ class MapData:
 
         return
 
-    def save_xsbyhuc_data(self, xs_data_type):
+    def save_xsbyhuc_data(self, xs_data_type: str) -> None:
         """
         Consolidate HEC-RAS models cross-sections based on HUC & save to storage
 

@@ -1,7 +1,5 @@
 import os
-import re
 
-import boto3
 import pyarrow as pa
 import pyarrow.parquet as pq
 import s3fs
@@ -27,18 +25,15 @@ class IcebergTable:
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Generate folder for iceberg catalog
         if not os.path.exists(f"{os.getcwd()}/iceberg_catalog"):
             os.makedirs(f"{os.getcwd()}/iceberg_catalog")
 
-        # Set location of where the iceberg catalog will reside
-        os.environ["PYICEBERG_HOME"] = os.getcwd()
-
         # Initialize namespace to be set for Iceberg catalog
         self.namespace = ""
 
-    def read_data_dirs(self, data_dir):
+    def read_data_dirs(self, data_dir: str) -> list:
         """
         Extract the list of parquet directories.
 
@@ -52,14 +47,14 @@ class IcebergTable:
 
         """
         parquet_list = []
-        for folder, subfolders, files in os.walk(data_dir):
+        for folder, _subfolders, files in os.walk(data_dir):
             if folder != data_dir:
                 for file in files:
                     parquet_list.append(f"{folder}/{file}")
 
         return parquet_list
 
-    def read_data(self, parquet_file_path):
+    def read_data(self, parquet_file_path: str) -> pa.Table:
         """
         Load a single parquet as a Pyarrow table.
 
@@ -74,21 +69,43 @@ class IcebergTable:
 
         return data
 
-    def establish_catalog(self, catalog_name, namespace):
+    def establish_catalog(
+        self, catalog_name: str, namespace: str, catalog_settings: dict[str, str] | None = None
+    ) -> None:
         """
         Creates a new Iceberg catalog.
+
+        Defaults to saving in ./iceberg_catalog/{catalog_name}_catalog.db if no uri
+        specified in catalog_settings
+        Specify 'uri' and 'warehouse' to select location for catalog and files
 
         Args:
             catalog_name (str): Name of the catalog to be created.
                                 Default: 'dev' for development catalog
             namespace (str): Name of namespace.
+            catalog_settings (str): Optional catalog settings accepted by pyiceberg.load_catalog()
 
         Return: None
 
         """
+        # Check if catalog settings exist, if not initialize a URI and warehouse to default location
+        if not catalog_settings or not isinstance(catalog_settings, dict):
+            catalog_settings = {}
+        catalog_settings["uri"] = (
+            f"sqlite:///iceberg_catalog/{catalog_name}_catalog.db"
+            if "uri" not in catalog_settings.keys()
+            else catalog_settings["uri"]
+        )
+        catalog_settings["warehouse"] = (
+            "file://iceberg_catalog"
+            if "warehouse" not in catalog_settings.keys()
+            else catalog_settings["warehouse"]
+        )
+
         # Establish a new Iceberg catalog & its configuration
         self.catalog = load_catalog(
-            name=catalog_name, **{"uri": f"sqlite:///iceberg_catalog/{catalog_name}_catalog.db"}
+            name=catalog_name,
+            **catalog_settings,
         )
 
         # Establish namespace to be create w/in catalog
@@ -98,7 +115,7 @@ class IcebergTable:
 
         return
 
-    def convert_pyarrow_to_iceberg_schema(self, arrow_schema):
+    def convert_pyarrow_to_iceberg_schema(self, arrow_schema: Schema) -> Schema:
         """
         Translate a given Pyarrow schema into a schema acceptable by Iceberg.
 
@@ -106,7 +123,7 @@ class IcebergTable:
             arrow_schema (object): Pyarrow schema read from the loaded
                                    parquet of interest.
 
-        Return (object): Iceberg schema
+        Return (Iceberge.Schema): Iceberg schema
 
         """
         fields = []
@@ -145,7 +162,7 @@ class IcebergTable:
 
         return schema
 
-    def create_table_for_parquet(self, iceberg_tablename, data_table, schema):
+    def create_table_for_parquet(self, iceberg_tablename: str, data_table: pa.Table, schema: Schema) -> None:
         """
         Convert parquet Pyarrow table to iceberg table & allocate Iceberg catalog under the ./iceberg_catalog directory.
 
@@ -164,9 +181,7 @@ class IcebergTable:
         """
         # Create an Iceberg table
         iceberg_table = self.catalog.create_table(
-            identifier=f"{self.namespace}.{iceberg_tablename}",
-            schema=schema,
-            location=f"{os.environ['PYICEBERG_HOME']}/iceberg_catalog",
+            identifier=f"{self.namespace}.{iceberg_tablename}", schema=schema
         )
 
         # Updates the Iceberg table with data of interest.
@@ -174,7 +189,7 @@ class IcebergTable:
 
         return
 
-    def create_table_for_all_parquets(self, parquet_files, app_name="mip-xs"):
+    def create_table_for_all_parquets(self, parquet_files: list[str], app_name: str = "mip-xs") -> None:
         """
         Convert parquets to Iceberg tables - each w/ their inherited schema.
 
@@ -190,7 +205,7 @@ class IcebergTable:
         'bathymetry_ml_auxiliary' S3 buckets differ.
 
         """
-        for idx, parquet_file in enumerate(parquet_files):
+        for _idx, parquet_file in enumerate(parquet_files):
             if app_name == "mip_xs":
                 iceberg_tablename = f"{os.path.split(os.path.split(parquet_file)[1])[1].split('.')[0]}"
 
@@ -203,48 +218,51 @@ class IcebergTable:
             self.create_table_for_parquet(iceberg_tablename, data_table, schema)
         return
 
-    def create_table_for_all_s3parquets(self, app_name, bucket_name, profile_name="default"):
+    def create_table_for_all_s3parquets(self, app_name: str, bucket_name: str) -> None:
         """
         Convert parquets from S3 to Iceberg tables - each w/ their inherited schema.
 
-        Args:
-            bucket_name (list): S3 bucket name.
+        Parameters
+        ----------
+        app_name : str
+            Application to create Iceberg tables.
+            Options: 'mip_xs', 'ble_xs' & 'bathymetry_ml_auxiliary'
+        bucket_name : str
+            S3 bucket name.
 
-            app_name (str): Application to create Iceberg tables.
-                            Options: 'mip_xs' & 'bathymetry_ml_auxiliary'
-
-            namespace (str): Namespace for which the Iceberg table will reside within
-                             the Iceberg catalog.
-
-            profile_name (str: Profile name declared in the AWS configuration file.
-                               Default: 'default'
-
-        Return: None
+        Returns
+        -------
+        None
 
         """
-        # Instantiate bucket of interest.
-        session = boto3.Session(profile_name=profile_name)
-        s3 = session.resource("s3")
-        bucket_ob = s3.Bucket(bucket_name)
-        pyarrow_table = {}
-        for s3obj in bucket_ob.objects.all():
-            # For sourcing the preprocessed XS parquets from S3
-            if app_name == "mip_xs" and re.match(r"^xs_data/.*\.parquet$", s3obj.key):
-                iceberg_tablename = f"{os.path.split(os.path.split(s3obj.key)[1])[1].split('.')[0]}"
-                pyarrow_table[iceberg_tablename] = pq.read_table(
-                    f"s3://{bucket_name}/{s3obj.key}", filesystem=s3fs.S3FileSystem()
-                )
+        fs = s3fs.S3FileSystem(
+            key=os.environ["AWS_ACCESS_KEY_ID"],
+            secret=os.environ["AWS_SECRET_ACCESS_KEY"],
+            token=os.environ["AWS_SESSION_TOKEN"],
+        )
+        glob_patterns = {
+            "mip_xs": f"{bucket_name}/full_mip_xs_data/**/*.parquet",
+            "ble_xs": f"{bucket_name}/full_ble_xs_data/**/*.parquet",
+            "bathymetry_ml_auxiliary": f"{bucket_name}/ml_auxiliary_data/**/*.parquet",
+        }
+        if app_name not in glob_patterns:
+            raise KeyError(f"App {app_name} not supported. Please add your app to the glob_patterns")
 
-            # For sourcing the bathymetry_ml_auxiliary parquets from S3
-            elif app_name == "bathymetry_ml_auxiliary":
-                iceberg_tablename = f"{os.path.split(os.path.split(s3obj.key)[0])[1]}"
-                pyarrow_table[iceberg_tablename] = pq.read_table(
-                    f"s3://{bucket_name}/{s3obj.key}", filesystem=s3fs.S3FileSystem()
-                )
+        # Table Name Factory
+        parquet_files = fs.glob(glob_patterns[app_name])
+        pyarrow_tables = {}
+        for file_path in parquet_files:
+            if app_name in {"mip_xs", "ble_xs"}:
+                # Extracts the HUC as the table name
+                table_name = file_path.split("/")[-1].removesuffix(".parquet")
+            elif app_name in {"bathymetry_ml_auxiliary"}:
+                # Extract vpuid from directory structure
+                table_name = file_path.split("/")[-2]
+            else:
+                raise KeyError(f"App {app_name} not supported. Please add your app the table name factory")
+            s3_uri = f"s3://{file_path}"
+            pyarrow_tables[table_name] = pq.read_table(s3_uri, filesystem=fs)
 
-        # Xforming each unique parquet to an iceberg table
-        for key, data_table in pyarrow_table.items():
-            data_pyarrow_schema = data_table.schema
-            schema = self.convert_pyarrow_to_iceberg_schema(data_pyarrow_schema)
-            self.create_table_for_parquet(key, data_table, schema)
-        return
+        for table_name, data_table in pyarrow_tables.items():
+            schema = self.convert_pyarrow_to_iceberg_schema(data_table.schema)
+            self.create_table_for_parquet(table_name, data_table, schema)
