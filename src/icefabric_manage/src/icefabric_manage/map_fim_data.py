@@ -209,7 +209,7 @@ class MapData:
 
         return
 
-    def filter_model2huc_map(self, keys_to_drop: dict | list | set) -> None:
+    def filter_model2huc_map(self, keys_to_drop: dict) -> None:
         """
         Extract only relevant keys from model2huc map for linking each XS to a feature ID.
 

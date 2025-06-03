@@ -1,7 +1,5 @@
 import os
-import re
 
-import boto3
 import pyarrow as pa
 import pyarrow.parquet as pq
 import s3fs
@@ -31,9 +29,6 @@ class IcebergTable:
         # Generate folder for iceberg catalog
         if not os.path.exists(f"{os.getcwd()}/iceberg_catalog"):
             os.makedirs(f"{os.getcwd()}/iceberg_catalog")
-
-        # Set location of where the iceberg catalog will reside
-        os.environ["PYICEBERG_HOME"] = os.getcwd()
 
         # Initialize namespace to be set for Iceberg catalog
         self.namespace = ""
@@ -74,21 +69,42 @@ class IcebergTable:
 
         return data
 
-    def establish_catalog(self, catalog_name: str, namespace: str) -> None:
+    def establish_catalog(
+        self, catalog_name: str, namespace: str, catalog_settings: dict[str, str] | None = None
+    ) -> None:
         """
         Creates a new Iceberg catalog.
+
+        Defaults to saving in ./iceberg_catalog/{catalog_name}_catalog.db if no uri
+        specified in catalog_settings
 
         Args:
             catalog_name (str): Name of the catalog to be created.
                                 Default: 'dev' for development catalog
             namespace (str): Name of namespace.
+            catalog_settings (str): Optional catalog settings accepted by pyiceberg.load_catalog()
 
         Return: None
 
         """
+        # Check if catalog settings exist, if not initialize a URI to default location
+        if not catalog_settings or not isinstance(catalog_settings, dict):
+            catalog_settings = {}
+        catalog_settings["uri"] = (
+            f"sqlite:///iceberg_catalog/{catalog_name}_catalog.db"
+            if "uri" not in catalog_settings.keys()
+            else catalog_settings["uri"]
+        )
+        catalog_settings["warehouse"] = (
+            "file://iceberg_catalog"
+            if "warehouse" not in catalog_settings.keys()
+            else catalog_settings["warehouse"]
+        )
+
         # Establish a new Iceberg catalog & its configuration
         self.catalog = load_catalog(
-            name=catalog_name, **{"uri": f"sqlite:///iceberg_catalog/{catalog_name}_catalog.db"}
+            name=catalog_name,
+            **catalog_settings,
         )
 
         # Establish namespace to be create w/in catalog
@@ -164,9 +180,7 @@ class IcebergTable:
         """
         # Create an Iceberg table
         iceberg_table = self.catalog.create_table(
-            identifier=f"{self.namespace}.{iceberg_tablename}",
-            schema=schema,
-            location=f"{os.environ['PYICEBERG_HOME']}/iceberg_catalog",
+            identifier=f"{self.namespace}.{iceberg_tablename}", schema=schema
         )
 
         # Updates the Iceberg table with data of interest.
@@ -221,14 +235,14 @@ class IcebergTable:
 
         """
         fs = s3fs.S3FileSystem(
-            key=os.environ.get("AWS_ACCESS_KEY_ID"),
-            secret=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-            token=os.environ.get("AWS_SESSION_TOKEN")
+            key=os.environ["AWS_ACCESS_KEY_ID"],
+            secret=os.environ["AWS_SECRET_ACCESS_KEY"],
+            token=os.environ["AWS_SESSION_TOKEN"],
         )
         glob_patterns = {
             "mip_xs": f"{bucket_name}/full_mip_xs_data/**/*.parquet",
             "ble_xs": f"{bucket_name}/full_ble_xs_data/**/*.parquet",
-            "bathymetry_ml_auxiliary": f"{bucket_name}/hydrofabric/v2.2/conus/bathymetry/**/*.parquet",
+            "bathymetry_ml_auxiliary": f"{bucket_name}/ml_auxiliary_data/**/*.parquet",
         }
         if app_name not in glob_patterns:
             raise KeyError(f"App {app_name} not supported. Please add your app to the glob_patterns")
@@ -239,10 +253,10 @@ class IcebergTable:
         for file_path in parquet_files:
             if app_name in {"mip_xs", "ble_xs"}:
                 # Extracts the HUC as the table name
-                table_name = file_path.split('/')[-1].removesuffix('.parquet')
+                table_name = file_path.split("/")[-1].removesuffix(".parquet")
             elif app_name in {"bathymetry_ml_auxiliary"}:
                 # Extract vpuid from directory structure
-                table_name = file_path.split('/')[-2]
+                table_name = file_path.split("/")[-2]
             else:
                 raise KeyError(f"App {app_name} not supported. Please add your app the table name factory")
             s3_uri = f"s3://{file_path}"
