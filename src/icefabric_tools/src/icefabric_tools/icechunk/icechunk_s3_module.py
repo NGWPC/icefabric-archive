@@ -182,7 +182,7 @@ class IcechunkS3Repo:
             ]
         return v_chunks
 
-    def create_session(self, read_only: bool | None = True, branch: str | None = "main") -> ic.Session:
+    def create_session(self, read_only: bool | None = True, snap_id: str | None = None, branch: str | None = "main") -> ic.Session:
         """
         Open a session under the repo defined by an instance of IcechunkS3Repo
 
@@ -190,6 +190,9 @@ class IcechunkS3Repo:
         ----------
         read_only : bool | None, optional
             Denotes if the session will be read-only or writable. By default True
+        snap_id: str | None, optional
+            The Snapshot ID of a specific commit to base the session on. Leave out if you want the
+            latest. By default None
         branch : str | None, optional
             Icechunk repo branch to be opened. By default "main"
 
@@ -200,26 +203,34 @@ class IcechunkS3Repo:
             can be configured.
         """
         if read_only:
-            return self.repo.readonly_session(branch)
+            if snap_id:
+                return self.repo.readonly_session(snapshot_id=snap_id)
+            else:
+                return self.repo.readonly_session(branch)
         return self.repo.writable_session(branch)
 
-    def retrieve_dataset(self, read_only: bool | None = True, branch: str | None = "main") -> xr.Dataset:
+    def retrieve_dataset(self, branch: str | None = "main", snap_id: str | None = None) -> xr.Dataset:
         """
         Returns the repo's store contents as an Xarray dataset
 
         Parameters
         ----------
-        read_only : bool | None, optional
-            Denotes if the session will be read-only or writable, by default True
+
         branch : str | None, optional
             Icechunk repo branch to be opened, by default "main"
+        snap_id : str | None, optional
+            The Snapshot ID of a specific commit you want to retrieve. Leave out if you want the
+            latest. By default None.
 
         Returns
         -------
         xr.Dataset
             Xarray dataset representation of the Icechunk store
         """
-        session = self.create_session(read_only, branch)
+        if snap_id:
+            session = self.create_session(read_only=True, branch=branch, snap_id=snap_id)
+        else:
+            session = self.create_session(read_only=True, branch=branch)
         ds = xr.open_zarr(session.store, consolidated=False, chunks={})
 
         # geotiff rasters saved in zarr need to be convereted to spatial-aware xarray with rioxarray
@@ -227,6 +238,22 @@ class IcechunkS3Repo:
             ds.rio.write_crs(ds.spatial_ref.spatial_ref, inplace=True)
 
         return ds
+
+    def retrieve_rollback_to_snapshot(self, snap_id: str, branch: str | None = "main") -> xr.Dataset:
+        """Retrieves the repo data a specific snapshot ID"""
+        return self.retrieve_dataset(branch=branch, snap_id=snap_id)
+
+    def retrieve_rollback_n_snapshots(self, n: int, branch: str | None = "main") -> xr.Dataset:
+        """Retrieves the repo data from <n> snapshot(s) ago"""
+        try:
+            snap_id = list(self.repo.ancestry(branch=branch))[n].id
+        except IndexError:
+            print(f"Rolled back too far! Branch ({branch}) has fewer previous commits than was specified")
+        return self.retrieve_rollback_to_snapshot(snap_id, branch=branch)
+
+    def retrieve_prev_snapshot(self, branch: str | None = "main") -> xr.Dataset:
+        """Retrieves the repo data one snapshot ago"""
+        return self.retrieve_rollback_n_snapshots(n=1, branch=branch)
 
     def write_dataset(
         self, ds: xr.Dataset, commit: str, virtualized: bool | None = False, branch: str | None = "main"
@@ -281,6 +308,29 @@ class IcechunkS3Repo:
         vds.virtualize.to_icechunk(session.store, append_dim=append_dim)
         snapshot = session.commit(commit)
         print(f"Dataset has been appended on the {append_dim} dimension. Commit: {snapshot}")
+
+    def create_new_branch_from_snapshot(self, name: str, snap_id: str):
+        """Create a new branch that is based on a specific snapshot ID"""
+        self.repo.create_branch(name, snapshot_id=snap_id)
+
+    def create_new_branch(self, name: str, origin: str | None = "main"):
+        """Create a new branch that is based on the most recent snapshot on a given branch"""
+        branch_latest_snap_id = self.repo.lookup_branch(origin)
+        self.create_new_branch_from_snapshot(name, snap_id=branch_latest_snap_id)
+
+    def print_history(self, branch: str | None = "main"):
+        """
+        Prints a nicely-formatted summary of the history of the icechunk repo branch.
+
+        Parameters
+        ----------
+        branch : str | None, optional
+            The branch whose history will be printed. By default "main"
+        """
+        for ancestor in self.repo.ancestry(branch=branch):
+            print(f"Snapshot ID:\t{ancestor.id}")
+            print(f"Timestamp:\t{ancestor.written_at}")
+            print(f"Message:\t{ancestor.message}\n")
 
     def retrieve_and_convert_to_tif(
         self,
