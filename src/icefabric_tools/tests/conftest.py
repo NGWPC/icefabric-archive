@@ -1,8 +1,11 @@
+import os
 from pathlib import Path
 
-import pytest
-from pyiceberg.catalog import Catalog, load_catalog
-from sqlalchemy.exc import OperationalError
+os.environ["PYICEBERG_HOME"] = str(Path(__file__).parents[3])
+print(f"PYICEBERG_HOME set to: {os.environ['PYICEBERG_HOME']}")
+
+import pytest  # noqa: E402
+from pyiceberg.catalog import Catalog, load_catalog  # noqa: E402
 
 sample_gauges = [
     "gages-01010000",
@@ -25,20 +28,12 @@ sample_gauges = [
 @pytest.fixture
 def hydrofabric_catalog() -> Catalog:
     """Returns an iceberg catalog object for the hydrofabric"""
-    warehouse_path = (
-        "/tmp/warehouse"  # Requires the HF to be built via: src/icefabric_manage/builds/build_hydrofabric.py
-    )
-    try:
-        catalog_settings = {
-            "type": "sql",
-            "uri": f"sqlite:///{warehouse_path}/pyiceberg_catalog.db",
-            "warehouse": f"file://{warehouse_path}",
-        }
-        return load_catalog("hydrofabric", **catalog_settings)
-    except OperationalError as e:
-        raise type(e)(  # noqa: B904
-            f"Cannot find warehouse @ {warehouse_path}. Please build HF warehouse by running src/icefabric_manage/builds/build_hydrofabric.py"
-        )  # type: ignore
+    # try:
+    return load_catalog("glue")
+    # except Exception as e:
+    #     raise type(e)(
+    #         f"Cannot find warehouse @ {warehouse_path}. Please make sure your AWS credentials are accurate"
+    #     )  # type: ignore
 
 
 @pytest.fixture(params=sample_gauges)

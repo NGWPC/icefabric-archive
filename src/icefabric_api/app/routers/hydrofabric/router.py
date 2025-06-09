@@ -11,12 +11,6 @@ from icefabric_tools import IdType, subset
 
 api_router = APIRouter(prefix="/hydrofabric")
 
-catalog_settings: dict = {
-    "type": "sql",
-    "uri": "sqlite:////tmp/warehouse/pyiceberg_catalog.db",
-    "warehouse": "file:///tmp/warehouse",
-}
-
 
 @api_router.get("/{identifier}/gpkg")
 async def get_hydrofabric_subset_gpkg(
@@ -34,7 +28,7 @@ async def get_hydrofabric_subset_gpkg(
     from a given identifier and returns all related geospatial layers as a
     downloadable geopackage file.
     """
-    catalog = load_catalog("hydrofabric", **catalog_settings)
+    catalog = load_catalog("glue")
     unique_id = str(uuid.uuid4())[:8]
     temp_dir = pathlib.Path(tempfile.gettempdir())
     tmp_path = temp_dir / f"hydrofabric_subset_{identifier}_{unique_id}.gpkg"

@@ -8,12 +8,6 @@ from pyiceberg.catalog import load_catalog
 
 api_router = APIRouter(prefix="/streamflow_observations")
 
-catalog_settings: dict = {
-    "type": "sql",
-    "uri": "sqlite:////tmp/warehouse/pyiceberg_catalog.db",
-    "warehouse": "file:///tmp/warehouse",
-}
-
 
 # TODO add other gauges used by NWM
 class DataSource(str, Enum):
@@ -25,7 +19,7 @@ class DataSource(str, Enum):
 # Configuration for each data source
 DATA_SOURCE_CONFIG = {
     DataSource.USGS: {
-        "namespace": "observations",
+        "namespace": "streamflow_observations",
         "table": "usgs_hourly",
         "time_column": "time",
         "units": "cms",
@@ -37,7 +31,7 @@ DATA_SOURCE_CONFIG = {
 def get_catalog_and_table(data_source: DataSource):
     """Get catalog and table for a given data source"""
     config = DATA_SOURCE_CONFIG[data_source]
-    catalog = load_catalog(config["namespace"], **catalog_settings)
+    catalog = load_catalog("glue")
     table = catalog.load_table(f"{config['namespace']}.{config['table']}")
     return catalog, table, config
 

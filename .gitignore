@@ -197,5 +197,8 @@ crash.log
 # CLI configuration
 .terraform/
 
+# Pyiceberg config file
+.pyiceberg.yaml
+
 # Terraform plan output (optional unless you want to inspect later)
 *.tfplan
