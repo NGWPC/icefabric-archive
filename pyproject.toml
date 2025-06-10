@@ -1,6 +1,6 @@
 [project]
 name = "icefabric"
-version = "2025.5"
+version = "2025.6.0"
 description = "An Apache Iceberg implementation of the Hydrofabric"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -125,3 +125,16 @@ disallow_untyped_defs = true
 no_implicit_optional = true
 show_error_codes = true
 warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+rootdir = "."  # Ensures pytest always treats project root as the root
+pythonpath = [
+    "tests",
+    "src/icefabric_api",
+    "src/icefabric_tools"
+]
+testpaths = [
+    "src/icefabric_api/tests",
+    "src/icefabric_tools/tests",
+    "tests"
+]

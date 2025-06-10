@@ -121,20 +121,6 @@ else:
 | > 50,000 records | Parquet | Better compression, faster processing |
 | > 200,000 records | Parquet + date filters | Reduced data transfer |
 
-## Configuration
-
-### Catalog Settings
-
-The default catalog is pointing to a local instance. To build this catalog, one must use the build scripts in `icefabric_manage`
-
-```python
-catalog_settings = {
-    "type": "sql",
-    "uri": "sqlite:////tmp/warehouse/pyiceberg_catalog.db",
-    "warehouse": "file:///tmp/warehouse",
-}
-```
-
 ## Development
 
 ### Running the API

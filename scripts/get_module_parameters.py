@@ -1,8 +1,10 @@
+"""A sample script to generate CFE IPEs"""
+
 import geopandas as gpd
 import pandas as pd
 
-param_file = "cfe_params.csv"
-gpkg_file = "gauge_06710385.gpkg"
+param_file = "../src/icefabric_api/data/cfe_params.csv"
+gpkg_file = "../src/icefabric_tools/test/data/gages-08070000.gpkg"
 
 
 divides = gpd.read_file(gpkg_file, layer="divides")
@@ -16,13 +18,12 @@ for divide in divides:
     cfg_file = f"{divide}_bmi_cfg_cfe.txt"
     f = open(cfg_file, "x")
 
-    for index, row in param_values.iterrows():
+    for _, row in param_values.iterrows():
         key = row["name"]
         value = row["default_value"]
         f.write(f"{key}={value}\n")
 
     f.close()
-
 
 params_calibratable = module_params.loc[module_params["calibratable"] == "TRUE"]
 params_calibratable.to_json("out.json", orient="split")

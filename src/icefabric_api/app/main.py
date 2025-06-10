@@ -6,6 +6,7 @@ from fastapi import FastAPI, status
 from pydantic import BaseModel
 
 from app.routers.hydrofabric.router import api_router as hydrofabric_api_router
+from app.routers.module_params.router import api_router as module_params_router
 from app.routers.streamflow_observations.router import api_router as streamflow_api_router
 
 app = FastAPI(
@@ -26,7 +27,7 @@ class HealthCheck(BaseModel):
 # Include routers
 app.include_router(hydrofabric_api_router, prefix="/v1")
 app.include_router(streamflow_api_router, prefix="/v1")
-# app.include_router(module_params_router, prefix="/v1")
+app.include_router(module_params_router, prefix="/v1")
 
 
 @app.head(

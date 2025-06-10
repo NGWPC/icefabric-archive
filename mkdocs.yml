@@ -53,3 +53,4 @@ nav:
     - Icefabric Manage: user_guide/icefabric_manage.md
     - Icefabric Tools: user_guide/icefabric_tools.md
     - Icefabric API: user_guide/icefabric_api.md
+    - Terraform S3 Glue Endpoint: user_guide/terraform.md

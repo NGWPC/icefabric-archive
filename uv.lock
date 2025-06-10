@@ -1015,7 +1015,7 @@ wheels = [
 
 [[package]]
 name = "icefabric"
-version = "2025.5"
+version = "2025.6.0"
 source = { virtual = "." }
 
 [package.optional-dependencies]
@@ -1048,7 +1048,7 @@ dev = [
     { name = "black", specifier = "==25.1.0" },
     { name = "boto3" },
     { name = "examples" },
-    { name = "icefabric-api", virtual = "src/icefabric_api" },
+    { name = "icefabric-api", editable = "src/icefabric_api" },
     { name = "icefabric-manage", editable = "src/icefabric_manage" },
     { name = "icefabric-tools", editable = "src/icefabric_tools" },
     { name = "ipykernel", specifier = ">=6.29.5" },
@@ -1061,8 +1061,8 @@ dev = [
 
 [[package]]
 name = "icefabric-api"
-version = "2025.5.0"
-source = { virtual = "src/icefabric_api" }
+version = "2025.6.0"
+source = { editable = "src/icefabric_api" }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "pydantic" },
@@ -1078,7 +1078,7 @@ requires-dist = [
 
 [[package]]
 name = "icefabric-manage"
-version = "2025.5"
+version = "2025.6.0"
 source = { editable = "src/icefabric_manage" }
 dependencies = [
     { name = "geopandas" },
@@ -1103,7 +1103,7 @@ requires-dist = [
 
 [[package]]
 name = "icefabric-tools"
-version = "2025.5"
+version = "2025.6.0"
 source = { editable = "src/icefabric_tools" }
 dependencies = [
     { name = "dask" },
