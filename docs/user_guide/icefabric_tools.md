@@ -22,12 +22,7 @@ from pyiceberg.catalog import load_catalog
 from icefabric_tools import subset, IdType
 
 # Load the catalog using default settings
-catalog_settings: dict = {
-    "type": "sql",
-    "uri": "sqlite:////tmp/warehouse/pyiceberg_catalog.db",
-    "warehouse": "file:///tmp/warehouse",
-}
-catalog = load_catalog("hydrofabric", **catalog_settings)
+catalog = load_catalog("glue")
 
 # Basic subset using a hydrofabric ID
 result = subset(

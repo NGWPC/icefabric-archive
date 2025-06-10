@@ -2,12 +2,16 @@ This folder is set up to build remote iceberg catalogs to the S3 endpoints. The 
 
 The following variables must always be set when building
 
+`namespace` which is the location of the namespace package to be used
+`table_name` the name of each table
+`parquet_file` the parquet file we're building into the S3 Glue catalog
+
+Below contains an argparse script that can be easily manipulated to build an iceberg catalog:
 ```python
 import argparse
 
 from dotenv import load_dotenv
 from pyiceberg.catalog import load_catalog
-from pyiceberg.exceptions import NamespaceAlreadyExistsError
 
 from icefabric_manage import build
 
@@ -23,14 +27,17 @@ def build_table(file_dir: str):
     """
     catalog = load_catalog("glue")  # Using an AWS Glue Endpoint
     namespace = "<INSERT NAMESPACE HERE>"
-    .
+    try:
+        catalog.create_namespace(namespace)
+    except NamespaceAlreadyExistsError:
+        print(f"Namespace {namespace} already exists")
     .
     .
     build(
         catalog=catalog,
-        parquet_file=f"{file_dir}/{layer}.parquet",
+        parquet_file=<PARQUET_FILE>,
         namespace=namespace,
-        table_name=layer,
+        table_name=<TABLE_NAME>,
         location="s3://fim-services-data-test/icefabric_metadata/"
     )
 

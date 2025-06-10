@@ -7,6 +7,9 @@
 
 An [Apache Iceberg](https://py.iceberg.apache.org/) implementation of the Hydrofabric to disseminate continental hydrologic data
 
+> [!NOTE]
+> To run any of the functions in this repo your AWS test account credentials need to be in your `.env` file and your `.pyiceberg.yaml` settings need to up to date
+
 ### Getting Started
 This repo is managed through [UV](https://docs.astral.sh/uv/getting-started/installation/) and can be installed through:
 ```sh

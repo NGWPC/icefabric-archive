@@ -1,13 +1,12 @@
 import json
-import re
 import os
+import re
 
 from fastapi import APIRouter, HTTPException, Path, Query
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from src.hf_attributes import get_hydrofabric_attributes
-from src.run_modules import module_ipe
+from icefabric_api.create_ipes import get_hydrofabric_attributes, module_ipe
 
 api_router = APIRouter(prefix="/modules")
 ROOT_DIR = os.path.abspath(os.curdir)
@@ -29,7 +28,7 @@ async def get_ipes(
         raise HTTPException(status_code=422, detail="Icefabric version must be 2.2 or 2.1")
     elif query.version == '2.1' and query.domain != 'CONUS':
         raise HTTPException(status_code=422, detail="oCONUS domains not availiable in Icefabric version 2.1")
-    
+
     gpkg_file = f"{ROOT_DIR}/data/gauge_{query.gage_id}.gpkg"
     if not os.path.exists(gpkg_file):
         raise HTTPException(status_code=422, detail="Gage ID/geopackage not found")

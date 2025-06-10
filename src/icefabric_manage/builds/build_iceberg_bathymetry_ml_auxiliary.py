@@ -11,6 +11,13 @@ load_dotenv()
 
 
 def build_table(file_dir: Path):
+    """Builds the bathymetric channel data for the Hydrofabric
+
+    Parameters
+    ----------
+    file_dir : str
+        The directory to hydrofabric parquet files
+    """
     catalog = load_catalog("glue")  # Using an AWS Glue Endpoint
     namespace = "bathymetry_ml_auxiliary"
     try:

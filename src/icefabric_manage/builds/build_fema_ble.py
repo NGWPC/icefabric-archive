@@ -11,7 +11,7 @@ load_dotenv()
 
 
 def build_table(file_dir: str):
-    """Builds the hydrofabric namespace and tables
+    """Builds the FEMA BLE XS tables
 
     Parameters
     ----------

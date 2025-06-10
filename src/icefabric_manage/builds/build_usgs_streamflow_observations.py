@@ -10,6 +10,13 @@ load_dotenv()
 
 
 def build_table(file_dir):
+    """Builds the streamflow observation namespace and tables
+
+    Parameters
+    ----------
+    file_dir : str
+        The directory to hydrofabric parquet files
+    """
     catalog = load_catalog("glue")  # Using an AWS Glue Endpoint
     namespace = "streamflow_observations"
     try:
