@@ -4,7 +4,7 @@ import pyarrow.parquet as pq
 from pyiceberg.catalog import Catalog
 
 
-def build(catalog: Catalog, parquet_file: str, namespace: str, table_name: str) -> None:
+def build(catalog: Catalog, parquet_file: str, namespace: str, table_name: str, location: str) -> None:
     """Builds the hydrofabric catalog based on the .pyiceberg.yaml config and defined parquet files.
 
     Parameters
@@ -14,10 +14,6 @@ def build(catalog: Catalog, parquet_file: str, namespace: str, table_name: str) 
     file_dir : Path
         The path to the parquet files to add into the iceberg catalog
     """
-    if not any(ns == (namespace,) for ns in catalog.list_namespaces()):
-        catalog.create_namespace(namespace)
-        print(f"Created {namespace} namespace")
-
     if catalog.table_exists(f"{namespace}.{table_name}"):
         print(f"Table {table_name} already exists. Skipping build")
     else:
@@ -25,5 +21,6 @@ def build(catalog: Catalog, parquet_file: str, namespace: str, table_name: str) 
         iceberg_table = catalog.create_table(
             f"{namespace}.{table_name}",
             schema=arrow_table.schema,
+            location=location,
         )
         iceberg_table.append(arrow_table)

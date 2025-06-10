@@ -1,7 +1,13 @@
-import pytest
-from fastapi.testclient import TestClient
+import os
+from pathlib import Path
 
-from app.main import app
+os.environ["PYICEBERG_HOME"] = str(Path(__file__).parents[3])
+print(f"PYICEBERG_HOME set to: {os.environ['PYICEBERG_HOME']}")
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.main import app  # noqa: E402
 
 
 @pytest.fixture(scope="session")

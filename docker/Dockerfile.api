@@ -33,10 +33,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 RUN uv sync
 RUN uv pip install -e src/icefabric_api
 
-WORKDIR /app/src/icefabric_manage/scripts
-RUN python build_hydrofabric.py
-RUN python build_usgs_streamflow_observations.py
-
 # Run the API
 WORKDIR /app/src/icefabric_api
 CMD ["python", "-m", "app.main"]

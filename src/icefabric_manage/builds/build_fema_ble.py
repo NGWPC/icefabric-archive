@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 from dotenv import load_dotenv
 from pyiceberg.catalog import load_catalog
@@ -18,37 +19,28 @@ def build_table(file_dir: str):
         The directory to hydrofabric parquet files
     """
     catalog = load_catalog("glue")  # Using an AWS Glue Endpoint
-    namespace = "hydrofabric"
+    namespace = "ble_xs"
     try:
         catalog.create_namespace(namespace)
     except NamespaceAlreadyExistsError:
         print(f"Namespace {namespace} already exists")
-    layers = [
-        "divide-attributes",
-        "divides",
-        "flowpath-attributes-ml",
-        "flowpath-attributes",
-        "flowpaths",
-        "hydrolocations",
-        "lakes",
-        "network",
-        "nexus",
-        "pois",
-    ]
-    for layer in layers:
-        print(f"building layer: {layer}")
+    for folder in Path(file_dir).glob("ble_*"):
+        huc_number = folder.name.split("_", 1)[1]
+        print(f"building HUC XS: {huc_number}")
         build(
             catalog=catalog,
-            parquet_file=f"{file_dir}/{layer}.parquet",
+            parquet_file=f"{file_dir}/ble_{huc_number}/huc_{huc_number}.parquet",
             namespace=namespace,
-            table_name=layer,
+            table_name=huc_number,
             location="s3://fim-services-data-test/icefabric_metadata/",
         )
     print(f"Build successful. Files written into metadata store @ {catalog.name}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="A script to build a pyiceberg catalog in the S3 endpoint")
+    parser = argparse.ArgumentParser(
+        description="A script to build a pyiceberg catalog in the S3 endpoint for the FEMA-BLE data"
+    )
 
     parser.add_argument("--files", help="The local file dir where the files are located")
 
