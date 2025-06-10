@@ -2,8 +2,7 @@ import json
 import os
 import re
 
-from fastapi import APIRouter, HTTPException, Path, Query
-from fastapi.responses import Response
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from icefabric_api.create_ipes import get_hydrofabric_attributes, module_ipe
@@ -21,12 +20,10 @@ class Parameters(BaseModel):
 
 
 @api_router.post("/parameters")
-async def get_ipes(
-    query: Parameters
-):
-    if query.version != '2.1' and query.version != '2.2':
+async def get_ipes(query: Parameters):
+    if query.version != "2.1" and query.version != "2.2":
         raise HTTPException(status_code=422, detail="Icefabric version must be 2.2 or 2.1")
-    elif query.version == '2.1' and query.domain != 'CONUS':
+    elif query.version == "2.1" and query.domain != "CONUS":
         raise HTTPException(status_code=422, detail="oCONUS domains not availiable in Icefabric version 2.1")
 
     gpkg_file = f"{ROOT_DIR}/data/gauge_{query.gage_id}.gpkg"
