@@ -118,7 +118,7 @@ def land_cover_virtualize_push_test(
         nlcd_repo.delete_repo(quiet=True)
 
 
-def topo_push_test(tiff_fp: str, new_ic_repo: S3Path, clean_up: bool | None = False):
+def topo_push_test(tiff_fp: str, attr_name: str, new_ic_repo: S3Path, clean_up: bool | None = False):
     """
     Push a topobathy GEOTIFF
 
@@ -131,7 +131,7 @@ def topo_push_test(tiff_fp: str, new_ic_repo: S3Path, clean_up: bool | None = Fa
     NOTE: Take care to not overwrite an existing IC repo
     """
     topo_repo = IcechunkS3Repo(location=new_ic_repo)
-    topo_ds = awf_utils.load_tiff_file(tiff_fp)
+    topo_ds = awf_utils.load_tiff_file(tiff_fp, attr_name)
     topo_repo.write_dataset(ds=topo_ds, commit="first commit")
     print(topo_repo.retrieve_dataset())
     if clean_up:
