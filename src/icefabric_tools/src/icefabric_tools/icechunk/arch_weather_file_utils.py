@@ -17,7 +17,6 @@ from virtualizarr import open_virtual_dataset
 
 from icefabric_tools.icechunk import S3Path
 
-
 class FileType(Enum):
     """
     Archival weather file types
@@ -55,6 +54,7 @@ def load_tiff_file(fp: str) -> xr.Dataset | xr.DataArray | list[xr.Dataset]:
     if os.path.exists(fp) is False:
         raise FileNotFoundError(f"Cannot find: {fp}")
     ds = rxr.open_rasterio(fp)
+    ds = ds.to_dataset(name="elevation")
     return ds
 
 
