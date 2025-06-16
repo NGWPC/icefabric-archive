@@ -10,9 +10,7 @@ from icefabric_tools.icechunk import IcechunkS3Repo, NGWPCLocations
 
 load_dotenv()
 
-ic_rasters = [
-    pytest.param(f, id=f) for f in NGWPCLocations._member_names_ if "TOPO" in f
-]
+ic_rasters = [pytest.param(f, id=f) for f in NGWPCLocations._member_names_ if "TOPO" in f]
 
 
 @pytest.mark.parametrize("ic_raster", ic_rasters)
@@ -32,7 +30,7 @@ def test_topobathy(ic_raster: str) -> None:
         # export icechunk zarr to geotiff raster
         repo = IcechunkS3Repo(location=NGWPCLocations[ic_raster].path)
         ds = repo.retrieve_dataset()
-        raster = ds.__xarray_dataarray_variable__
+        raster = ds.elevation
         raster.rio.to_raster(temp_path, tiled=True, compress="LZW", bigtiff="YES")
 
         # open raster version
