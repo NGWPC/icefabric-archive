@@ -7,16 +7,13 @@ archival weather files, mainly to interface with icechunk
 
 import os
 from enum import Enum
-
 import fsspec
 import pandas as pd
 import rioxarray as rxr
 import xarray as xr
 from tqdm import tqdm
 from virtualizarr import open_virtual_dataset
-
 from icefabric_tools.icechunk import S3Path
-
 
 class FileType(Enum):
     """
@@ -30,7 +27,7 @@ class FileType(Enum):
     NETCDF = ".nc"
 
 
-def load_tiff_file(fp: str) -> xr.Dataset | xr.DataArray | list[xr.Dataset]:
+def load_tiff_file(fp: str, attr_name: str) -> xr.Dataset | xr.DataArray | list[xr.Dataset]:
     """
     Loads a GEOTIFF
 
@@ -42,6 +39,9 @@ def load_tiff_file(fp: str) -> xr.Dataset | xr.DataArray | list[xr.Dataset]:
     ----------
     fp : str
         File path to the TIFF that will be returned as a dataset.
+    attr_name : str
+        Name of the attribute of interest. Ex: "elevation".
+        Note: Not all rasters will be elevation in future. 
 
     Returns
     -------
@@ -55,6 +55,7 @@ def load_tiff_file(fp: str) -> xr.Dataset | xr.DataArray | list[xr.Dataset]:
     if os.path.exists(fp) is False:
         raise FileNotFoundError(f"Cannot find: {fp}")
     ds = rxr.open_rasterio(fp)
+    ds = ds.to_dataset(name=attr_name)
     return ds
 
 
