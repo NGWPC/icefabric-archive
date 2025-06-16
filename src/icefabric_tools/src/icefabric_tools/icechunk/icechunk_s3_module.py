@@ -182,7 +182,9 @@ class IcechunkS3Repo:
             ]
         return v_chunks
 
-    def create_session(self, read_only: bool | None = True, snap_id: str | None = None, branch: str | None = "main") -> ic.Session:
+    def create_session(
+        self, read_only: bool | None = True, snap_id: str | None = None, branch: str | None = "main"
+    ) -> ic.Session:
         """
         Open a session under the repo defined by an instance of IcechunkS3Repo
 
@@ -378,7 +380,7 @@ class IcechunkS3Repo:
             If an xarray dataset does not have a "band" attribute in coordinates, the file is not deemed a raster
             and will raise error.
         """
-        ds = self.retrieve_dataset(read_only=True, branch=branch)
+        ds = self.retrieve_dataset(branch=branch)
 
         if "band" not in ds.coords.dims:
             raise AttributeError("Dataset needs a 'band' coordinate to export geotiff")
