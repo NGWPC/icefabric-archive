@@ -7,16 +7,13 @@ archival weather files, mainly to interface with icechunk
 
 import os
 from enum import Enum
-
 import fsspec
 import pandas as pd
 import rioxarray as rxr
 import xarray as xr
 from tqdm import tqdm
 from virtualizarr import open_virtual_dataset
-
-# from icefabric_tools.icechunk import S3Path
-from icechunk_s3_module import S3Path
+from icefabric_tools.icechunk import S3Path
 
 class FileType(Enum):
     """
