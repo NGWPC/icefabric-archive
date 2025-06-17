@@ -1,7 +1,7 @@
 # Icechunk Data Viewer
-Interface to load, create and view S3 Icechunk-versioned NGWPC datasets 
+Interface to load, create and view S3 Icechunk-versioned NGWPC datasets
 
-## Install Icechunk Data Viewer:  
+## Install Icechunk Data Viewer:
 1. Clone repo: `git clone <repo path>`
 2. CD to repo dir: `cd <repo_path>/icechunk_data_viewer`
 3. Create virtual environment: `python3.11 -m venv .venv`

@@ -58,7 +58,7 @@ target-version = ['py311']
 
 [tool.ruff]
 line-length = 110
-exclude = [".csv", "LICENSE"]
+exclude = [".csv", "LICENSE", ".tf", ".tfvars"]
 lint.select = [
   "F",      # Errors detected by Pyflakes
   "E",      # Error detected by Pycodestyle
@@ -127,14 +127,6 @@ show_error_codes = true
 warn_unused_ignores = true
 
 [tool.pytest.ini_options]
-rootdir = "."  # Ensures pytest always treats project root as the root
-pythonpath = [
-    "tests",
-    "src/icefabric_api",
-    "src/icefabric_tools"
-]
-testpaths = [
-    "src/icefabric_api/tests",
-    "src/icefabric_tools/tests",
-    "tests"
-]
+rootdir = "."                                                                 # Ensures pytest always treats project root as the root
+pythonpath = ["tests", "src/icefabric_api", "src/icefabric_tools"]
+testpaths = ["src/icefabric_api/tests", "src/icefabric_tools/tests", "tests"]

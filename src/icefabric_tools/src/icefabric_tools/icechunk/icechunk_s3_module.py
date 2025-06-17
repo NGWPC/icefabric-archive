@@ -217,7 +217,6 @@ class IcechunkS3Repo:
 
         Parameters
         ----------
-
         branch : str | None, optional
             Icechunk repo branch to be opened, by default "main"
         snap_id : str | None, optional

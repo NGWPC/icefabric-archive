@@ -1,9 +1,7 @@
-import pandas as pd
 import httpx
-import folium
-import matplotlib.pyplot as plt
 import ipywidgets as widgets
-from ipywidgets import interact
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def get_observational_uri(
@@ -18,7 +16,8 @@ def get_observational_uri(
         domain (str): Domain name, e.g., "CONUS".
         version (str): API version, e.g., "2.2".
 
-    Returns:
+    Returns
+    -------
         str: The URI of the observational dataset.
     """
     base_url = f"https://hydroapi.oe.nextgenwaterprediction.com/hydrofabric/{version}/observational"
@@ -37,7 +36,8 @@ def get_geopackage_uri(
     """
     Fetches the GeoPackage URI for a given gage ID from the NextGen Water Prediction API.
 
-    Returns:
+    Returns
+    -------
         str: The URI pointing to the GeoPackage in S3.
     """
     import httpx
@@ -61,7 +61,8 @@ def create_time_series_widget(
     """
     Creates an interactive time series plot using matplotlib and ipywidgets.
 
-    Parameters:
+    Parameters
+    ----------
         df (pd.DataFrame): DataFrame with 'DateTime' and 'q_cms' columns
         start_slider (widgets.SelectionSlider): Widget for selecting start time
         end_slider (widgets.SelectionSlider): Widget for selecting end time
@@ -76,10 +77,10 @@ def create_time_series_widget(
             print("⚠️ Start must be before End.")
             return
 
-        filtered = df[(df['dateTime'] >= start_dt) & (df['dateTime'] <= end_dt)]
+        filtered = df[(df["dateTime"] >= start_dt) & (df["dateTime"] <= end_dt)]
 
         fig, ax = plt.subplots(figsize=(10, 4))
-        ax.scatter(filtered['dateTime'], filtered['q_cms'], s=point_size, label="Flow rate (cms)", alpha=0.7)
+        ax.scatter(filtered["dateTime"], filtered["q_cms"], s=point_size, label="Flow rate (cms)", alpha=0.7)
         ax.set_xlabel("Date Time")
         ax.set_ylabel("Discharge (cms)")
         ax.set_title("Streamflow Time Series (Scatter Plot)")
