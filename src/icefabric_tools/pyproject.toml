@@ -40,6 +40,11 @@ dependencies = [
   "dask==2025.5.1",
   "netCDF4==1.7.2",
   "python-dotenv==1.1.0",
+  "folium==0.19.5",
+  "geodatasets==2024.8.0",
+  "httpx==0.28.1",
+  "ipywidgets==8.1.6",
+  "mapclassify==2.9.0",
 ]
 
 [build-system]

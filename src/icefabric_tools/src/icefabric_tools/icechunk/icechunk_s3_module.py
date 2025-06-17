@@ -182,7 +182,9 @@ class IcechunkS3Repo:
             ]
         return v_chunks
 
-    def create_session(self, read_only: bool | None = True, snap_id: str | None = None, branch: str | None = "main") -> ic.Session:
+    def create_session(
+        self, read_only: bool | None = True, snap_id: str | None = None, branch: str | None = "main"
+    ) -> ic.Session:
         """
         Open a session under the repo defined by an instance of IcechunkS3Repo
 
@@ -215,7 +217,6 @@ class IcechunkS3Repo:
 
         Parameters
         ----------
-
         branch : str | None, optional
             Icechunk repo branch to be opened, by default "main"
         snap_id : str | None, optional
