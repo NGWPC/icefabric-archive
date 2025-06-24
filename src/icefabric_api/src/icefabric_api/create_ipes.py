@@ -19,7 +19,7 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
     # Look up parameter csv file for module
     has_output_vars = True
     module_df = pd.read_csv(f"{ROOT_DIR}/data/modules.csv")
-    param_file = module_df.loc[module_df["module"] == module]["file"].to_string(index=False)
+    param_file = module_df.loc[module_df["module"] == module]["file"].to_string(index=False) #<=== Extract IPE csv filename of given module
     out_file = module_df.loc[module_df["module"] == module]["outputs"].to_string(index=False)
     if out_file == "NaN":
         has_output_vars = False
@@ -41,7 +41,7 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
     # Get output vars
     out_datatypes = {"variable": "object", "description": "object"}
 
-    module_params = pd.read_csv(f"{ROOT_DIR}/data/{param_file}", dtype=datatypes)
+    module_params = pd.read_csv(f"{ROOT_DIR}/data/{param_file}", dtype=datatypes) #<=== Reads IPE csv content of given module
     output_vars = pd.DataFrame()
     if has_output_vars:
         output_vars = pd.read_csv(f"{ROOT_DIR}/data/{out_file}", dtype=out_datatypes)
@@ -49,7 +49,7 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
     # Filter data frame for parameter names and default values.  Create dictionary to collect
     # parameters for cfg files.
     param_values = module_params[["name", "default_value"]]
-    param_values = pd.Series(param_values["default_value"].values, index=param_values["name"]).to_dict()
+    param_values = pd.Series(param_values["default_value"].values, index=param_values["name"]).to_dict() #<=== Extract 'default_value' IPE csv of a module
 
     # Get sources
     attr_list = module_params["source"].to_list()
@@ -58,13 +58,20 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
     all_cats = dict.fromkeys(divides, param_values)
 
     # For attributes, get list of attribute names
-    attr_list = module_params.loc[module_params["source"] == "attr"]["divide_attr_name"].to_list()
-    attr_list.append("divide_id")
+    attr_list = module_params.loc[module_params["source"]=="attr"]["divide_attr_name"].to_list()
+    
     # Get corresponding list of parameter names to create a dictionary for mapping
-    attr_names = module_params.loc[module_params["source"] == "attr"]["name"].to_list()
+    attr_names = module_params.loc[module_params["source"]=="attr"]["name"].to_list()
     attr_name_map = dict(zip(attr_list, attr_names, strict=False))
+    
+    # Drop a module's parameter attribute if not featured within a given geopackage's list of attributes.
+    # Note: Not all module_params will necessarily be featured within a given geopackage's list of attributes.
+    attr_list = [k for k,v in attr_name_map.items() if k in attr.columns]
+    attr_list.append("divide_id")
+    
     # Filter attributes for those needed for this module
     attr = attr[attr_list]
+    
     # Rename attribute names to module names
     attr.rename(columns=attr_name_map, inplace=True)
 
@@ -88,6 +95,11 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
     if cfg_write:
         write_cfg(all_cats)
     s3_uri = "s3://"
+    print('all_cats[divides[1]:\n', all_cats[divides[1]])
+    print('module_params:\n', module_params)
+    print('output_vars:\n', output_vars)
+    print('module:\n', module)
+    print('s3_uri:\n', s3_uri)
     module_json = write_json(all_cats[divides[1]], module_params, output_vars, module, s3_uri)
     return module_json
 
@@ -113,7 +125,8 @@ def write_json(params, all_params, output_vars, module, s3_uri):
         name = item["name"]
         value = params[name]
         item["default_value"] = value
-
+        
+    # <===== Where keys of the json get created of a given module ====>
     module_dict = {
         "module_name": module,
         "parameter_file": {"uri": s3_uri},
