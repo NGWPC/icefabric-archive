@@ -1,4 +1,4 @@
-name,description,units,data_type,calibratable,source_file,min,max,default_value,divide_attr_name,source_file
+name,description,units,data_type,calibratable,source,min,max,default_value,divide_attr_name,source_file
 hru_id,Identification string for each hrus,NULL,char,False,const,25,125,NA,divide_id,
 hru_area,Area of each HRU,NULL,double,False,attr,10,100,NA,areasqkm,
 uztwm,upper zone tension water maximum storage,mm,double,True,csv,25,125,75,,sac_sma_params
@@ -17,4 +17,3 @@ pfree,fraction of water percolating from upper zone directly to lower zone free 
 riva,Percent of the basin that is riparian area,decimal percent,double,True,const,0,0.2,0,,
 side,Portion of the baseflow which does not go to the stream,decimal percent,double,False,const,0,0.2,0,,
 rserv,Percent of lower zone free water not transferable to the lower zone tension water,decimal percent,double,False,const,0.2,0.4,0.3,,
-
