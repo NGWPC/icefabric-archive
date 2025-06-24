@@ -7,4 +7,4 @@ services:
         - RUST_LOG=debug
       volumes:
         - "${PWD}/tiles:/tiles"
-      command: -c /tiles/config.yaml
+      command: -c /tiles/martin_config.yaml
