@@ -1,8 +1,8 @@
 pmtiles:
   sources:
-    alaska_tiles: /tiles/alaska.pmtiles
-    atlantic_tiles: /tiles/conus_atlantic_gulf_tiles.pmtiles
-    pacific_tiles: /tiles/conus_pacific_tiles.pmtiles
-    great_lakes_tiles: /tiles/great_lakes_tiles.pmtiles
-    hawaii_tiles: /tiles/hawaii_tiles.pmtiles
-    pr_usvi_tiles: /tiles/pr_usvi_tiles.pmtiles
+    alaska: /tiles/alaska.pmtiles
+    atlantic: /tiles/conus_atlantic_gulf_tiles.pmtiles
+    pacific: /tiles/conus_pacific_tiles.pmtiles
+    great_lakes: /tiles/great_lakes_tiles.pmtiles
+    hawaii: /tiles/hawaii_tiles.pmtiles
+    pr_usvi: /tiles/pr_usvi_tiles.pmtiles
