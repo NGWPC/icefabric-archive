@@ -13,7 +13,7 @@ def convert_topobathy_to_tiff(output_dir: str, ic_rasters: list[NGWPCLocations])
         except Exception as e:
             raise e
         print(repo)
-        output = os.path.join(output_dir, f"{str.split(str(NGWPCLocations[ic_raster].path), "/")[-1]}.tif")
+        output = os.path.join(output_dir, f"{str.split(str(NGWPCLocations[ic_raster].path), '/')[-1]}.tif")
 
         repo.retrieve_and_convert_to_tif(dest=output, var_name='elevation')
 
