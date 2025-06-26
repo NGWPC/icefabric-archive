@@ -2,8 +2,10 @@
 
 ## If tiles are pre-created and stored on s3:
 1. Move to icechunk_data-viewer folder:
+
     `cd examples/icechunk_data_viewer`
 2. Export AWS data account credentials to your environment and run in CLI:
+
     `aws s3 sync s3://hydrofabric-data/surface/nws-topobathy/tiles ./martin/tiles`
 
 3. Start martin tile server:
@@ -13,9 +15,9 @@
     `docker compose -f compose.martin.yaml up`
 
 4. Tile server is now running. Confirm by checking `localhost:3000/catalog`. You should see a list of tile sources. Debug logs should be populating in console.
-5. Return  `icechunk_data_viewer` root
+5. Open a new terminal and move to  `icechunk_data_viewer` root
 
-    `cd ..`
+    `cd examples/icechunk_data_viewer`
 6. Start jupyter lab in activated icefabric virtual environment. This will start the jupyter server at `localhost:8888/lab`
 
     `jupyter lab`
@@ -65,9 +67,9 @@
     ```
 
 13. Tile server is now running. Confirm by checking `localhost:3000/catalog`. You should see a list of tile sources.
-14. Return root to `icechunk_data_viewer`
+14.  Open a new terminal and move to  `icechunk_data_viewer` root
 
-    `cd ..`
+    `cd examples/icechunk_data_viewer`
 15. Start jupyter lab in activated icefabric virtual environment. This will start the jupyter server at `localhost:8888/lab`
 
     `jupyter lab`

@@ -1,4 +1,3 @@
-# NOTE: Unsure the purpose of this compose at this time - personal directories should be removed
 version: "3.8"
 
 services:
