@@ -35,7 +35,7 @@ async def get_ipes(query: Parameters):
 
     all_modules = []
     for mod in query.modules:
-        mod_json = module_ipe(mod, attr, query.domain, query.version)
+        mod_json = module_ipe(mod, attr, query.domain, query.version, cfg_write=True)
         all_modules.append(mod_json)
 
     final_json = json.dumps({"modules": all_modules})

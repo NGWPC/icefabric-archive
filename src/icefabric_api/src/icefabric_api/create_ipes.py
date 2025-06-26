@@ -41,7 +41,7 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
     }
     # Get output vars
     out_datatypes = {"variable": "object", "description": "object"}
-
+   
     module_params = pd.read_csv(f"{ROOT_DIR}/data/{param_file}", dtype=datatypes)
     output_vars = pd.DataFrame()
     if has_output_vars:
@@ -70,20 +70,24 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
     attr = attr[attr_list]
     # Rename attribute names to module names
     attr.rename(columns=attr_name_map, inplace=True)
+    
+    # Get iceberg table parameters
+    if "iceberg" in module_params["source"].values:
+        iceberg_params = divide_parameters(divides, module, domain)
 
-    # Get CSV file parameters
-    if "csv" in module_params["source"].values:
-        csv_params = divide_parameters(divides, module, domain)
-
+    # Loop through divides and update default values with divide attributes from geopackage
+    # and iceberg tables
     for divide in divides:
         attr_div = attr.loc[attr["divide_id"] == divide]
         attr_div = attr_div.to_dict(orient="list")
         all_cats[divide].update(attr_div)
-        if not csv_params.empty:
-            csv_params_div = csv_params.loc[csv_params["divide_id"] == divide]
-            csv_params_div = csv_params_div.to_dict(orient="list")
-            all_cats[divide].update(csv_params_div)
-
+        if not iceberg_params.empty:
+            iceberg_params_div = iceberg_params.loc[iceberg_params["divide_id"] == divide]
+            iceberg_params_div = iceberg_params_div.to_dict(orient="list")
+            all_cats[divide].update(iceberg_params_div)
+        
+        # When dataframe is converted to a dictionary, the values are contained in a list
+        # Remove the value from the list. 
         for key in all_cats[divide].keys():
             value = all_cats[divide][key]
             if isinstance(value, list):

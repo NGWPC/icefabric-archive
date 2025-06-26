@@ -17,9 +17,9 @@ K_nash,Nash Config param for lateral subsurface runoff (Nash discharge to storag
 K_lf,Nash Config param - primary reservoir,NULL,double,True,const,0,1,0.01,,
 nash_storage,Nash Config param - secondary reservoir ,NULL,double,False,const,NULL,NULL,"0.0,0.0",,
 giuh_ordinates,Giuh (geomorphological instantaneous unit hydrograph) ordinates in dt time steps,NULL,double,False,const,NULL,NULL,"0.55, 0.25, 0.2",,
-a_Xinanjiang_inflection_point_parameter,when surface_water_partitioning_scheme=Xinanjiang ,NULL,double,True,csv,-0.5,0.5,-0.2,AXAJ,CFE-X_params
-b_Xinanjiang_shape_parameter,when surface_water_partitioning_scheme=Xinanjiang ,NULL,double,True,csv,0.01,10,0.66,BXAJ,CFE-X_params
-x_Xinanjiang_shape_parameter,when surface_water_partitioning_scheme=Xinanjiang ,NULL,double,True,csv,0.01,10,0.02,XXAJ,CFE-X_params
+a_Xinanjiang_inflection_point_parameter,when surface_water_partitioning_scheme=Xinanjiang ,NULL,double,True,iceberg,-0.5,0.5,-0.2,AXAJ,CFE-X_params
+b_Xinanjiang_shape_parameter,when surface_water_partitioning_scheme=Xinanjiang ,NULL,double,True,iceberg,0.01,10,0.66,BXAJ,CFE-X_params
+x_Xinanjiang_shape_parameter,when surface_water_partitioning_scheme=Xinanjiang ,NULL,double,True,iceberg,0.01,10,0.02,XXAJ,CFE-X_params
 urban_decimal_fraction,when surface_water_partitioning_scheme=Xinanjiang,NULL,double ,False,const,0,1,0.01,,
 refkdt,Reference Soil Infiltration Parameter (used in runoff formulation),NULL,double,True,attr,0.1,4,1,mean.refkdt,
 soil_params.depth,soil depth,m,double,False,const,NULL,NULL,2,,
