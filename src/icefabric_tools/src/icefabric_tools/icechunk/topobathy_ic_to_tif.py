@@ -28,6 +28,6 @@ if __name__ == '__main__':
     os.makedirs(output_dir, exist_ok=True)
 
     # all 30 m topobathy layers
-    ic_rasters = [f for f in NGWPCLocations._member_names_ if "TOPO" and "30M" in f][2:3]
+    ic_rasters = [f for f in NGWPCLocations._member_names_ if "TOPO" and "30M" in f]
 
     convert_topobathy_to_tiff(output_dir, ic_rasters)
