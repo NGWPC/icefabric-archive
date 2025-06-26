@@ -4,10 +4,11 @@ import os
 import geopandas as gpd
 import pandas as pd
 from pyproj import Transformer
+from pyiceberg.catalog import load_catalog
+import pyiceberg.exceptions as ex
 
 logger = logging.getLogger(__name__)
 ROOT_DIR = os.path.abspath(os.curdir)
-
 
 def module_ipe(module, attr, domain, version, cfg_write=None):
     # Create empty dataframe for csv parameters
@@ -55,7 +56,9 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
     attr_list = module_params["source"].to_list()
 
     # Create dictionary with divide IDs as the keys and parameter dictionary for the values.
-    all_cats = dict.fromkeys(divides, param_values)
+    all_cats = {}
+    for divide in divides:
+        all_cats[divide] = param_values.copy()
 
     # For attributes, get list of attribute names
     attr_list = module_params.loc[module_params["source"] == "attr"]["divide_attr_name"].to_list()
@@ -70,10 +73,7 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
 
     # Get CSV file parameters
     if "csv" in module_params["source"].values:
-        csv_file = module_params.loc[module_params["source"] == "csv"]["source_file"].to_list()
-        csv_file = csv_file[0]
-        csv_file = f"{csv_file}_{domain}_{version}.csv"
-        csv_params = pd.read_csv(f"{ROOT_DIR}/data/{csv_file}")
+        csv_params = divide_parameters(divides, module, domain)
 
     for divide in divides:
         attr_div = attr.loc[attr["divide_id"] == divide]
@@ -83,7 +83,12 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
             csv_params_div = csv_params.loc[csv_params["divide_id"] == divide]
             csv_params_div = csv_params_div.to_dict(orient="list")
             all_cats[divide].update(csv_params_div)
-        # print(all_cats[divide])
+
+        for key in all_cats[divide].keys():
+            value = all_cats[divide][key]
+            if isinstance(value, list):
+                all_cats[divide][key] = value[0]
+                
 
     if cfg_write:
         write_cfg(all_cats)
@@ -91,11 +96,10 @@ def module_ipe(module, attr, domain, version, cfg_write=None):
     module_json = write_json(all_cats[divides[1]], module_params, output_vars, module, s3_uri)
     return module_json
 
-
 def write_cfg(params):
     divides = params.keys()
     for divide in divides:
-        cfg_file = f"{divide}_bmi_config_cfe.txt"
+        cfg_file = f"{ROOT_DIR}/{divide}_bmi_config_cfe.txt"
         f = open(cfg_file, "w")
 
         for key, value in params[divide].items():
@@ -215,3 +219,23 @@ def get_hydrofabric_attributes(gpkg_file, version, domain):
             divide_attr.loc[index, "centroid_x"] = wgs84_latlon[1]  # longitude
 
     return divide_attr
+
+def divide_parameters(divides, module, domain):
+    module = module.lower()
+    domain = domain.lower()
+    namespace = "divide_parameters"
+    table_name = f"{namespace}.{module}_{domain}"
+    catalog = load_catalog("glue")
+    try:
+        table = catalog.load_table(table_name)
+    except ex.NoSuchTableError as e:
+        print(f"Table {table_name} does not exist")
+        return pd.DataFrame()
+    except Exception as e:
+        print(f"Iceberg table load exception: {e}")
+        return pd.DataFrame()
+    df = table.scan().to_pandas()
+    filtered = df[df['divide_id'].isin(divides)]
+    return filtered
+
+
