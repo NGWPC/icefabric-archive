@@ -27,38 +27,30 @@
 
 
 ## Full Pipeline - from creating tiles to viewing
-1. __In icefabric repo__: Export topobathy from icechunk to TIFF using `icefabric_tools.icechunk.IcechunkS3Repo`
-2. Initialize the s3 repo and convert to tiff.
+1. __In icefabric repo__: Export topobathy from icechunk to TIFF using `icefabric_tools/icechunk/topobathy_ic_to_tif.py`. These will be stored locally.
 
-    ```
-    from icefabric_tools.icechunk import IcechunkS3Repo, NGWPCLocations
+    __NOTE__: Some files may require more memory than average desktop. If 'killed', move to a cluster with more memory.
 
-    repo = IcechunkS3Repo(location=NGWPCLocations.TOPO_HA_30M_IC.path)
-    ds = repo.retrieve_dataset()
-    repo.retrieve_and_convert_to_tiff(dest=<YOUR PATH HERE>, var_name='elevation')
-    ```
-
-3. Clone hydrofabric-ui-tools
-4. __In hydrofabric-ui-tools repo__: Copy saved TIFFs to `data` folder in `hydrofabric-ui-tools`
-5. Create or modify `config` files to match TIFF
-6. Run `build_topobathy_tiles.py` using docker or local environment as described in `README.md`
+2. Clone hydrofabric-ui-tools
+3. __In hydrofabric-ui-tools repo__: Copy saved icechunk TIFs to `data` folder in `hydrofabric-ui-tools`
+5. Create or modify `config` files to match TIF
+6. Run `build_topobathy_tiles.py` using docker or local environment as described in `README.md`. Some regions may require more memory than average desktop.
 7. Tiles will be uploaded to s3 if specified in config.
 8. __Return to icefabric repo__
 9. Sync from s3 or paste `.pmtiles` files into
 
     `icefabric/examples/icechunk_data_viewer/martin/tiles`
 
-    AWS option with data account credentials in env vars.
-    ```
+AWS option with data account credentials in env vars.
+
     cd examples/icechunk_data_viewer
     aws s3 sync s3://hydrofabric-data/surface/nws-topobathy/tiles ./martin/tiles
-    ```
 
 10. Open `martin_config.yaml`
 
     `icefabric/examples/icechunk_data_viewer/martin/martin_config.yaml`
 
-11. Match tile names in `tiles` folders to source name. Source name will be the URI for tile serving.
+11. Match tile names in `tiles` folders to source name if not correct. Source name will be the URI for tile serving.
 
 12. Start martin tile server. This must be done in the `martin` working directory to copy the files correctly.
     ```
