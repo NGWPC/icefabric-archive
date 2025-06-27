@@ -202,3 +202,9 @@ crash.log
 
 # Terraform plan output (optional unless you want to inspect later)
 *.tfplan
+
+# tiles
+*.pmtiles
+examples/icechunk_data_viewer/martin/tiles/quantiles/*
+examples/icechunk_data_viewer/martin/tiles/legends/*
+examples/icechunk_data_viewer/martin/tiles/legend.png
