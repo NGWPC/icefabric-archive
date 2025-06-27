@@ -54,7 +54,7 @@ AWS option with data account credentials in env vars.
 
 12. Start martin tile server. This must be done in the `martin` working directory to copy the files correctly.
     ```
-    cd examples/icechunk_data/viewer/martin
+    cd examples/icechunk_data_viewer/martin
     docker compose -f compose.martin.yaml up
     ```
 
