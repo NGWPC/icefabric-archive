@@ -1,5 +1,5 @@
 # Topobathy Data Viewer
-
+The purpose of this data viewer is to visualize version-controlled tif files hosted by the NGWPC program. The data viewer can be run either on pre-processed tiles, or by creating said tiles on an end-to-end full workflow. Details on how to run each are below
 ## If tiles are pre-created and stored on s3:
 1. Move to icechunk_data-viewer folder:
 
