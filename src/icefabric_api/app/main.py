@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, status
 from pydantic import BaseModel
 
@@ -16,6 +17,9 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+env_path = Path(__file__).parents[3] / ".env"
+load_dotenv(dotenv_path=env_path)
 
 
 class HealthCheck(BaseModel):
