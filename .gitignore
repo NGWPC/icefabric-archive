@@ -178,8 +178,7 @@ cython_debug/
 Pipfile
 
 .qodo
-_version.py
-data/
+src/icefabric/_version.py
 *.db
 *.zarr
 .zarr

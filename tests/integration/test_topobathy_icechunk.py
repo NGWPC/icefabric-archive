@@ -6,7 +6,8 @@ import pytest
 import rasterio
 from dotenv import load_dotenv
 
-from icefabric_tools.icechunk import IcechunkS3Repo, NGWPCLocations
+from icefabric.builds import IcechunkRepo
+from icefabric.schemas import NGWPCLocations
 
 load_dotenv()
 
@@ -28,7 +29,7 @@ def test_topobathy(ic_raster: str) -> None:
 
     try:
         # export icechunk zarr to geotiff raster
-        repo = IcechunkS3Repo(location=NGWPCLocations[ic_raster].path)
+        repo = IcechunkRepo(location=NGWPCLocations[ic_raster].path)
         ds = repo.retrieve_dataset()
         raster = ds.elevation
         raster.rio.to_raster(temp_path, tiled=True, compress="LZW", bigtiff="YES")
