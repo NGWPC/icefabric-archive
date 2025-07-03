@@ -4,6 +4,7 @@ from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
+from botocore.exceptions import ClientError
 from pyiceberg.catalog import Catalog
 from pyiceberg.expressions import And, EqualTo, In
 from pyiceberg.table import Table
@@ -274,12 +275,15 @@ def subset(
         layers = []
     layers.extend(["divides", "flowpaths", "network", "nexus"])
     layers = list(set(layers))
-
-    network = catalog.load_table("hydrofabric.network")
-    divides = catalog.load_table("hydrofabric.divides")
-    flowpaths = catalog.load_table("hydrofabric.flowpaths")
-    nexus = catalog.load_table("hydrofabric.nexus")
-
+    try:
+        network = catalog.load_table("hydrofabric.network")
+        divides = catalog.load_table("hydrofabric.divides")
+        flowpaths = catalog.load_table("hydrofabric.flowpaths")
+        nexus = catalog.load_table("hydrofabric.nexus")
+    except ClientError as e:
+        msg = "AWS Test account credentials expired. Can't access remote S3 endpoint"
+        print(msg)
+        raise e
     # Find the origin point
     origin_row = find_origin(network_table=network, identifier=identifier, id_type=id_type.value)
     origin_filter = EqualTo("id", origin_row["id"].iloc[0])

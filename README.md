@@ -13,16 +13,13 @@ An [Apache Iceberg](https://py.iceberg.apache.org/) implementation of the Hydrof
 ### Getting Started
 This repo is managed through [UV](https://docs.astral.sh/uv/getting-started/installation/) and can be installed through:
 ```sh
-uv venv
-source .venv/bin/activate
 uv sync
+source .venv/bin/activate
 ```
 
 ### Running the API locally
 To run the API locally, ensure your `.env` file in your project root has the right credentials, then run
 ```sh
-uv sync
-cd src/icefabric_api
 python -m app.main
 ```
 This should spin up the API services.

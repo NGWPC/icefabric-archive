@@ -2,6 +2,7 @@ import io
 from datetime import datetime
 from enum import Enum
 
+from botocore.exceptions import ClientError
 from fastapi import APIRouter, HTTPException, Path, Query
 from fastapi.responses import Response
 from pyiceberg.catalog import load_catalog
@@ -31,8 +32,13 @@ DATA_SOURCE_CONFIG = {
 def get_catalog_and_table(data_source: DataSource):
     """Get catalog and table for a given data source"""
     config = DATA_SOURCE_CONFIG[data_source]
-    catalog = load_catalog("glue")
-    table = catalog.load_table(f"{config['namespace']}.{config['table']}")
+    try:
+        catalog = load_catalog("glue")
+        table = catalog.load_table(f"{config['namespace']}.{config['table']}")
+    except ClientError as e:
+        msg = "AWS Test account credentials expired. Can't access remote S3 endpoint"
+        print(msg)
+        raise e
     return catalog, table, config
 
 

@@ -15,8 +15,8 @@ The API consists of several key components:
 ### Running the API locally
 To run the API locally, ensure your `.env` file in your project root has the right credentials, then run
 ```sh
-uv pip install -e src/icefabric_api
-cd src/icefabric_api
+uv sync
+source
 python -m app.main
 ```
 This should spin up the API services

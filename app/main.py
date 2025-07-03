@@ -18,8 +18,16 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-env_path = Path(__file__).parents[1] / ".env"
+# Setting .env/.pyiceberg creds based on project root
+env_path = Path.cwd() / ".env"
 load_dotenv(dotenv_path=env_path)
+pyiceberg_file = Path.cwd() / ".pyiceberg.yaml"
+if pyiceberg_file.exists():
+    os.environ["PYICEBERG_HOME"] = str(Path(__file__).parents[1])
+else:
+    raise FileNotFoundError(
+        "Cannot find .pyiceberg.yaml. Please download this from NGWPC confluence or create "
+    )
 
 
 class HealthCheck(BaseModel):
@@ -48,6 +56,4 @@ def get_health() -> HealthCheck:
 
 
 if __name__ == "__main__":
-    os.environ["PYICEBERG_HOME"] = str(Path(__file__).parents[3])
-    print(os.environ["PYICEBERG_HOME"])
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")

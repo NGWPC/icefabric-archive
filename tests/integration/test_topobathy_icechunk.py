@@ -22,7 +22,7 @@ def test_topobathy(ic_raster: str) -> None:
     Corrupted rasters will load correctly in xarray but incorrectly in rasterio and cannot be exported.
     This test checks that when exported, a dataset has values that are non-no data.
     """
-    data_dir = Path(__file__).parents[0] / "data"
+    data_dir = Path(__file__).parent / "data"
     os.makedirs(data_dir, exist_ok=True)
 
     temp_path = data_dir / "temp_raster.tif"

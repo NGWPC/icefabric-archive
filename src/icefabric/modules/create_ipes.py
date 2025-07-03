@@ -3,6 +3,7 @@ import os
 import geopandas as gpd
 import pandas as pd
 import pyiceberg.exceptions as ex
+from botocore.exceptions import ClientError
 from pyiceberg.catalog import load_catalog
 from pyproj import Transformer
 
@@ -259,9 +260,10 @@ def divide_parameters(divides, module, domain):
     except ex.NoSuchTableError:
         print(f"Table {table_name} does not exist")
         return pd.DataFrame()
-    except Exception as e:
-        print(f"Iceberg table load exception: {e}")
-        return pd.DataFrame()
+    except ClientError as e:
+        msg = "AWS Test account credentials expired. Can't access remote S3 endpoint"
+        print(msg)
+        raise e
     df = table.scan().to_pandas()
     filtered = df[df["divide_id"].isin(divides)]
     return filtered
