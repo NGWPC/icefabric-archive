@@ -5,6 +5,8 @@ General example/testing code for Icechunk functionality. Covers archival weather
 file virtualization/concatenation & uploading/appending/retrieving data to/from repos.
 """
 
+from dotenv import load_dotenv
+
 import icefabric.helpers.nc_conv_utils as ncc_utils
 from icefabric.builds import IcechunkRepo, S3Path
 from icefabric.helpers import (
@@ -15,6 +17,7 @@ from icefabric.helpers import (
 from icefabric.schemas import FileType, NGWPCLocations
 
 ICECHUNK_STORES = [loc for loc in NGWPCLocations if "_IC" in loc.name]
+load_dotenv()
 
 
 def output_icechunk_stores():

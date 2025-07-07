@@ -34,7 +34,6 @@ class NGWPCLocations(Enum):
     SNODAS_IC = ("hydrofabric-data", "forcing/snodas")
     NLCD_REF = ("ngwpc-hydrofabric", "NLCD_Land_Cover_CONUS")
     NLCD_IC = ("hydrofabric-data", "land-cover/NLCD-Land-Cover")
-    USGS_IC = ("ngwpc-hydrofabric", "usgs_observations")
     TOPO_AK_10M_IC = ("hydrofabric-data", f"{TOPO_BP}/tbdem_alaska_10m")
     TOPO_AK_30M_IC = ("hydrofabric-data", f"{TOPO_BP}/tbdem_alaska_30m")
     TOPO_CONUS_ATL_GULF_30M_IC = ("hydrofabric-data", f"{TOPO_BP}/tbdem_conus_atlantic_gulf_30m")
@@ -48,6 +47,35 @@ class NGWPCLocations(Enum):
     TOPO_CHESAPEAKE_BAY_IC = ("hydrofabric-data", f"{TOPO_NOS}/Chesapeake_Bay_NOS_NCEI")
     TOPO_MOBILE_BAY_IC = ("hydrofabric-data", f"{TOPO_NOS}/Mobile_Bay_NOS_NCEI")
     TOPO_TANGIER_SOUND_IC = ("hydrofabric-data", f"{TOPO_NOS}/Tangier_Sound_NOS_NCEI")
+
+    def __init__(self, bucket, prefix):
+        self.path = S3Path(bucket, prefix)
+
+
+class NGWPCTestLocations(Enum):
+    """
+    Important NGWPC S3 locations
+
+    Enum class for instantiating S3Paths corresponding to the
+    icechunk stores, as well as the reference locations for virtualized
+    stores.
+    """
+
+    SNODAS_IC = ("edfs-data", "forcing/snodas")
+    NLCD_IC = ("edfs-data", "land-cover/NLCD-Land-Cover")
+    TOPO_AK_10M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_alaska_10m")
+    TOPO_AK_30M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_alaska_30m")
+    TOPO_CONUS_ATL_GULF_30M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_conus_atlantic_gulf_30m")
+    TOPO_CONUS_PAC_30M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_conus_pacific_30m")
+    TOPO_GREAT_LAKES_30M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_great_lakes_30m")
+    TOPO_HA_10M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_hawaii_10m")
+    TOPO_HA_30M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_hawaii_30m")
+    TOPO_PR_USVI_10M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_pr_usvi_10m")
+    TOPO_PR_USVI_30M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_pr_usvi_30m")
+    TOPO_ALBEMARLE_SOUND_IC = ("edfs-data", f"{TOPO_NOS}/Albemarle_Sound_NOS_NCEI")
+    TOPO_CHESAPEAKE_BAY_IC = ("edfs-data", f"{TOPO_NOS}/Chesapeake_Bay_NOS_NCEI")
+    TOPO_MOBILE_BAY_IC = ("edfs-data", f"{TOPO_NOS}/Mobile_Bay_NOS_NCEI")
+    TOPO_TANGIER_SOUND_IC = ("edfs-data", f"{TOPO_NOS}/Tangier_Sound_NOS_NCEI")
 
     def __init__(self, bucket, prefix):
         self.path = S3Path(bucket, prefix)

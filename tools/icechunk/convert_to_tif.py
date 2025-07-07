@@ -1,9 +1,12 @@
 """A function to convert the topobathy data into a tif file"""
 
 import os
+from pathlib import Path
 
-from icefabric.helpers import convert_topobathy_to_tiff
+from icefabric.helpers import convert_topobathy_to_tiff, load_creds
 from icefabric.schemas import NGWPCLocations
+
+load_creds(dir=Path.cwd())
 
 if __name__ == "__main__":
     output_dir = "./temp_tb_data"

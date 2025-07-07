@@ -4,9 +4,11 @@ import argparse
 
 import geopandas as gpd
 import pandas as pd
+from dotenv import load_dotenv
 
 # param_file = "../src/icefabric_api/data/cfe_params.csv"
 # gpkg_file = "../src/icefabric_tools/test/data/gages-08070000.gpkg"
+load_dotenv()
 
 
 def create_module_params(param_file: str, gpkg_file: str) -> None:

@@ -19,11 +19,10 @@ app = FastAPI(
 )
 
 # Setting .env/.pyiceberg creds based on project root
-env_path = Path.cwd() / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv(dotenv_path=Path.cwd() / ".env")
 pyiceberg_file = Path.cwd() / ".pyiceberg.yaml"
 if pyiceberg_file.exists():
-    os.environ["PYICEBERG_HOME"] = str(Path(__file__).parents[1])
+    os.environ["PYICEBERG_HOME"] = str(pyiceberg_file)
 else:
     raise FileNotFoundError(
         "Cannot find .pyiceberg.yaml. Please download this from NGWPC confluence or create "

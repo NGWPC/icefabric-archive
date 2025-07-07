@@ -4,6 +4,9 @@ import argparse
 
 import fiona
 import geopandas as gpd
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def gpkg_to_parquet(input_file: str) -> None:

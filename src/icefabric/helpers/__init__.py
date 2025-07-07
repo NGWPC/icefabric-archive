@@ -5,6 +5,7 @@ from .arch_weather_file_utils import (
     load_tiff_file,
     virtualize_and_concat_archival_files_on_time,
 )
+from .creds import load_creds
 from .geopackage import table_to_geopandas, to_geopandas
 from .nc_conv_utils import conv_nc, convert_files_to_netcdf4, convert_nc_files_from_s3
 from .topobathy_ic_to_tif import convert_topobathy_to_tiff
@@ -13,6 +14,7 @@ __all__ = [
     "get_archival_weather_files",
     "load_tiff_file",
     "virtualize_and_concat_archival_files_on_time",
+    "load_creds",
     "table_to_geopandas",
     "to_geopandas",
     "convert_files_to_netcdf4",

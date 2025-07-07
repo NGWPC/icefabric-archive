@@ -73,7 +73,7 @@ def gauge_hf_uri(request) -> str:
 @pytest.fixture
 def testing_dir() -> Path:
     """Returns the testing data dir"""
-    return Path(__file__) / "data/"
+    return Path(__file__).parent / "data/"
 
 
 @pytest.fixture(scope="session")

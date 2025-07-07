@@ -1,9 +1,13 @@
 import argparse
 import os
 
+from dotenv import load_dotenv
+
 from icefabric.schemas import NGWPCLocations
 
 from .icechunk_testing import topo_push_test
+
+load_dotenv()
 
 
 def migrate_all_icechunks(attr_name: str) -> None:
