@@ -130,7 +130,7 @@ else:
 uv sync
 
 # Start development server
-python src/icefabric_api/app/main.py
+python -m app.main
 ```
 
 ### Adding New Data Observation Sources
