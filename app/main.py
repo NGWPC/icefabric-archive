@@ -1,14 +1,13 @@
-import os
 from pathlib import Path
 
 import uvicorn
-from dotenv import load_dotenv
 from fastapi import FastAPI, status
 from pydantic import BaseModel
 
 from app.routers.hydrofabric.router import api_router as hydrofabric_api_router
 from app.routers.module_params.router import api_router as module_params_router
 from app.routers.streamflow_observations.router import api_router as streamflow_api_router
+from icefabric.helpers import load_creds
 
 app = FastAPI(
     title="Icefabric API",
@@ -17,16 +16,6 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
-
-# Setting .env/.pyiceberg creds based on project root
-load_dotenv(dotenv_path=Path.cwd() / ".env")
-pyiceberg_file = Path.cwd() / ".pyiceberg.yaml"
-if pyiceberg_file.exists():
-    os.environ["PYICEBERG_HOME"] = str(pyiceberg_file)
-else:
-    raise FileNotFoundError(
-        "Cannot find .pyiceberg.yaml. Please download this from NGWPC confluence or create "
-    )
 
 
 class HealthCheck(BaseModel):
@@ -55,4 +44,5 @@ def get_health() -> HealthCheck:
 
 
 if __name__ == "__main__":
+    load_creds(dir=Path.cwd())
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
