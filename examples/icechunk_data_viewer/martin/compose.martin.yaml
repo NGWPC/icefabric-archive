@@ -6,5 +6,5 @@ services:
       environment:
         - RUST_LOG=debug
       volumes:
-        - "${PWD}/tiles:/tiles"
+        - "./tiles:/tiles"
       command: -c /tiles/martin_config.yaml

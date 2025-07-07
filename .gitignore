@@ -178,8 +178,7 @@ cython_debug/
 Pipfile
 
 .qodo
-_version.py
-data/
+src/icefabric/_version.py
 *.db
 *.zarr
 .zarr
@@ -208,3 +207,4 @@ crash.log
 examples/icechunk_data_viewer/martin/tiles/quantiles/*
 examples/icechunk_data_viewer/martin/tiles/legends/*
 examples/icechunk_data_viewer/martin/tiles/legend.png
+tests/data/topo_tifs

@@ -13,16 +13,13 @@ An [Apache Iceberg](https://py.iceberg.apache.org/) implementation of the Hydrof
 ### Getting Started
 This repo is managed through [UV](https://docs.astral.sh/uv/getting-started/installation/) and can be installed through:
 ```sh
-uv venv
-source .venv/bin/activate
 uv sync
+source .venv/bin/activate
 ```
 
 ### Running the API locally
 To run the API locally, ensure your `.env` file in your project root has the right credentials, then run
 ```sh
-uv sync
-cd src/icefabric_api
 python -m app.main
 ```
 This should spin up the API services.
@@ -46,3 +43,11 @@ uv pip install ".[docs]"
 mkdocs serve -a localhost:8080
 ```
 Docs will be spun up at localhost:8080/
+
+### Pytests
+
+The `tests` folder is for all testing data so the global confest can pick it up. This allows all tests in the namespace packages to share the same scope without having to reference one another in tests
+
+To run tests, run `pytest -s` from project root.
+
+To run the subsetter tests, run `pytest --run-slow` as these tests take some time. Otherwise, they will be skipped
