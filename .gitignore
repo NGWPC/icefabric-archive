@@ -207,3 +207,4 @@ crash.log
 examples/icechunk_data_viewer/martin/tiles/quantiles/*
 examples/icechunk_data_viewer/martin/tiles/legends/*
 examples/icechunk_data_viewer/martin/tiles/legend.png
+tests/data/topo_tifs

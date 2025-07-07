@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from pyiceberg.catalog import Catalog, load_catalog
 
 from app.main import app
+from icefabric.schemas import NGWPCTestLocations
 
 # Setting .env/.pyiceberg creds based on project root
 env_path = Path.cwd() / ".env"
@@ -56,6 +57,35 @@ sample_hf_uri = [
     # "gages-14020000",
     "gages-06710385"
 ]
+
+test_ic_rasters = [f for f in NGWPCTestLocations._member_names_ if "TOPO" in f]
+local_ic_rasters = [
+    Path(__file__).parent / "data/topo_tifs/nws-nos-surveys/Albemarle_Sound_NOS_NCEI",
+    Path(__file__).parent / "data/topo_tifs/nws-nos-surveys/Chesapeake_Bay_NOS_NCEI",
+    Path(__file__).parent / "data/topo_tifs/nws-nos-surveys/Mobile_Bay_NOS_NCEI",
+    Path(__file__).parent / "data/topo_tifs/nws-nos-surveys/Tangier_Sound_NOS_NCEI",
+    Path(__file__).parent / "data/topo_tifs/tbdem_alaska_10m",
+    Path(__file__).parent / "data/topo_tifs/tbdem_alaska_30m",
+    Path(__file__).parent / "data/topo_tifs/tbdem_conus_atlantic_gulf_30m",
+    Path(__file__).parent / "data/topo_tifs/tbdem_conus_pacific_30m",
+    Path(__file__).parent / "data/topo_tifs/tbdem_great_lakes_30m",
+    Path(__file__).parent / "data/topo_tifs/tbdem_hawaii_10m",
+    Path(__file__).parent / "data/topo_tifs/tbdem_hawaii_30m",
+    Path(__file__).parent / "data/topo_tifs/tbdem_pr_usvi_10m",
+    Path(__file__).parent / "data/topo_tifs/tbdem_pr_usvi_30m",
+]
+
+
+@pytest.fixture(params=test_ic_rasters)
+def ic_raster(request) -> str:
+    """Returns AWS S3 icechunk stores/rasters for checking correctness"""
+    return request.param
+
+
+@pytest.fixture(params=local_ic_rasters)
+def local_ic_raster(request) -> Path:
+    """Returns local icechunk stores/rasters for checking correctness"""
+    return request.param
 
 
 @pytest.fixture(params=sample_gauges)
