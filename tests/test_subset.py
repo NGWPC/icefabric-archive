@@ -5,7 +5,7 @@ import pytest
 from pyiceberg.catalog import Catalog
 
 from icefabric.hydrofabric import subset
-from icefabric.schemas import IdType
+from icefabric.schemas import HydrofabricDomains, IdType
 
 
 @pytest.mark.slow
@@ -13,6 +13,7 @@ def test_subset_hl_uri(hydrofabric_catalog: Catalog, gauge_hf_uri: str, testing_
     """Tests all subset gauges in the sample data using hl_uri"""
     subset(
         catalog=hydrofabric_catalog,
+        domain=HydrofabricDomains.CONUS,
         identifier=gauge_hf_uri,
         id_type=IdType.HL_URI,
         output_file=tmp_path / "subset.gpkg",

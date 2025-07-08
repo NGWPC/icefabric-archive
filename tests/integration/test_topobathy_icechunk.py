@@ -50,6 +50,7 @@ def test_topobathy(ic_raster: str) -> None:
             os.remove(temp_path)
 
 
+@pytest.mark.local
 def test_local_topobathy(local_ic_raster: Path) -> None:
     """Tests local topobathy against local icechunk stores
 
