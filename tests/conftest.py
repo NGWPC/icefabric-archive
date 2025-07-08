@@ -134,7 +134,7 @@ def hydrofabric_catalog() -> Catalog:
 
 
 def pytest_addoption(parser):
-    """Adds addpottion tags"""
+    """Adds addoption tags"""
     parser.addoption(
         "--run-slow",
         action="store_true",
