@@ -1,8 +1,17 @@
 """A file to host schemas for all NWM modules. Based off the table from https://confluence.nextgenwaterprediction.com/pages/viewpage.action?spaceKey=NGWPC&title=BMI+Exchange+Items+and+Module+Parameters"""
 
 from enum import Enum
+from typing import Protocol
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class NWMProtocol(Protocol):
+    """Protocol defining the interface that configuration NWM BaseModel classes should implement. This ensures consistency across different module configuration classes."""
+
+    def to_bmi_config(self) -> list[str]:
+        """Converts the contents of the base class to a BMI config for that specific module"""
+        ...
 
 
 class IceFractionScheme(str, Enum):
@@ -12,9 +21,11 @@ class IceFractionScheme(str, Enum):
     XINANJIANG = "Xinanjiang"
 
 
-class SftConfiguration(BaseModel):
+class SFT(BaseModel):
     """Pydantic model for SFT (Snow Freeze Thaw) module configuration"""
 
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
+    catchment: str = Field(..., description="The catchment ID")
     verbosity: str = Field(default="none", description="Verbosity level")
     soil_moisture_bmi: int = Field(default=1, description="Soil moisture BMI parameter")
     end_time: str = Field(default="1.[d]", description="End time with units")
@@ -43,7 +54,7 @@ class SftConfiguration(BaseModel):
             raise ValueError(f"soil_temperature must have {len(soil_z)} values to match soil_z layers")
         return v
 
-    def to_config_format(self) -> list[str]:
+    def to_bmi_config(self) -> list[str]:
         """Convert the model back to the original config file format"""
         temp_values = ",".join([str(temp) for temp in self.soil_temperature])
         z_values = ",".join([str(z) for z in self.soil_z])

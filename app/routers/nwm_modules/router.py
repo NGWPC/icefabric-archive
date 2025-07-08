@@ -13,8 +13,8 @@ from icefabric.schemas import IdType
 sft_router = APIRouter(prefix="/modules/sft")
 
 
-@sft_router.get("/{identifier}/")
-async def get_hydrofabric_subset_gpkg(
+@sft_router.get("/")
+async def get_sft_ipes(
     identifier: str = Path(
         ...,
         description="Identifier to start tracing from (e.g., catchment ID, POI ID)",
