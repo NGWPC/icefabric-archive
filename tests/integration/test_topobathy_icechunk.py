@@ -50,8 +50,11 @@ def test_topobathy(ic_raster: str) -> None:
             os.remove(temp_path)
 
 
+@pytest.mark.slow
 def test_local_topobathy(local_ic_raster: Path) -> None:
     """Tests local topobathy against local icechunk stores
+
+    NOTE: This is slow as it takes time to convert the chunked ic data into topo form
 
     Parameters
     ----------
