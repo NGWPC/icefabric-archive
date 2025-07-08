@@ -10,7 +10,7 @@ from starlette.background import BackgroundTask
 from icefabric.hydrofabric import subset
 from icefabric.schemas import IdType
 
-sft_router = APIRouter(prefix="/sft")
+sft_router = APIRouter(prefix="/modules/sft")
 
 
 @sft_router.get("/{identifier}/")

@@ -196,9 +196,6 @@ crash.log
 # CLI configuration
 .terraform/
 
-# Pyiceberg config file
-.pyiceberg.yaml
-
 # Terraform plan output (optional unless you want to inspect later)
 *.tfplan
 
@@ -208,3 +205,6 @@ examples/icechunk_data_viewer/martin/tiles/quantiles/*
 examples/icechunk_data_viewer/martin/tiles/legends/*
 examples/icechunk_data_viewer/martin/tiles/legend.png
 tests/data/topo_tifs
+
+# hydrofabric parquets
+data/hydrofabric

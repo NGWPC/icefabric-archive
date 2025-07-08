@@ -2,15 +2,39 @@ import pathlib
 import tempfile
 import uuid
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from fastapi.responses import FileResponse
-from pyiceberg.catalog import load_catalog
+from pyiceberg.catalog import Catalog
 from starlette.background import BackgroundTask
 
 from icefabric.hydrofabric import subset
-from icefabric.schemas import IdType
+from icefabric.schemas import HydrofabricDomains, IdType
 
 api_router = APIRouter(prefix="/hydrofabric")
+
+
+def get_catalog(request: Request) -> Catalog:
+    """Gets the pyiceberg catalog reference from the app state
+
+    Parameters
+    ----------
+    request : Request
+        The FastAPI request object containing the application state
+
+    Returns
+    -------
+    pyiceberg.catalog.Catalog
+        The loaded pyiceberg catalog instance used for querying versioned EDFS data
+
+    Raises
+    ------
+    HTTPException
+        If the catalog is not loaded or not available in the application state.
+        Returns HTTP 500 status code with "Catalog not loaded" detail message.
+    """
+    if not hasattr(request.app.state, "catalog") or request.app.state.catalog is None:
+        raise HTTPException(status_code=500, detail="Catalog not loaded")
+    return request.app.state.catalog
 
 
 @api_router.get("/{identifier}/gpkg")
@@ -21,6 +45,10 @@ async def get_hydrofabric_subset_gpkg(
         examples=["01010000"],
         openapi_examples={"station_example": {"summary": "USGS Gauge", "value": "01010000"}},
     ),
+    domain: HydrofabricDomains = Query(
+        HydrofabricDomains.CONUS, description="The iceberg namespace used to query the hydrofabric"
+    ),
+    catalog=Depends(get_catalog),
 ):
     """
     Get hydrofabric subset as a geopackage file (.gpkg)
@@ -29,13 +57,18 @@ async def get_hydrofabric_subset_gpkg(
     from a given identifier and returns all related geospatial layers as a
     downloadable geopackage file.
     """
-    catalog = load_catalog("glue")
     unique_id = str(uuid.uuid4())[:8]
     temp_dir = pathlib.Path(tempfile.gettempdir())
     tmp_path = temp_dir / f"hydrofabric_subset_{identifier}_{unique_id}.gpkg"
     try:
         # Create the subset
-        subset(catalog=catalog, identifier=f"gages-{identifier}", id_type=IdType.HL_URI, output_file=tmp_path)
+        subset(
+            catalog=catalog,
+            identifier=f"gages-{identifier}",
+            id_type=IdType.HL_URI,
+            output_file=tmp_path,
+            domain=domain,
+        )
 
         if not tmp_path.exists():
             raise HTTPException(status_code=500, detail=f"Failed to create geopackage file at {tmp_path}")

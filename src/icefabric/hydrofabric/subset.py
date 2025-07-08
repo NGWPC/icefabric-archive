@@ -11,7 +11,7 @@ from pyiceberg.table import Table
 
 from icefabric.helpers.geopackage import table_to_geopandas, to_geopandas
 from icefabric.hydrofabric.origin import find_origin
-from icefabric.schemas.hydrofabric import UPSTREAM_VPUS, IdType
+from icefabric.schemas.hydrofabric import UPSTREAM_VPUS, HydrofabricDomains, IdType
 
 
 def get_sorted_network(network_df: pd.DataFrame, outlets: list[str] | str) -> pd.DataFrame:
@@ -221,6 +221,7 @@ def subset(
     id_type: IdType,
     layers: list[str] | None = None,
     output_file: Path | None = None,
+    domain: HydrofabricDomains = HydrofabricDomains.CONUS,
 ) -> dict[str, pd.DataFrame | gpd.GeoDataFrame] | None:
     """Returns a geopackage subset from the hydrofabric.
 
@@ -244,6 +245,8 @@ def subset(
     output_file : Path, optional
         The output file path where the geopackage will be saved. If None,
         returns the data as a dictionary instead of saving to file
+    domain : HydrofabricDomains, optional
+        The domain to read the HF from
 
     Returns
     -------
@@ -276,10 +279,10 @@ def subset(
     layers.extend(["divides", "flowpaths", "network", "nexus"])
     layers = list(set(layers))
     try:
-        network = catalog.load_table("hydrofabric.network")
-        divides = catalog.load_table("hydrofabric.divides")
-        flowpaths = catalog.load_table("hydrofabric.flowpaths")
-        nexus = catalog.load_table("hydrofabric.nexus")
+        network = catalog.load_table(f"{domain.value}.network")
+        divides = catalog.load_table(f"{domain.value}.divides")
+        flowpaths = catalog.load_table(f"{domain.value}.flowpaths")
+        nexus = catalog.load_table(f"{domain.value}.nexus")
     except ClientError as e:
         msg = "AWS Test account credentials expired. Can't access remote S3 endpoint"
         print(msg)
