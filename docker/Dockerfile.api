@@ -31,8 +31,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # Install the package in development mode
 RUN uv sync
-RUN uv pip install -e src/icefabric_api
 
 # Run the API
-WORKDIR /app/src/icefabric_api
 CMD ["python", "-m", "app.main"]

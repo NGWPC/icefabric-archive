@@ -109,6 +109,7 @@ def testing_dir() -> Path:
 @pytest.fixture(scope="session")
 def client():
     """Create a test client for the FastAPI app."""
+    app.state.catalog = load_catalog("glue")  # defaulting to GLUE
     return TestClient(app)
 
 
@@ -133,9 +134,15 @@ def hydrofabric_catalog() -> Catalog:
 
 
 def pytest_addoption(parser):
-    """Adds the --run-slow tag"""
+    """Adds addoption tags"""
     parser.addoption(
         "--run-slow",
+        action="store_true",
+        default=False,
+        help="Run slow tests",
+    )
+    parser.addoption(
+        "--run-local",
         action="store_true",
         default=False,
         help="Run slow tests",
@@ -154,6 +161,7 @@ def pytest_collection_modifyitems(config, items):
 def pytest_configure(config):
     """Configure pytest markers."""
     config.addinivalue_line("markers", "slow: marks tests as slow tests")
+    config.addinivalue_line("markers", "local: marks tests as local tests")
     config.addinivalue_line("markers", "performance: marks tests as performance tests")
     config.addinivalue_line("markers", "integration: marks tests as integration tests")
     config.addinivalue_line("markers", "unit: marks tests as unit tests")
