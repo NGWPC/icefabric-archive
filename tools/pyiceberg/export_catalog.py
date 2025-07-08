@@ -37,10 +37,11 @@ def export(namespace: str, snapshot: int | None = None):
     for _, table in tqdm(namespace_tables, desc=f"Exporting {namespace} tables", total=len(namespace_tables)):
         _table = glue_catalog.load_table(f"{namespace}.{table}").scan(snapshot_id=snapshot)
         _arrow = _table.to_arrow()
-        _ = local_catalog.create_table(
+        iceberg_table = local_catalog.create_table_if_not_exists(
             f"{namespace}.{table}",
             schema=_arrow.schema,
         )
+        iceberg_table.append(_arrow)
     print(f"Exported {namespace} into local pyiceberg DB")
 
 

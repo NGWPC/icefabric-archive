@@ -68,8 +68,12 @@ def get_health() -> HealthCheck:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="The FastAPI App instance for querying versioned EDFS data")
 
+    # Glue = S3 Tables; Sql is a local iceberg catalog
     parser.add_argument(
-        "--catalog", help="The catalog information for querying versioned EDFS data", default="glue"
+        "--catalog",
+        choices=["glue", "sql"],
+        help="The catalog information for querying versioned EDFS data",
+        default="glue",
     )  # Setting the default to read from S3
 
     args = parser.parse_args()
