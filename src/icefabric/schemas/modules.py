@@ -1,6 +1,6 @@
 """A file to host schemas for all NWM modules. Based off the table from https://confluence.nextgenwaterprediction.com/pages/viewpage.action?spaceKey=NGWPC&title=BMI+Exchange+Items+and+Module+Parameters"""
 
-from enum import Enum
+import enum
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -14,7 +14,7 @@ class NWMProtocol(Protocol):
         ...
 
 
-class IceFractionScheme(str, Enum):
+class IceFractionScheme(str, enum.Enum):
     """The ice fraction scheme to be used in SFT"""
 
     SCHAAKE = "Schaake"
