@@ -30,7 +30,7 @@ def _create_config_zip(configs: list[NWMProtocol], output_path: Path, **kwargs):
         # Create metadata file
         metadata_path = temp_dir / "metadata.json"
         with metadata_path.open("w", encoding="UTF-8") as f:
-            json.dump(kwargs, f)
+            json.dump(kwargs["kwargs"], f)  # Removes the root from the dict
         config_files.append(metadata_path)
 
         output_file = output_path / "configs.zip"

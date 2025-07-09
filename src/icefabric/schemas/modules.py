@@ -67,7 +67,7 @@ class SFT(BaseModel):
             f"soil_params.b={self.soil_params_b}",
             f"soil_params.satpsi={self.soil_params_satpsi}",
             f"soil_params.quartz={self.soil_params_quartz}",
-            f"ice_fraction_scheme={self.ice_fraction_scheme}",
+            f"ice_fraction_scheme={self.ice_fraction_scheme.value}",
             f"soil_z={z_values}[m]",
             f"soil_temperature={temp_values}[K]",
         ]

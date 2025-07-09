@@ -24,7 +24,7 @@ async def get_sft_ipes(
     use_schaake: bool = Query(
         False,
         description="Whether to use Schaake for the Ice Fraction Scheme. Defaults to False to use Xinanjiang",
-        openapi_examples={"sft_example": {"summary": "SFT Example", "value": True}},
+        openapi_examples={"sft_example": {"summary": "SFT Example", "value": False}},
     ),
     catalog: Catalog = Depends(get_catalog),
 ) -> list[SFT]:

@@ -40,7 +40,11 @@ from icefabric.schemas.modules import IceFractionScheme
     help="The ice fraction scheme used. Defaults to False to use Xinanjiang",
 )
 @click.option(
-    "--output", "-o", type=click.Path(), help="Output path for the zip file. Defaults to current directory"
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=Path.cwd(),
+    help="Output path for the zip file. Defaults to current directory",
 )
 def params(
     gauge: str,
@@ -53,7 +57,9 @@ def params(
     """Returns a zip file containing all config files requested by a specific module"""
     get_param_func = config_mapper[module]
     domain_enum = HydrofabricDomains[domain.upper()]
-    ice_fraction_enum = IceFractionScheme[ice_fraction.upper()] if ice_fraction else None
+    ice_fraction_enum = (
+        IceFractionScheme[ice_fraction.upper()] if ice_fraction else IceFractionScheme.XINANJIANG
+    )  # Defaults to Xinanjiang
 
     configs = get_param_func(
         catalog=get_catalog(catalog),
@@ -62,8 +68,6 @@ def params(
         use_schaake=True if ice_fraction_enum == IceFractionScheme.SCHAAKE else False,
     )
 
-    if output is None:
-        output = Path.cwd()
     output.parent.mkdir(parents=True, exist_ok=True)
 
     _create_config_zip(
@@ -75,8 +79,8 @@ def params(
             "version": __version__,
             "module": module,
             "catalog_type": catalog,
-            "ice_fraction": ice_fraction,
+            "ice_fraction": ice_fraction_enum.value,
         },
     )
 
-    click.echo(f"Config files created successfully: {output}")
+    click.echo(f"Config files created successfully in the following folder: {output}")
