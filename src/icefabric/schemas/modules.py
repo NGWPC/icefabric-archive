@@ -30,16 +30,10 @@ class SFT(BaseModel):
     soil_moisture_bmi: int = Field(default=1, description="Soil moisture BMI parameter")
     end_time: str = Field(default="1.[d]", description="End time with units")
     dt: str = Field(default="1.0[h]", description="Time step with units")
-    soil_params_smcmax: float = Field(
-        ..., description="Maximum soil moisture content", alias="soil_params.smcmax"
-    )
-    soil_params_b: float = Field(
-        ..., description="Soil moisture retention curve parameter (bexp)", alias="soil_params.b"
-    )
-    soil_params_satpsi: float = Field(
-        ..., description="Saturated soil suction (psisat)", alias="soil_params.satpsi"
-    )
-    soil_params_quartz: float = Field(default=1.0, description="Quartz content", alias="soil_params.quartz")
+    soil_params_smcmax: float = Field(..., description="Maximum soil moisture content", alias="smcmax")
+    soil_params_b: float = Field(..., description="Soil moisture retention curve parameter (bexp)", alias="b")
+    soil_params_satpsi: float = Field(..., description="Saturated soil suction (psisat)", alias="satpsi")
+    soil_params_quartz: float = Field(default=1.0, description="Quartz content", alias="quartz")
     ice_fraction_scheme: IceFractionScheme = Field(..., description="Ice fraction scheme")
     soil_z: list[float] = Field(default=[0.1, 0.3, 1.0, 2.0], description="Soil depth layers in meters")
     soil_temperature: list[float] = Field(..., description="Soil temperature in Kelvin for each layer")
