@@ -336,33 +336,33 @@ def subset(
 
     # Getting any optional fields:
     if "divide-attributes" in layers:
-        divides_attr = catalog.load_table("hydrofabric.divide-attributes")
+        divides_attr = catalog.load_table(f"{domain.value}.divide-attributes")
         filtered_divide_attr = divides_attr.scan(
             row_filter=In("divide_id", valid_divide_ids_for_divides)
         ).to_pandas()
         output_layers["divide-attributes"] = filtered_divide_attr
 
     if "flowpath-attributes" in layers:
-        flowpath_attr = catalog.load_table("hydrofabric.flowpath-attributes")
+        flowpath_attr = catalog.load_table(f"{domain.value}.flowpath-attributes")
         valid_flowpath_ids = filtered_flowpaths["id"].dropna().values.tolist()
         filtered_flowpath_attr = flowpath_attr.scan(row_filter=In("id", valid_flowpath_ids)).to_pandas()
         output_layers["flowpath-attributes"] = filtered_flowpath_attr
 
     if "flowpath-attributes-ml" in layers:
-        flowpath_attr_ml = catalog.load_table("hydrofabric.flowpath-attributes-ml")
+        flowpath_attr_ml = catalog.load_table(f"{domain.value}.flowpath-attributes-ml")
         valid_flowpath_ids = filtered_flowpaths["id"].dropna().values.tolist()
         filtered_flowpath_attr_ml = flowpath_attr_ml.scan(row_filter=In("id", valid_flowpath_ids)).to_pandas()
         output_layers["flowpath-attributes-ml"] = filtered_flowpath_attr_ml
 
     if "pois" in layers:
-        pois = catalog.load_table("hydrofabric.pois")
+        pois = catalog.load_table(f"{domain.value}.pois")
         poi_values = filtered_flowpaths["poi_id"].dropna().values
         filtered_poi_list = list({int(x) for x in poi_values if pd.notna(x)})
         filtered_pois = pois.scan(row_filter=In("poi_id", filtered_poi_list)).to_pandas()
         output_layers["pois"] = filtered_pois
 
     if "hydrolocations" in layers:
-        hydrolocations = catalog.load_table("hydrofabric.hydrolocations")
+        hydrolocations = catalog.load_table(f"{domain.value}.hydrolocations")
         poi_values = filtered_flowpaths["poi_id"].dropna().values
         filtered_poi_list = list({int(x) for x in poi_values if pd.notna(x)})
         filtered_hydrolocations = hydrolocations.scan(row_filter=In("poi_id", filtered_poi_list)).to_pandas()
