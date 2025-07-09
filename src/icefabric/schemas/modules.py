@@ -1,16 +1,21 @@
 """A file to host schemas for all NWM modules. Based off the table from https://confluence.nextgenwaterprediction.com/pages/viewpage.action?spaceKey=NGWPC&title=BMI+Exchange+Items+and+Module+Parameters"""
 
 import enum
+from pathlib import Path
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class NWMProtocol(Protocol):
-    """Protocol defining the interface that configuration NWM BaseModel classes should implement. This ensures consistency across different module configuration classes."""
+    """Protocol defining the interface that configuration NWM BaseModel classes should implement."""
 
     def to_bmi_config(self) -> list[str]:
         """Converts the contents of the base class to a BMI config for that specific module"""
+        ...
+
+    def model_dump_config(self, output_path: Path) -> Path:  # Changed to return Path
+        """Outputs the BaseModel to a BMI Config file"""
         ...
 
 
@@ -66,3 +71,22 @@ class SFT(BaseModel):
             f"soil_z={z_values}[m]",
             f"soil_temperature={temp_values}[K]",
         ]
+
+    def model_dump_config(self, output_path: Path) -> Path:
+        """Outputs the BaseModel to a BMI Config file
+
+        Parameters
+        ----------
+        output_path : Path
+            The path for the config file to be written to
+
+        Returns
+        -------
+        Path
+            The path to the written config file
+        """
+        file_output = self.to_bmi_config()
+        sft_bmi_file = output_path / f"{self.catchment}_bmi_config_sft.txt"
+        with open(sft_bmi_file, "w") as f:
+            f.write("\n".join(file_output))
+        return sft_bmi_file

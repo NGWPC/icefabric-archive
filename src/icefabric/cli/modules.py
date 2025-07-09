@@ -1,6 +1,12 @@
+"""Contains all click CLI code for NWM modules"""
+
+from pathlib import Path
+
 import click
 
+from icefabric._version import __version__
 from icefabric.cli import get_catalog
+from icefabric.helpers.io import _create_config_zip
 from icefabric.modules import NWMModules, config_mapper
 from icefabric.schemas.hydrofabric import HydrofabricDomains
 from icefabric.schemas.modules import IceFractionScheme
@@ -33,16 +39,44 @@ from icefabric.schemas.modules import IceFractionScheme
     type=click.Choice(IceFractionScheme, case_sensitive=False),
     help="The ice fraction scheme used. Defaults to False to use Xinanjiang",
 )
+@click.option(
+    "--output", "-o", type=click.Path(), help="Output path for the zip file. Defaults to current directory"
+)
 def params(
-    gauge: str, module: str, domain: HydrofabricDomains, catalog: str, ice_fraction: IceFractionScheme
+    gauge: str,
+    module: str,
+    domain: HydrofabricDomains,
+    catalog: str,
+    ice_fraction: IceFractionScheme,
+    output: Path,
 ):
     """Returns a zip file containing all config files requested by a specific module"""
     get_param_func = config_mapper[module]
     domain_enum = HydrofabricDomains[domain.upper()]
+    ice_fraction_enum = IceFractionScheme[ice_fraction.upper()] if ice_fraction else None
+
     configs = get_param_func(
         catalog=get_catalog(catalog),
         domain=domain_enum,
         identifier=gauge,
-        use_schaake=True if ice_fraction == IceFractionScheme.SCHAAKE else False,
+        use_schaake=True if ice_fraction_enum == IceFractionScheme.SCHAAKE else False,
     )
-    click.echo(configs)
+
+    if output is None:
+        output = Path.cwd()
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    _create_config_zip(
+        configs=configs,
+        output_path=output,
+        kwargs={
+            "gauge_id": gauge,
+            "domain": domain,
+            "version": __version__,
+            "module": module,
+            "catalog_type": catalog,
+            "ice_fraction": ice_fraction,
+        },
+    )
+
+    click.echo(f"Config files created successfully: {output}")
