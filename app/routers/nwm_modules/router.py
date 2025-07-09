@@ -14,6 +14,7 @@ async def get_sft_ipes(
         ...,
         description="Gauge ID to trace upstream catchments from",
         examples=["01010000"],
+        openapi_examples={"sfe_example": {"summary": "SFT Example", "value": "01010000", "domain":"conus_hf", "use_schaake":True}}
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS, description="The iceberg namespace used to query the hydrofabric"
