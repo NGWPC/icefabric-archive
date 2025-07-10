@@ -90,19 +90,3 @@ class SFT(BaseModel):
         with open(sft_bmi_file, "w") as f:
             f.write("\n".join(file_output))
         return sft_bmi_file
-
-
-class AlbedoStates(enum.StrEnum):
-    """The albedo land-cover options for TopoFlow Glacier module"""
-
-    SNOW = "snow"
-    ICE = "ice"
-    OTHER = "other"
-
-
-class AlbedoValues(enum.Enum):
-    """The albedo land-cover albedo values for TopoFlow Glacier module"""
-
-    SNOW = 0.75
-    ICE = 0.3
-    OTHER = 0.2
