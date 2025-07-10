@@ -9,13 +9,14 @@ from pyiceberg.catalog import Catalog, load_catalog
 from pyproj import Transformer
 
 from icefabric.hydrofabric import subset
-from icefabric.schemas import SFT, HydrofabricDomains, IceFractionScheme, IdType
+from icefabric.schemas.hydrofabric import HydrofabricDomains, IdType
+from icefabric.schemas.modules import SFT, IceFractionScheme
 
 ROOT_DIR = os.path.abspath(os.curdir)
 
 
 def _get_mean_soil_temp() -> float:
-    """This is avg soil temp of 45 degrees F converted to Kelvin. This equation is just a reasonable estimate per new direction (EW: 07/2025)
+    """Returns an avg soil temp of 45 degrees F converted to Kelvin. This equation is just a reasonable estimate per new direction (EW: 07/2025)
 
     Returns
     -------

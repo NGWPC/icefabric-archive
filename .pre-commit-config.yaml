@@ -23,3 +23,8 @@ repos:
     rev: 0.5.7
     hooks:
       - id: uv-lock
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.8.1
+    hooks:
+      - id: nbstripout
