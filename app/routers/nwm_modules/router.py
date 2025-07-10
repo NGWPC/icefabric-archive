@@ -3,7 +3,7 @@ from pyiceberg.catalog import Catalog
 
 from app import get_catalog
 from icefabric.modules import get_sft_parameters
-from icefabric.schemas import SFT, AlbedoStates, AlbedoValues, HydrofabricDomains
+from icefabric.schemas import SFT, Albedo, HydrofabricDomains
 
 sft_router = APIRouter(prefix="/modules/sft")
 topoflow_router = APIRouter(prefix="/modules/topoflow")
@@ -53,7 +53,7 @@ async def get_sft_ipes(
 
 @topoflow_router.get("/albedo")
 async def get_albedo(
-    landcover_state: AlbedoStates = Query(
+    landcover_state: Albedo = Query(
         ...,
         description="The landcover state of a catchment for albedo classification",
         examples=["snow"],
@@ -71,4 +71,4 @@ async def get_albedo(
     **Returns:**
     A float albedo value [0, 1]
     """
-    return AlbedoValues[str.upper(landcover_state)].value
+    return Albedo.get_landcover_albedo(landcover_state.landcover).value
