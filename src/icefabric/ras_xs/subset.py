@@ -6,19 +6,18 @@ import geopandas as gpd
 import pandas as pd
 from botocore.exceptions import ClientError
 from pyiceberg.catalog import Catalog
-from pyiceberg.expressions import And, EqualTo
-from pyiceberg.table import Table
+from pyiceberg.expressions import EqualTo
 
 from icefabric.helpers.geopackage import to_geopandas
 
-def subset_xs(catalog: Catalog,
-              identifier: str,
-              output_file: Path | None = None, 
-              **kwarg) -> dict[str, pd.DataFrame | gpd.GeoDataFrame] | None:
+
+def subset_xs(
+    catalog: Catalog, identifier: str, output_file: Path | None = None, **kwarg
+) -> dict[str, pd.DataFrame | gpd.GeoDataFrame] | None:
     """Returns a geopackage subset from the mip xs iceberg catalog.
 
-    This function delivers a subset of the mip cross-sections data by tracing from a 
-    given HUC identifier & collecting all relevant cross-section information based on 
+    This function delivers a subset of the mip cross-sections data by tracing from a
+    given HUC identifier & collecting all relevant cross-section information based on
     additional identifiers (e.g. downstream reach ID) provided.
 
     Parameters
@@ -29,14 +28,14 @@ def subset_xs(catalog: Catalog,
         The HUC identifier.
     output_file : Path, optional
         The output file path where the geopackage will be saved.
-        
+
     Returns
     -------
     GeoDataFrame
         Subset of the mip cross-sections data based on identifiers.
-        
+
     """
-    ds_reach_id = kwarg.get('ds_reach_id', None)
+    ds_reach_id = kwarg.get("ds_reach_id", None)
 
     try:
         xs_table = catalog.load_table(f"mip_xs.{identifier}")
@@ -45,10 +44,10 @@ def subset_xs(catalog: Catalog,
         msg = "AWS Test account credentials expired. Can't access remote S3 endpoint"
         print(msg)
         raise e
-        
-    # By default, mip xs iceberg tables are referenced by huc 
+
+    # By default, mip xs iceberg tables are referenced by huc
     df = xs_table.scan().to_pandas()
-    
+
     if ds_reach_id:
         filter_cond = EqualTo("ds_reach_id", ds_reach_id)
         df = xs_table.scan(row_filter=filter_cond).to_pandas()
@@ -57,11 +56,9 @@ def subset_xs(catalog: Catalog,
     # Save data.
     if output_file:
         if len(data_gdf) > 0:
-            gpd.GeoDataFrame(data_gdf).to_file(output_file,
-                                               layer='ras_xs', 
-                                               driver="GPKG")
+            gpd.GeoDataFrame(data_gdf).to_file(output_file, layer="ras_xs", driver="GPKG")
         else:
-            print(f"Warning: Dataframe is empty")
+            print("Warning: Dataframe is empty")
         return data_gdf
     else:
         return
