@@ -1,7 +1,7 @@
 """Contains helper functions to support NWM modules"""
 
 from .hydrofabric import UPSTREAM_VPUS, HydrofabricDomains, IdType
-from .modules import SFT, IceFractionScheme
+from .modules import SFT, Albedo, IceFractionScheme
 from .topobathy import FileType, NGWPCLocations, NGWPCTestLocations
 
 __all__ = [
@@ -10,6 +10,7 @@ __all__ = [
     "HydrofabricDomains",
     "SFT",
     "IceFractionScheme",
+    "Albedo",
     "FileType",
     "NGWPCLocations",
     "NGWPCTestLocations",
