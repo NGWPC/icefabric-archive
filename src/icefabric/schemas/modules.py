@@ -2,7 +2,7 @@
 
 import enum
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -90,3 +90,31 @@ class SFT(BaseModel):
         with open(sft_bmi_file, "w") as f:
             f.write("\n".join(file_output))
         return sft_bmi_file
+
+
+class AlbedoValues(enum.Enum):
+    """A class to store land cover-derived albedo.
+
+    Update land cover classes and corresponding values here.
+    Values are [0, 100]
+    """
+
+    snow = 0.75
+    ice = 0.3
+    other = 0.2
+
+
+class Albedo(BaseModel):
+    """A model to handle `/topoflow/albedo` inputs and outputs.
+
+    Note:
+    This Literal will fail static type checking due to dynamically created values.
+    However, generating dynamically keeps this function DRY and creates the appropriate API inputs.
+    If changes to albedo values are needed, they are only made in `AlbedoValues`. `Albedo` will never change.
+    """
+
+    landcover: Literal[tuple(AlbedoValues._member_names_)]
+
+    def get_landcover_albedo(v: str):
+        """Return the albedo value"""
+        return getattr(AlbedoValues, v)
