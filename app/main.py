@@ -47,7 +47,7 @@ class HealthCheck(BaseModel):
 # Include routers
 app.include_router(hydrofabric_api_router, prefix="/v1")
 app.include_router(streamflow_api_router, prefix="/v1")
-app.include_router(sft_router, prefix="/v2")
+app.include_router(sft_router, prefix="/v1")
 app.include_router(topoflow_router, prefix="/v2")
 
 
