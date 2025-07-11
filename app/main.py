@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from pyiceberg.catalog import load_catalog
 
 from app.routers.hydrofabric.router import api_router as hydrofabric_api_router
-from app.routers.module_params.router import api_router as module_params_router
 from app.routers.nwm_modules.router import sft_router, topoflow_router
 from app.routers.streamflow_observations.router import api_router as streamflow_api_router
 from icefabric.helpers import load_creds
@@ -48,9 +47,8 @@ class HealthCheck(BaseModel):
 # Include routers
 app.include_router(hydrofabric_api_router, prefix="/v1")
 app.include_router(streamflow_api_router, prefix="/v1")
-app.include_router(sft_router, prefix="/v2")
-app.include_router(topoflow_router, prefix="/v2")
-app.include_router(module_params_router, prefix="/v1")
+app.include_router(sft_router, prefix="/v1")
+app.include_router(topoflow_router, prefix="/v1")
 
 
 @app.head(

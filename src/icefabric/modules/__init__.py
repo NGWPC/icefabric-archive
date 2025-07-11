@@ -2,7 +2,7 @@
 
 import enum
 
-from .create_ipes import divide_parameters, get_hydrofabric_attributes, get_sft_parameters, module_ipe
+from .create_ipes import divide_parameters, get_sft_parameters
 from .rnr import get_rnr_segment
 
 
@@ -18,8 +18,6 @@ config_mapper = {
 
 __all__ = [
     "divide_parameters",
-    "get_hydrofabric_attributes",
     "get_sft_parameters",
-    "module_ipe",
     "get_rnr_segment",
 ]
