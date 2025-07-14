@@ -148,7 +148,8 @@ class IcechunkRepo:
         v_chunks = None
         if virtual_chunk_mapping:
             v_chunks = [
-                set_up_virtual_chunk_container(vc["bucket"], vc["region"]) for vc in virtual_chunk_mapping
+                self.set_up_virtual_chunk_container(vc["bucket"], vc["region"])
+                for vc in virtual_chunk_mapping
             ]
         return v_chunks
 
@@ -425,8 +426,3 @@ class IcechunkRepo:
         return ic.VirtualChunkContainer(
             name=bucket, url_prefix=f"s3://{bucket}/", store=ic.s3_store(region=region)
         )
-
-
-# def get_icechunk_data(repo: NGWPCLocations) -> xr.Dataset:
-#     """Convenience wrapper to return data from a designated NGWPCLocations Icechunk repo"""
-#     return IcechunkRepo(location=repo.path).retrieve_dataset()

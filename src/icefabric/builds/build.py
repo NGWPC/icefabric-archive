@@ -1,4 +1,4 @@
-"""Contains all api functions that can be called outside of the icefabric_manage package"""
+"""Build scripts for pyiceberg"""
 
 import pyarrow.parquet as pq
 from pyiceberg.catalog import Catalog
