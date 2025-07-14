@@ -2,6 +2,91 @@ import httpx
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import pandas as pd
+from pyiceberg import expressions
+from pyiceberg.catalog import Catalog, load_catalog
+from pyiceberg.exceptions import NoSuchTableError
+
+from icefabric.schemas.hydrofabric import HydrofabricDomains
+
+
+def get_streamflow_data(
+    catalog_name: str,
+    gage_id: str | None = None,
+    row_filter: str | None = None,
+    snapshot_id: int | None = None,
+    **kwargs,
+) -> pd.DataFrame:
+    """Gets streamflow data for the Jupyter UI to display
+
+    Parameters
+    ----------
+    gage_id : str
+        The gauge ID you are looking to view
+    catalog_name : str, optional
+        The pyiceberg catalog name
+    row_filter : str | None, optional
+        The row filter to specify a start/end time, by default None
+    snapshot_id : int | None, optional
+        the snapshot ID to , by default None
+    **kwargs
+        the pyiceberg.yaml file settings
+
+    Returns
+    -------
+    pd.DataFrame
+        The streamflow output for the specified gauge
+
+    Raises
+    ------
+    NoSuchTableError
+        There is no existing record for the streamflow values
+    """
+    catalog = load_catalog(
+        name=catalog_name,
+        type=kwargs[catalog_name]["type"],
+        uri=kwargs[catalog_name]["uri"],
+        warehouse=kwargs[catalog_name]["warehouse"],
+    )
+    try:
+        table = catalog.load_table("streamflow_observations.usgs_hourly")
+        if row_filter is None:
+            df = table.scan(snapshot_id=snapshot_id).to_pandas()
+        else:
+            df = table.scan(row_filter=row_filter, snapshot_id=snapshot_id).to_pandas()
+        if gage_id is not None:
+            return df[["time", gage_id]]
+        else:
+            return df
+    except NoSuchTableError as e:
+        msg = "No table/namespace found for streamflow_observations.usgs_hourly in the catalog"
+        print(msg)
+        raise NoSuchTableError from e
+
+
+def get_hydrofabric_gages(
+    catalog: Catalog, domain: HydrofabricDomains = HydrofabricDomains.CONUS
+) -> list[str]:
+    """Returns the hydrofabric gages within the network table
+
+    Parameters
+    ----------
+    catalog : Catalog
+        the pyiceberg warehouse reference
+    domain : HydrofabricDomains, optional
+        the hydrofabric domain, by default HydrofabricDomains.CONUS
+
+    Returns
+    -------
+    list[str]
+        The list of all gages in the conus-hf
+    """
+    return (
+        catalog.load_table(f"{domain.value}.network")
+        .scan(row_filter=expressions.StartsWith("hl_uri", "gages-"))
+        .to_pandas()
+        .drop_duplicates(subset="hl_uri", keep="first")[("hl_uri")]
+        .tolist()
+    )
 
 
 def get_observational_uri(
@@ -77,10 +162,7 @@ def get_geopackage_uri(
 
 
 def create_time_series_widget(
-    df: pd.DataFrame,
-    start_slider: widgets.SelectionSlider,
-    end_slider: widgets.SelectionSlider,
-    point_size: float = 30,
+    df: pd.DataFrame, flow_col: str, point_size: float = 30, time_col: str = "time"
 ):
     """
     Creates an interactive time series plot using matplotlib and ipywidgets.
@@ -91,6 +173,17 @@ def create_time_series_widget(
         start_slider (widgets.SelectionSlider): Widget for selecting start time
         end_slider (widgets.SelectionSlider): Widget for selecting end time
     """
+    start_slider = widgets.SelectionSlider(
+        options=df["time"].dt.strftime("%Y-%m-%d %H:%M:%S").tolist(),
+        description="Start:",
+        layout=widgets.Layout(width="95%"),
+    )
+
+    end_slider = widgets.SelectionSlider(
+        options=df["time"].dt.strftime("%Y-%m-%d %H:%M:%S").tolist(),
+        description="End:",
+        layout=widgets.Layout(width="95%"),
+    )
 
     @widgets.interact(start=start_slider, end=end_slider)
     def plot_flow(start, end):
@@ -101,10 +194,10 @@ def create_time_series_widget(
             print("Warning: Start must be before End.")
             return
 
-        filtered = df[(df["dateTime"] >= start_dt) & (df["dateTime"] <= end_dt)]
+        filtered = df[(df[time_col] >= start_dt) & (df[time_col] <= end_dt)]
 
         fig, ax = plt.subplots(figsize=(10, 4))
-        ax.scatter(filtered["dateTime"], filtered["q_cms"], s=point_size, label="Flow rate (cms)", alpha=0.7)
+        ax.scatter(filtered[time_col], filtered[flow_col], s=point_size, label="Flow rate (cms)", alpha=0.7)
         ax.set_xlabel("Date Time")
         ax.set_ylabel("Discharge (cms)")
         ax.set_title("Streamflow Time Series (Scatter Plot)")
