@@ -2,6 +2,4 @@
 
 from .subset import subset_xs
 
-__all__ = [
-    "subset_xs"
-]
+__all__ = ["subset_xs"]

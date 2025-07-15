@@ -2,8 +2,8 @@
 
 from .hydrofabric import UPSTREAM_VPUS, HydrofabricDomains, IdType
 from .modules import SFT, Albedo, IceFractionScheme
-from .topobathy import FileType, NGWPCLocations, NGWPCTestLocations
 from .ras_xs import XsType
+from .topobathy import FileType, NGWPCLocations, NGWPCTestLocations
 
 __all__ = [
     "UPSTREAM_VPUS",
@@ -15,5 +15,5 @@ __all__ = [
     "FileType",
     "NGWPCLocations",
     "NGWPCTestLocations",
-    "XsType"
+    "XsType",
 ]

@@ -10,8 +10,8 @@ from pyiceberg.catalog import load_catalog
 
 from app.routers.hydrofabric.router import api_router as hydrofabric_api_router
 from app.routers.nwm_modules.router import sft_router, topoflow_router
-from app.routers.streamflow_observations.router import api_router as streamflow_api_router
 from app.routers.ras_xs.router import api_router as ras_api_router
+from app.routers.streamflow_observations.router import api_router as streamflow_api_router
 from icefabric.helpers import load_creds
 
 
