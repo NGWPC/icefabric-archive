@@ -15,7 +15,12 @@ api_router = APIRouter(prefix="/ras_xs")
 
 @api_router.get("/{identifier}/")
 async def get_xs_subset_gpkg(
-    identifier: str = Path(..., description="HUC-8 identifier to filter by huc ID", example="02040106"),
+    identifier: str = Path(
+        ...,
+        description="HUC-8 identifier to filter by huc ID",
+        examples=["02040106"],
+        openapi_examples={"huc": {"summary": "XS Example", "value": "02040106"}},
+    ),
     xstype: XsType = Query(XsType.MIP, description="The iceberg namespace used to query the cross-sections"),
 ):
     """
@@ -70,9 +75,17 @@ async def get_xs_subset_gpkg(
 
 @api_router.get("/{identifier}/dsreachid={ds_reach_id}")
 async def get_xs_subset_by_huc_reach_gpkg(
-    identifier: str = Path(..., description="Identifier to filter data by huc ID", example="02040106"),
+    identifier: str = Path(
+        ...,
+        description="Identifier to filter data by huc ID",
+        examples=["02040106"],
+        openapi_examples={"xs": {"summary": "XS Example", "value": "02040106"}},
+    ),
     ds_reach_id: str = Path(
-        ..., description="Identifier to filter data by downstream reach ID)", example="4188251"
+        ...,
+        description="Identifier to filter data by downstream reach ID)",
+        examples=["4188251"],
+        openapi_examples={"xs": {"summary": "XS Example", "value": "4188251"}},
     ),
     xstype: XsType = Query(XsType.MIP, description="The iceberg namespace used to query the cross-sections"),
 ):
