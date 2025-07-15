@@ -38,6 +38,14 @@ python tools/pyiceberg/export_catalog.py --namespace conus_hf
 # Run additional tool times with other namespaces as necessary
 ```
 
+To view the namespaces hosted on glue, you can run the following commands in the terminal:
+```python
+>>> from pyiceberg.catalog import load_catalog
+>>> catalog = load_catalog("glue")
+>>> catalog.list_namespaces()
+```
+
+
 To run the API locally with a local SQL backend, ensure your `.env` file in your project root has the right credentials (`test`), then run
 ```sh
 uv sync
