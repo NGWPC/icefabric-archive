@@ -1,7 +1,7 @@
 from pyiceberg.catalog import load_catalog
 
 def test_xs_endpoint(client):
-    """Test: GET /v1/ras_xs/{reach_ids}?xstype={xs_val} - all valid arguments"""
+    """Test: GET /v1/ras_xs/{mip_hucid or ble_hucid}/dsreachid={reach_id}?xstype={mip or ble} - all valid arguments"""
     catalog = load_catalog("glue",
                        **{"type":"glue", "glue.region":"us-east-1"})
     mip_hucid_list = [tup[1] for tup in catalog.list_tables("mip_xs")]
