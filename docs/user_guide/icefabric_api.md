@@ -9,23 +9,48 @@ The Icefabric API is a FastAPI-based service that provides access to EDFS data s
 The API consists of several key components:
 
 1. **Main Application** (`app/main.py`) - FastAPI application with health checks and router configuration
-2. **Data Routers** - Handles all data endpoints. Currently only working with streamflow observations
-3. **Apache Iceberg Backend** - SQLite-backed catalog stored in `/tmp/warehouse` built using `icefabric_manage`
+2. **Data Routers** - Handles all data endpoints. Streamflow observations, Hydrofabric subsetting, National Water Model module configuration, and HEC-RAS cross-section retrieval are supported.
+3. **Apache Iceberg Backend** - Defaults to hosted AWS Glue catalog. Local SQLite-backed catalog may be built using instructions below.
 
 ### Running the API locally
-To run the API locally, ensure your `.env` file in your project root has the right credentials, then run
+To run the API locally, ensure your `.env` file in your project root has the right credentials (`test`), then run
 ```sh
 uv sync
-source
+source .venv/bin/activate
 python -m app.main
 ```
-This should spin up the API services
+This should spin up the API services at `localhost:8000/`
 
 ### Building the API through Docker
 To run the API locally with Docker, ensure your `.env` file in your project root has the right credentials, then run
 ```sh
 docker compose -f docker/compose.yaml build --no-cache
 docker compose -f docker/compose.yaml up
+```
+This should spin up the API services
+
+### Running the API with a local Iceberg catalog - Advanced Use
+To run the API locally against a local catalog, the catalog must first be exported from glue. In the following code block, run build script for as many catalog namespaces as you need. Ensure your `.env` file in your project root has the right credentials (`test`), then run
+```sh
+uv sync
+source .venv/bin/activate
+python tools/pyiceberg/export_catalog.py --namespace conus_hf
+# Run additional tool times with other namespaces as necessary
+```
+
+To view the namespaces hosted on glue, you can run the following commands in the terminal:
+```python
+>>> from pyiceberg.catalog import load_catalog
+>>> catalog = load_catalog("glue")
+>>> catalog.list_namespaces()
+```
+
+
+To run the API locally with a local SQL backend, ensure your `.env` file in your project root has the right credentials (`test`), then run
+```sh
+uv sync
+source .venv/bin/activate
+python -m app.main --catalog sql
 ```
 This should spin up the API services
 
@@ -42,14 +67,32 @@ This should spin up the API services
 
 #### Observations
 Currently supports:
+
 - **USGS** - United States Geological Survey hourly streamflow data
 
 #### Hydrofabric
 Provides geospatial watershed data:
+
 - **Subset Generation** - Creates upstream watershed subsets from identifiers
 
 !!! note "Data Storage"
-    All data is stored as Apache Iceberg tables in a SQLite-backed catalog locally built at `/tmp/warehouse/pyiceberg_catalog.db`
+    All data is stored remotely as Apache Iceberg tables on AWS glue unless you built the catalog locally. Then, it is stored at SQLite-backed catalog locally built at `/tmp/warehouse/pyiceberg_catalog.db`
+
+### National Water Model Modules
+Retrieve National Water Model (NWM) module parameters.
+
+Currently supports:
+
+- **Soil Freeze Thaw (SFT)** - Retrieve paramters for Soil Freeze Thaw module
+- **TopoFlow-Glacier** - Retrieve parameters for the TopoFlow Glacier module
+
+### RAS Cross-sections
+Retrieves geopackage data of HEC-RAS cross-sections
+
+Currently supports:
+
+- **HUC ID**: Download a geopackage for given HUC ID
+- **HUC ID** and **Reach ID**: Download a geopackage for a given HUC ID and Reach ID
 
 ## Usage Examples
 
@@ -204,6 +247,24 @@ curl "http://localhost:8000/v1/hydrofabric/01010000/gpkg" -o "subset.gpkg"
 
 # Download with different identifier
 curl "http://localhost:8000/v1/hydrofabric/01031500/gpkg" -o "subset.gpkg"
+```
+
+### NWM Modules
+```bash
+# Return parameters for Soil Freeze Thaw by catchment
+curl "http://localhost:8000/v1/modules/sft/?identifier=01010000&domain=conus_hf&use_schaake=false"
+
+# Return albedo value for given catchment state (snow, ice, or other)
+curl "http://localhost:8000/v1/modules/topoflow/albedo?landcover=snow"
+```
+
+### RAS Cross-sections
+```bash
+# Download RAS cross-sections for a HUC ID
+curl "http://localhost:8000/v1/ras_xs/02040106/" -o "ras_02040106.gpkg"
+
+# Download RAS cross-sections for a HUC ID and Reach ID
+curl "http://localhost:8000/v1/ras_xs/02040106/dsreachid=4188251" -o "ras_02040106_4188251.gpkg"
 ```
 
 ### Health Check

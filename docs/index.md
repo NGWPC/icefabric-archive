@@ -22,7 +22,12 @@ To run the API locally, ensure your `.env` file in your project root has the rig
 ```sh
 python -m app.main
 ```
-This should spin up the API services.
+This should spin up the API services at `localhost:8000/`.
+
+If you are running the API locally, you can run
+```sh
+python -m app.main --catalog sql
+```
 
 ### Building the API through Docker
 To run the API locally with Docker, ensure your `.env` file in your project root has the right credentials, then run
