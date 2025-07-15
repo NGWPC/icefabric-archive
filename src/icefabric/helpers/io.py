@@ -2,7 +2,9 @@ import json
 import tempfile
 import zipfile
 from pathlib import Path
+from typing import Any
 
+import yaml
 from tqdm import tqdm
 
 from icefabric.schemas.modules import NWMProtocol
@@ -39,3 +41,33 @@ def _create_config_zip(configs: list[NWMProtocol], output_path: Path, **kwargs):
             for file_path in config_files:
                 archive_name = file_path.name
                 f.write(file_path, archive_name)
+
+
+def load_pyiceberg_config(cwd: Path) -> dict[str, Any]:
+    """Reads a .pyiceberg.yaml config file to memory
+
+    Parameters
+    ----------
+    cwd : Path
+        the path to the .pyiceberg.yaml file
+
+    Returns
+    -------
+    dict[str, Any]
+        The pyiceberg yaml file
+
+    Raises
+    ------
+    FileNotFoundError
+        Can't find the YAML file in the CWD
+    yaml.YAMLError
+        Error parsing the YAML file
+    """
+    try:
+        with open(cwd / ".pyiceberg.yaml", encoding="utf-8") as file:
+            data = yaml.safe_load(file)
+            return data if data is not None else {}
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f".pyiceberg YAML file not found in cwd: {cwd}") from e
+    except yaml.YAMLError as e:
+        raise yaml.YAMLError(f"Error parsing .pyiceberg YAML file: {e}") from e
