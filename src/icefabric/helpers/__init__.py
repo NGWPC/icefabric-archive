@@ -1,6 +1,8 @@
 """Helper functions designed to assist with managing data. Similar to util functions"""
 
 from .arch_weather_file_utils import (
+    add_time_dim_to_datasets,
+    extract_dates_from_archival_files,
     get_archival_weather_files,
     load_tiff_file,
     virtualize_and_concat_archival_files_on_time,
@@ -15,6 +17,8 @@ __all__ = [
     "get_archival_weather_files",
     "load_tiff_file",
     "virtualize_and_concat_archival_files_on_time",
+    "extract_dates_from_archival_files",
+    "add_time_dim_to_datasets",
     "load_creds",
     "table_to_geopandas",
     "to_geopandas",
