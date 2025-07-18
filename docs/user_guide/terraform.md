@@ -1,7 +1,7 @@
+# AWS S3 Tables with Apache Iceberg - Terraform Implementation
+
 !!! note
     These docs are taken from `src/icefabric_manage/terraform/README.md`
-
-# AWS S3 Tables with Apache Iceberg - Terraform Implementation
 
 This directory contains PoC Terraform IaC for deploying Apache Iceberg tables using the AWS S3 Tables service with AWS Glue catalog integration.  It also contains a basic demo / test python script used to verify things.
 
