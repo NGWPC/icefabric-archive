@@ -403,6 +403,26 @@ class IcechunkRepo:
         return var_name
 
     @staticmethod
+    def create_local_virtual_chunk_container(path: str) -> ic.VirtualChunkContainer:
+        """
+        Create a virtual chunk container from a mapping for local files.
+
+        Parameters
+        ----------
+        path : str
+            The local path to the files which need to be virtualized
+
+        Returns
+        -------
+        ic.VirtualChunkContainer
+            A definition of a virtual chunk that the icechunk repo
+            uses to define access to virtualized data.
+        """
+        abs_path = str(Path(path).resolve())
+        store_config = ic.local_filesystem_store(abs_path)
+        return ic.VirtualChunkContainer(f"file://{abs_path}", store_config)
+
+    @staticmethod
     def set_up_virtual_chunk_container(bucket: str, region: str) -> ic.VirtualChunkContainer:
         """
         Create a virtual chunk container from a mapping

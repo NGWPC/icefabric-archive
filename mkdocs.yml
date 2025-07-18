@@ -32,6 +32,13 @@ markdown_extensions:
       generic: true
   - pymdownx.highlight:
       anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - admonition
@@ -48,6 +55,7 @@ plugins:
 nav:
   - Home:
     - index.md
+    - Description: description.md
   - User Guide:
     - user_guide/index.md
     - API: user_guide/icefabric_api.md

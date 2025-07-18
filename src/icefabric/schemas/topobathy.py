@@ -61,7 +61,7 @@ class NGWPCTestLocations(Enum):
     stores.
     """
 
-    SNODAS_IC = ("edfs-data", "forcing/snodas")
+    # SNODAS_IC = ("edfs-data", "forcing/snodas")  # commenting out until data can be moved from data to test bucket
     NLCD_IC = ("edfs-data", "land-cover/NLCD-Land-Cover")
     TOPO_AK_10M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_alaska_10m")
     TOPO_AK_30M_IC = ("edfs-data", f"{TOPO_BP}/tbdem_alaska_30m")
