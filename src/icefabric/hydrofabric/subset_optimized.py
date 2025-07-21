@@ -3,262 +3,52 @@
 import json
 from pathlib import Path
 
+import geopandas as gpd
+import pandas as pd
 import polars as pl
-import zarr
 from pyiceberg.catalog import Catalog, load_catalog
+from pyiceberg.expressions import In
 
+from icefabric.helpers.geopackage import to_geopandas
 from icefabric.schemas.hydrofabric import HydrofabricDomains, IdType
 
 
-def preprocess_river_network(network: pl.LazyFrame) -> dict[str, list[str]]:
-    """
-    Preprocesses the network to find DIRECT connections only
-
-    This is a helper function that finds immediate upstream connections.
-    It's used by build_upstream_lookup() as a starting point.
+def get_upstream_segments(origin: str, upstream_dict: dict[str, list[str]]) -> set[str]:
+    """Subsets the hydrofabric to find all upstream watershed boundaries upstream of the origin fp
 
     Parameters
     ----------
-    network: pl.LazyFrame
-        Network table
+    origin: str
+        The starting point where we're tracing upstream
+    upstream_dict: dict[str, list[str]]
+        a dictionary which preprocesses all toid -> id relationships
 
     Returns
     -------
-    dict[str, list[str]]
-        A dictionary mapping downstream segments to their DIRECT upstream values
+    set[str]
+        The watershed boundary connections that make up the subset
     """
-    network_dict = (
-        network.filter(pl.col("toid").is_not_null())
-        .group_by("toid")
-        .agg(pl.col("id").alias("upstream_ids"))
-        .collect()
-    )
+    upstream_ids = set()
+    stack = [origin]
 
-    # Create a lookup for nexus -> downstream wb connections
-    nexus_downstream = (
-        network.filter(pl.col("id").str.starts_with("nex-"))
-        .filter(pl.col("toid").str.starts_with("wb-"))
-        .select(["id", "toid"])
-        .rename({"id": "nexus_id", "toid": "downstream_wb"})
-    ).collect()
+    while stack:
+        current_id = stack.pop()
 
-    # Explode the upstream_ids to get one row per connection
-    connections = network_dict.with_row_index().explode("upstream_ids")
+        if current_id in upstream_ids:
+            continue
 
-    # Separate wb-to-wb connections (keep as-is)
-    wb_to_wb = (
-        connections.filter(pl.col("upstream_ids").str.starts_with("wb-"))
-        .filter(pl.col("toid").str.starts_with("wb-"))
-        .select(["toid", "upstream_ids"])
-    )
+        upstream_ids.add(current_id)
 
-    # Handle nexus connections: wb -> nex -> wb becomes wb -> wb
-    wb_to_nexus = (
-        connections.filter(pl.col("upstream_ids").str.starts_with("wb-"))
-        .filter(pl.col("toid").str.starts_with("nex-"))
-        .join(nexus_downstream, left_on="toid", right_on="nexus_id", how="inner")
-        .select(["downstream_wb", "upstream_ids"])
-        .rename({"downstream_wb": "toid"})
-    )
+        # Add all upstream segments to the stack
+        if current_id in upstream_dict:
+            for upstream_id in upstream_dict[current_id]:
+                if upstream_id not in upstream_ids:
+                    stack.append(upstream_id)
 
-    # Combine both types of connections
-    wb_connections = pl.concat([wb_to_wb, wb_to_nexus]).unique()
-
-    # Group back to dictionary format
-    wb_network_result = wb_connections.group_by("toid").agg(pl.col("upstream_ids")).unique()
-    wb_network_dict = {row["toid"]: row["upstream_ids"] for row in wb_network_result.iter_rows(named=True)}
-    return wb_network_dict
+    return upstream_ids
 
 
-def save_upstream_lookup(
-    lookup_df: pl.DataFrame,
-    storage_type: str = "parquet",
-    path: Path | None = None,
-    catalog: Catalog | None = None,
-) -> Path:
-    """
-    Save the upstream lookup table using different storage options
-
-    Parameters
-    ----------
-    lookup_df : pl.DataFrame
-        The upstream lookup table
-    storage_type : str
-        Storage type: 'parquet', 'zarr', or 'iceberg'
-    path : Path, optional
-        Storage path (required for parquet and zarr)
-    catalog : Catalog, optional
-        Iceberg catalog (required for iceberg storage)
-
-    Returns
-    -------
-    Path
-        Path where the table was saved
-    """
-    if storage_type == "parquet":
-        if path is None:
-            path = Path("upstream_lookup.parquet")
-        lookup_df.write_parquet(path)
-        print(f"Saved upstream lookup to parquet: {path}")
-        return path
-
-    elif storage_type == "zarr":
-        if path is None:
-            path = Path("upstream_lookup.zarr")
-
-        # Convert to zarr format
-        store = zarr.storage.LocalStore(root=path)
-        root = zarr.create_group(store=store)
-
-        # Store flowpath IDs
-        flowpath_ids = lookup_df.get_column("flowpath_id").to_numpy()
-        root.create_array("flowpath_ids", data=flowpath_ids, dtype="U50")
-
-        # Store upstream data as JSON strings (to handle ragged arrays)
-        upstream_data = [
-            json.dumps(upstream_list) if upstream_list else "[]"
-            for upstream_list in lookup_df.get_column("upstream_flowpaths").to_list()
-        ]
-        root.create_array("upstream_json", data=upstream_data, dtype="U10000")
-
-        # Store metadata
-        root.attrs["format"] = "upstream_lookup"
-        root.attrs["version"] = "1.0"
-        root.attrs["description"] = "Pre-computed upstream flowpath lookup table"
-
-        print(f"Saved upstream lookup to zarr: {path}")
-        return path
-
-    elif storage_type == "iceberg":
-        if catalog is None:
-            raise ValueError("Catalog required for iceberg storage")
-
-        # Convert list column to string for iceberg compatibility
-        iceberg_df = lookup_df.with_columns(
-            pl.col("upstream_flowpaths")
-            .map_elements(lambda x: json.dumps(x), return_dtype=pl.String)
-            .alias("upstream_flowpaths_json")
-        ).drop("upstream_flowpaths")
-
-        # Convert to arrow table
-        arrow_table = iceberg_df.to_arrow()
-
-        # Create or replace iceberg table
-        table_name = "hydrofabric.upstream_lookup"
-        try:
-            # Try to load existing table and replace data
-            table = catalog.load_table(table_name)
-            table.delete()
-            table.append(arrow_table)
-        except:
-            # Create new table
-            table = catalog.create_table(table_name, schema=arrow_table.schema)
-            table.append(arrow_table)
-
-        print(f"Saved upstream lookup to iceberg table: {table_name}")
-        return Path(table_name)
-
-    else:
-        raise ValueError(f"Unsupported storage type: {storage_type}")
-
-
-def load_upstream_lookup(
-    storage_type: str = "parquet", path: Path | None = None, catalog: Catalog | None = None
-) -> pl.DataFrame:
-    """
-    Load the upstream lookup table from storage
-
-    Parameters
-    ----------
-    storage_type : str
-        Storage type: 'parquet', 'zarr', or 'iceberg'
-    path : Path, optional
-        Storage path (required for parquet and zarr)
-    catalog : Catalog, optional
-        Iceberg catalog (required for iceberg storage)
-
-    Returns
-    -------
-    pl.DataFrame
-        The loaded upstream lookup table
-    """
-    if path is None:
-        path = Path(__file__).parents[3] / "data/upstream_lookup.zarr"
-
-        root = zarr.open_group(store=path)
-        flowpath_ids = root["flowpath_ids"][:]
-        upstream_json = root["upstream_json"][:]
-
-        # Parse JSON back to lists
-        upstream_lists = [json.loads(json_str) for json_str in upstream_json]
-
-        return pl.DataFrame({"flowpath_id": flowpath_ids, "upstream_flowpaths": upstream_lists})
-
-    elif storage_type == "iceberg":
-        if catalog is None:
-            raise ValueError("Catalog required for iceberg storage")
-
-        table = catalog.load_table("hydrofabric.upstream_lookup")
-        arrow_data = table.scan().to_arrow()
-        df = pl.from_arrow(arrow_data)
-
-        # Convert JSON string back to list
-        return df.with_columns(
-            pl.col("upstream_flowpaths_json")
-            .map_elements(lambda x: json.loads(x), return_dtype=pl.List(pl.String))
-            .alias("upstream_flowpaths")
-        ).drop("upstream_flowpaths_json")
-
-    else:
-        raise ValueError(f"Unsupported storage type: {storage_type}")
-
-
-def create_upstream_lookup_dict(lookup_df: pl.DataFrame) -> dict[str, set[str]]:
-    """
-    Convert upstream lookup DataFrame to a fast dictionary
-
-    Parameters
-    ----------
-    lookup_df : pl.DataFrame
-        The upstream lookup table
-
-    Returns
-    -------
-    Dict[str, Set[str]]
-        Dictionary mapping flowpath_id -> set of upstream flowpath IDs
-    """
-    upstream_dict = {}
-    for row in lookup_df.iter_rows(named=True):
-        upstream_dict[row["flowpath_id"]] = set(row["upstream_flowpaths"])
-    return upstream_dict
-
-
-def get_upstream_segments(origin_id: str, upstream_dict: dict[str, set[str]]) -> set[str]:
-    """
-    Get all upstream segments for a given origin
-
-    Parameters
-    ----------
-    origin_id : str
-        The origin flowpath ID
-    upstream_dict : Dict[str, Set[str]]
-        Dictionary mapping flowpath_id -> set of upstream flowpath IDs
-
-    Returns
-    -------
-    Set[str]
-        Set of all upstream flowpath IDs including the origin
-    """
-    if origin_id not in upstream_dict:
-        print(f"Warning: {origin_id} not found in upstream lookup")
-        return {origin_id}
-
-    upstream_set = upstream_dict[origin_id].copy()
-    upstream_set.add(origin_id)  # Include the origin itself
-    return upstream_set
-
-
-def find_origin_flowpath(catalog: Catalog, identifier: str, id_type: str) -> str:
+def find_origin_flowpath(catalog: Catalog, domain: HydrofabricDomains, identifier: str, id_type: str) -> str:
     """
     Find the origin flowpath for a given identifier using Polars
 
@@ -277,12 +67,11 @@ def find_origin_flowpath(catalog: Catalog, identifier: str, id_type: str) -> str
         The origin flowpath ID
     """
     # Load network table efficiently
-    network_table = catalog.load_table("hydrofabric.network")
-    network_df = pl.from_arrow(network_table.scan().to_arrow()).lazy()
+    network_table = catalog.load_table(f"{domain.value}.network").to_polars()
 
     # Find matching network entries
     if id_type == "hl_uri":
-        matches = network_df.filter(pl.col("hl_uri") == identifier).select("id").collect()
+        matches = network_table.filter(pl.col("hl_uri") == identifier).select("id").collect()
     else:
         raise ValueError(f"ID type {id_type} not yet implemented")
 
@@ -294,22 +83,13 @@ def find_origin_flowpath(catalog: Catalog, identifier: str, id_type: str) -> str
     if len(network_ids) == 1:
         return network_ids[0]
     else:
-        # Multiple matches - find best one based on drainage area
-        flowpaths_table = catalog.load_table("hydrofabric.flowpaths")
-        flowpaths_df = pl.from_arrow(flowpaths_table.scan().to_arrow()).lazy()
-
-        candidates = (
-            flowpaths_df.filter(pl.col("id").is_in(network_ids))
-            .select(["id", "tot_drainage_areasqkm"])
-            .collect()
-        )
-
-        # Return the first match for now
-        # TODO: Implement proper drainage area comparison
-        return candidates.get_column("id")[0]
+        # TODO: provide a solution for when multiple IDs correspond to the same gauge
+        return network_ids[0]
 
 
-def subset_layer_polars(catalog: Catalog, layer_name: str, upstream_ids: set[str]) -> pl.LazyFrame:
+def subset_layers(
+    catalog: Catalog, domain: HydrofabricDomains, layers: list[str], upstream_ids: set[str]
+) -> dict[str, pd.DataFrame | gpd.GeoDataFrame]:
     """
     Efficiently subset a layer using Polars and the upstream IDs
 
@@ -327,89 +107,96 @@ def subset_layer_polars(catalog: Catalog, layer_name: str, upstream_ids: set[str
     pl.LazyFrame
         Lazy frame with only the upstream segments
     """
-    try:
-        table = catalog.load_table(f"hydrofabric.{layer_name}")
+    # Ensuring there are always divides, flowpaths, network, and nexus layers
+    if layers is None:
+        layers = []
+    layers.extend(["divides", "flowpaths", "network", "nexus"])
+    layers = list(set(layers))
 
-        # Convert to polars lazy frame
-        arrow_dataset = table.scan().to_arrow()
-        lazy_frame = pl.from_arrow(arrow_dataset).lazy()
+    upstream_ids_list = list(upstream_ids)
+    id_filter = In("id", upstream_ids_list)
 
-        # Determine the ID column name based on layer type
-        id_column_map = {
-            "flowpaths": "id",
-            "flowpath-attributes": "id",
-            "flowpath-attributes-ml": "id",
-            "divides": "divide_id",
-            "divide-attributes": "divide_id",
-            "network": "id",
-            "nexus": "id",
-            "lakes": "id",
-            "hydrolocations": "id",
-            "pois": "id",
-        }
+    network = catalog.load_table(f"{domain.value}.network")
+    filtered_network = network.scan(row_filter=id_filter).to_pandas()
+    filtered_network["poi_id"] = filtered_network["poi_id"].apply(
+        lambda x: str(int(x)) if pd.notna(x) else None
+    )
 
-        id_column = id_column_map.get(layer_name, "id")
+    valid_divide_ids = filtered_network["divide_id"].dropna().drop_duplicates().values.tolist()
+    assert valid_divide_ids, "No valid divide_ids found"
 
-        # Convert set to list for polars
-        upstream_list = list(upstream_ids)
+    flowpaths = catalog.load_table(f"{domain.value}.flowpaths")
+    filtered_flowpaths = flowpaths.scan(row_filter=In("divide_id", valid_divide_ids)).to_pandas()
+    assert len(filtered_flowpaths) > 0, "No flowpaths found"
+    valid_toids = filtered_flowpaths["toid"].dropna().values.tolist()
+    assert valid_toids, "No flowpaths found"
+    filtered_flowpaths = to_geopandas(filtered_flowpaths)
 
-        # Filter efficiently using polars
-        filtered = lazy_frame.filter(pl.col(id_column).is_in(upstream_list))
+    nexus = catalog.load_table(f"{domain.value}.nexus")
+    filtered_nexus_points = nexus.scan(row_filter=In("id", valid_toids)).to_pandas()
+    filtered_nexus_points = to_geopandas(filtered_nexus_points)
+    filtered_nexus_points["poi_id"] = filtered_nexus_points["poi_id"].apply(
+        lambda x: str(int(x)) if pd.notna(x) else None
+    )
 
-        return filtered
+    valid_divide_ids_for_divides = filtered_flowpaths["divide_id"].dropna().values.tolist()
+    assert valid_divide_ids_for_divides, "No divide IDs found"
 
-    except Exception as e:
-        print(f"Warning: Could not subset layer {layer_name}: {e}")
-        return pl.LazyFrame()
+    divides = catalog.load_table(f"{domain.value}.divides")
+    filtered_divides = divides.scan(row_filter=In("divide_id", valid_divide_ids_for_divides)).to_pandas()
+    filtered_divides = to_geopandas(filtered_divides)
 
+    output_layers = {
+        "flowpaths": filtered_flowpaths,
+        "nexus": filtered_nexus_points,
+        "divides": filtered_divides,
+        "network": filtered_network,
+    }
 
-def create_or_load_upstream_lookup(
-    catalog: Catalog,
-    storage_type: str = "iceberg",
-    lookup_path: Path | None = None,
-    force_rebuild: bool = False,
-) -> pl.DataFrame:
-    """
-    Create or load the upstream lookup table
+    if "lakes" in layers:
+        lakes = catalog.load_table(f"{domain.value}.lakes")
+        filtered_lakes = lakes.scan(row_filter=In("divide_id", valid_divide_ids_for_divides)).to_pandas()
+        filtered_lakes = to_geopandas(filtered_lakes)
+        output_layers["lakes"] = filtered_lakes
 
-    Parameters
-    ----------
-    catalog : Catalog
-        PyIceberg catalog
-    storage_type : str
-        Storage type: 'parquet', 'zarr', or 'iceberg'
-    lookup_path : Path, optional
-        Path for storage
-    force_rebuild : bool
-        Force rebuilding even if lookup exists
+    if "divide-attributes" in layers:
+        divides_attr = catalog.load_table(f"{domain.value}.divide-attributes")
+        filtered_divide_attr = divides_attr.scan(
+            row_filter=In("divide_id", valid_divide_ids_for_divides)
+        ).to_pandas()
+        output_layers["divide-attributes"] = filtered_divide_attr
 
-    Returns
-    -------
-    pl.DataFrame
-        The upstream lookup table
-    """
-    # Check if lookup already exists
-    if not force_rebuild:
-        try:
-            lookup_df = load_upstream_lookup(storage_type=storage_type, path=lookup_path, catalog=catalog)
-            print("Loaded existing upstream lookup table")
-            return lookup_df
-        except:
-            print("No existing upstream lookup found, will create new one")
+    if "flowpath-attributes" in layers:
+        flowpath_attr = catalog.load_table(f"{domain.value}.flowpath-attributes")
+        valid_flowpath_ids = filtered_flowpaths["id"].dropna().values.tolist()
+        filtered_flowpath_attr = flowpath_attr.scan(row_filter=In("id", valid_flowpath_ids)).to_pandas()
+        output_layers["flowpath-attributes"] = filtered_flowpath_attr
 
-    print("Building new upstream lookup table...")
+    if "flowpath-attributes-ml" in layers:
+        flowpath_attr_ml = catalog.load_table(f"{domain.value}.flowpath-attributes-ml")
+        valid_flowpath_ids = filtered_flowpaths["id"].dropna().values.tolist()
+        filtered_flowpath_attr_ml = flowpath_attr_ml.scan(row_filter=In("id", valid_flowpath_ids)).to_pandas()
+        output_layers["flowpath-attributes-ml"] = filtered_flowpath_attr_ml
 
-    # Load required tables
-    fp_table = catalog.load_table("hydrofabric.flowpaths").to_polars()
-    network_table = catalog.load_table("hydrofabric.network").to_polars()
+    if "pois" in layers:
+        pois = catalog.load_table(f"{domain.value}.pois")
+        poi_values = filtered_flowpaths["poi_id"].dropna().values
+        filtered_poi_list = list({int(x) for x in poi_values if pd.notna(x)})
+        if filtered_poi_list:
+            filtered_pois = pois.scan(row_filter=In("poi_id", filtered_poi_list)).to_pandas()
+            output_layers["pois"] = filtered_pois
 
-    # Build lookup table
-    lookup_df = preprocess_river_network(fp_table)
+    if "hydrolocations" in layers:
+        hydrolocations = catalog.load_table(f"{domain.value}.hydrolocations")
+        poi_values = filtered_flowpaths["poi_id"].dropna().values
+        filtered_poi_list = list({int(x) for x in poi_values if pd.notna(x)})
+        if filtered_poi_list:
+            filtered_hydrolocations = hydrolocations.scan(
+                row_filter=In("poi_id", filtered_poi_list)
+            ).to_pandas()
+            output_layers["hydrolocations"] = filtered_hydrolocations
 
-    # Save for future use
-    save_upstream_lookup(lookup_df, storage_type=storage_type, path=lookup_path, catalog=catalog)
-
-    return lookup_df
+    return output_layers
 
 
 def subset_hydrofabric(
@@ -417,9 +204,9 @@ def subset_hydrofabric(
     identifier: str,
     id_type: str,
     layers: list[str],
-    domain: str,
-    upstream_dict: dict[str, set[str]],
-) -> dict[str, pl.LazyFrame]:
+    domain: HydrofabricDomains,
+    upstream_dict: dict[str, list[str]],
+) -> dict[str, pd.DataFrame | gpd.GeoDataFrame]:
     """
     Main subset function using pre-computed upstream lookup
 
@@ -443,28 +230,17 @@ def subset_hydrofabric(
     Dict[str, pl.LazyFrame]
         Dictionary of layer names to their subsetted lazy frames
     """
-    print(f"Starting optimized subset for {identifier}")
+    print(f"Starting subset for {identifier}")
 
-    # Step 1: Find the origin flowpath
-    origin_id = find_origin_flowpath(catalog, identifier, id_type)
+    origin_id = find_origin_flowpath(catalog, domain, identifier, id_type)
     print(f"Found origin flowpath: {origin_id}")
 
-    # Step 2: Get upstream segments from pre-computed lookup
     upstream_ids = get_upstream_segments(origin_id, upstream_dict)
     print(f"Found {len(upstream_ids)} upstream segments")
 
-    # Step 3: Subset each layer efficiently using Polars
-    result = {}
-    for layer in layers:
-        print(f"Subsetting layer: {layer}")
-        try:
-            subset_layer = subset_layer_polars(catalog, layer, upstream_ids)
-            result[layer] = subset_layer
-        except Exception as e:
-            print(f"Failed to subset layer {layer}: {e}")
-            continue
+    output_layers = subset_layers(catalog=catalog, domain=domain, layers=layers, upstream_ids=upstream_ids)
 
-    return result
+    return output_layers
 
 
 def subset_v2(
@@ -473,10 +249,8 @@ def subset_v2(
     id_type: str,
     layers: list[str],
     output_file: Path,
-    domain: str,
-    lookup_storage: str = "iceberg",
-    lookup_path: Path | None = None,
-) -> None:
+    domain: HydrofabricDomains,
+) -> None | dict[str, pd.DataFrame | gpd.GeoDataFrame]:
     """
     Optimized subset function using pre-computed upstream lookup
 
@@ -492,7 +266,7 @@ def subset_v2(
         List of layers to subset
     output_file : Path
         Output file path
-    domain : str
+    domain : HydrofabricDomains
         Domain name
     lookup_storage : str
         Storage type for upstream lookup table
@@ -500,16 +274,21 @@ def subset_v2(
         Path to upstream lookup table
     """
     # Create or load upstream lookup table
-    upstream_lookup = create_or_load_upstream_lookup(
-        catalog=catalog, storage_type=lookup_storage, lookup_path=lookup_path
+    upstream_connections_path = (
+        Path(__file__).parents[3] / f"data/hydrofabric/{domain.value}_upstream_connections.json"
+    )
+    assert upstream_connections_path.exists(), (
+        f"Upstream Connections missing for {domain.value}. Please run `icefabric build-upstream-connections` to generate this file"
     )
 
-    # Convert to fast lookup dictionary
-    upstream_dict = create_upstream_lookup_dict(upstream_lookup)
-    print(f"Loaded upstream lookup for {len(upstream_dict)} flowpaths")
+    with open(upstream_connections_path) as f:
+        data = json.load(f)
+        print(
+            f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
+        )
+        upstream_dict = data["upstream_connections"]
 
-    # Perform subset
-    subsetted_layers = subset_hydrofabric(
+    output_layers = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=id_type,
@@ -521,18 +300,15 @@ def subset_v2(
     # Write results
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    for layer_name, layer_data in subsetted_layers.items():
-        try:
-            # Collect the lazy frame and save
-            collected = layer_data.collect()
-            if collected.height > 0:
-                output_path = output_file.parent / f"{identifier}_{layer_name}.parquet"
-                collected.write_parquet(output_path)
-                print(f"Saved {layer_name}: {collected.height} rows to {output_path}")
+    if output_file:
+        for table_name, _layer in output_layers.items():
+            if len(_layer) > 0:  # Only save non-empty layers
+                gpd.GeoDataFrame(_layer).to_file(output_file, layer=table_name, driver="GPKG")
             else:
-                print(f"No data found for layer {layer_name}")
-        except Exception as e:
-            print(f"Failed to save {layer_name}: {e}")
+                print(f"Warning: {table_name} layer is empty")
+        return None
+    else:
+        return output_layers
 
 
 if __name__ == "__main__":
