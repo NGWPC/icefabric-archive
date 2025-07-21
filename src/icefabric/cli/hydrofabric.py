@@ -57,23 +57,7 @@ def subset_v2(
     layers: tuple[str],
     output_file: Path,
 ):
-    """Subsets the hydrofabric based on a unique identifier
-
-    Parameters
-    ----------
-    catalog : str
-        The pyiceberg catalog type (glue or sql)
-    identifier : str
-        The specific ID you are querying the system from. Ex: gages-01010000
-    id_type : str
-        The ID type you are querying
-    domain : str
-        The domain you are querying
-    layers : tuple[str]
-        The layers to include in the subset
-    output_file : Path
-        Output path for the zip file
-    """
+    """Subsets the hydrofabric based on a unique identifier"""
     id_type_enum = IdType(id_type)
     domain_enum = HydrofabricDomains(domain)
 
@@ -136,23 +120,7 @@ def subset(
     layers: tuple[str],
     output_file: Path,
 ):
-    """Subsets the hydrofabric based on a unique identifier
-
-    Parameters
-    ----------
-    catalog : str
-        The pyiceberg catalog type (glue or sql)
-    identifier : str
-        The specific ID you are querying the system from. Ex: gages-01010000
-    id_type : str
-        The ID type you are querying
-    domain : str
-        The domain you are querying
-    layers : tuple[str]
-        The layers to include in the subset
-    output_file : Path
-        Output path for the zip file
-    """
+    """Subsets the hydrofabric based on a unique identifier"""
     id_type_enum = IdType(id_type)
     domain_enum = HydrofabricDomains(domain)
 
@@ -183,27 +151,17 @@ def subset(
     help="The domain you are querying",
 )
 @click.option(
-    "--output-file",
+    "--output-path",
     "-o",
     type=click.Path(path_type=Path),
-    default=Path.cwd() / "subset.gpkg",
-    help="Output file. Defaults to ${CWD}/subset.gpkg",
+    default=Path.cwd(),
+    help="Output path of the upstream connections json",
 )
-def build_upstream_json_file(
+def build_upstream_connections(
     catalog: str,
     domain: str,
-    output_file: Path,
+    output_path: Path,
 ):
-    """Creates a JSON file which documents the upstream connections from a particular basin
-
-    Parameters
-    ----------
-    catalog : str
-        The pyiceberg catalog
-    domain : str
-        the hydrofabric domain
-    output_file : Path
-        Where the json file should be saved
-    """
-    build_upstream_json(catalog=get_catalog(catalog), namespace=domain, output_path=output_file)
-    click.echo(f"Upstream json file created successfully in the following folder: {output_file}")
+    """Creates a JSON file which documents the upstream connections from a particular basin"""
+    build_upstream_json(catalog=get_catalog(catalog), namespace=domain, output_path=output_path)
+    click.echo(f"Upstream json file created for {domain} in the following folder: {output_path}")

@@ -4,7 +4,7 @@
 import click
 
 from icefabric import __version__
-from icefabric.cli.hydrofabric import subset, subset_v2
+from icefabric.cli.hydrofabric import build_upstream_connections, subset
 from icefabric.cli.modules import params
 
 
@@ -29,7 +29,7 @@ def cli(ctx):
 # Add subcommands
 cli.add_command(params)
 cli.add_command(subset)
-cli.add_command(subset_v2)
+cli.add_command(build_upstream_connections)
 
 # Main entry point for when run as a script
 if __name__ == "__main__":
