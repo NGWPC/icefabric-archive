@@ -1,13 +1,14 @@
 """A file containing code to build an upstream lookup table"""
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import polars as pl
 from pyiceberg.catalog import Catalog
 
 
-def _build_upstream_lookup_table(network_table):
+def _build_upstream_lookup_table(network_table: pl.LazyFrame):
     network_dict = (
         network_table.filter(pl.col("toid").is_not_null())
         .group_by("toid")
@@ -62,12 +63,22 @@ def build_upstream_json(catalog: Catalog, namespace: str, output_path: Path) -> 
     output_file : Path
         Where the json file should be saved
     """
-    network_table = catalog.load_table(f"{namespace}.network").to_polars()
-    wb_network_dict = _build_upstream_lookup_table(network_table)
+    network_table = catalog.load_table(f"{namespace}.network")
+    wb_network_dict = _build_upstream_lookup_table(network_table.to_polars())
+
+    metadata = {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "iceberg": {
+            "catalog_name": catalog.name,
+            "source_table": f"{namespace}.network",
+            "snapshot_id": network_table.current_snapshot().snapshot_id,
+        },
+    }
+
+    # Create the final JSON structure with metadata at top level
+    output_data = {"_metadata": metadata, "upstream_connections": wb_network_dict}
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path / "upstream_connections.json", "w") as f:
-        json.dump(wb_network_dict, f, indent=2)
-
-    print(f"Upstream lookup table saved to {output_path}")
+    with open(output_path / f"{namespace}_upstream_connections.json", "w") as f:
+        json.dump(output_data, f, indent=2)
