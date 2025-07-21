@@ -50,14 +50,24 @@ def _build_upstream_lookup_table(network_table):
     return wb_network_dict
 
 
-def build_upstream_json(catalog: Catalog, output_path: Path):
-    """Build upstream lookup table and save to JSON file"""
-    network_table = catalog.load_table("hydrofabric.network").to_polars()
+def build_upstream_json(catalog: Catalog, namespace: str, output_path: Path) -> None:
+    """Build upstream lookup table and save to JSON file
+
+    Parameters
+    ----------
+    catalog : str
+        The pyiceberg catalog
+    namespace : str
+        the hydrofabric namespace to read from
+    output_file : Path
+        Where the json file should be saved
+    """
+    network_table = catalog.load_table(f"{namespace}.network").to_polars()
     wb_network_dict = _build_upstream_lookup_table(network_table)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, "w") as f:
+    with open(output_path / "upstream_connections.json", "w") as f:
         json.dump(wb_network_dict, f, indent=2)
 
     print(f"Upstream lookup table saved to {output_path}")

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import click
 
+from icefabric.builds import build_upstream_json
 from icefabric.cli import get_catalog
 from icefabric.hydrofabric.subset import subset as hfsubset
 from icefabric.hydrofabric.subset_optimized import subset_v2 as hfsubset_v2
@@ -166,3 +167,43 @@ def subset(
         domain=domain_enum,
     )
     click.echo(f"Hydrofabric file created successfully in the following folder: {output_file}")
+
+
+@click.command()
+@click.option(
+    "--catalog",
+    type=click.Choice(["glue", "sql"], case_sensitive=False),
+    default="glue",
+    help="The pyiceberg catalog type",
+)
+@click.option(
+    "--domain",
+    type=click.Choice([e.value for e in HydrofabricDomains], case_sensitive=False),
+    required=True,
+    help="The domain you are querying",
+)
+@click.option(
+    "--output-file",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=Path.cwd() / "subset.gpkg",
+    help="Output file. Defaults to ${CWD}/subset.gpkg",
+)
+def build_upstream_json_file(
+    catalog: str,
+    domain: str,
+    output_file: Path,
+):
+    """Creates a JSON file which documents the upstream connections from a particular basin
+
+    Parameters
+    ----------
+    catalog : str
+        The pyiceberg catalog
+    domain : str
+        the hydrofabric domain
+    output_file : Path
+        Where the json file should be saved
+    """
+    build_upstream_json(catalog=get_catalog(catalog), namespace=domain, output_path=output_file)
+    click.echo(f"Upstream json file created successfully in the following folder: {output_file}")
