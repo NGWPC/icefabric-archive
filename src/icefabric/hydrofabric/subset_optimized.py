@@ -1,6 +1,4 @@
-"""
-Functional hydrofabric subset implementation using pre-computed upstream lookup table with Polars
-"""
+"""Functional hydrofabric subset implementation using pre-computed upstream lookup table with Polars"""
 
 import json
 from pathlib import Path
@@ -185,7 +183,7 @@ def load_upstream_lookup(
         The loaded upstream lookup table
     """
     if path is None:
-        path = Path("upstream_lookup.zarr")
+        path = Path(__file__).parents[3] / "data/upstream_lookup.zarr"
 
         root = zarr.open_group(store=path)
         flowpath_ids = root["flowpath_ids"][:]
@@ -406,7 +404,7 @@ def create_or_load_upstream_lookup(
     network_table = catalog.load_table("hydrofabric.network").to_polars()
 
     # Build lookup table
-    lookup_df = build_upstream_lookup(fp_table, network_table)
+    lookup_df = preprocess_river_network(fp_table)
 
     # Save for future use
     save_upstream_lookup(lookup_df, storage_type=storage_type, path=lookup_path, catalog=catalog)
