@@ -6,6 +6,7 @@ archival weather files, mainly to interface with icechunk
 """
 
 import os
+from pathlib import Path
 
 import fsspec
 import pandas as pd
@@ -100,8 +101,8 @@ def get_archival_weather_files(
     return files
 
 
-def _extract_dates_from_archival_files(
-    file_paths: list[str], file_pattern: str, just_year: bool | None = False
+def extract_dates_from_archival_files(
+    file_paths: list[str] | list[Path], file_pattern: str, just_year: bool | None = False
 ) -> list[pd.DatetimeIndex] | list[int]:
     """
     Pull dates out of list of file names
@@ -178,7 +179,7 @@ def _virtualize_datasets(
     return v_datasets
 
 
-def _add_time_dim_to_datasets(
+def add_time_dim_to_datasets(
     timeless_datasets: list[xr.Dataset],
     datetimes: list[pd.DatetimeIndex],
     just_year: bool | None = False,
@@ -269,9 +270,9 @@ def virtualize_and_concat_archival_files_on_time(
     arch_files = get_archival_weather_files(
         loc=location, file_type=file_type, manual_file_pattern=manual_file_pattern
     )
-    datetimes = _extract_dates_from_archival_files(arch_files, file_date_pattern, just_year=just_year)
+    datetimes = extract_dates_from_archival_files(arch_files, file_date_pattern, just_year=just_year)
     timeless_datasets = _virtualize_datasets(arch_files, loadable_vars, testing_file_quantity)
-    time_added_datasets = _add_time_dim_to_datasets(
+    time_added_datasets = add_time_dim_to_datasets(
         timeless_datasets, datetimes, just_year, testing_file_quantity
     )
     concat_dim = "year" if just_year else "time"
