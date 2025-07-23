@@ -7,10 +7,10 @@ import geopandas as gpd
 import pandas as pd
 import polars as pl
 from pyiceberg.catalog import Catalog, load_catalog
-from pyiceberg.expressions import In
+from pyiceberg.expressions import EqualTo, In
 
 from icefabric.helpers.geopackage import to_geopandas
-from icefabric.schemas.hydrofabric import HydrofabricDomains, IdType
+from icefabric.schemas.hydrofabric import UPSTREAM_VPUS, HydrofabricDomains, IdType
 
 
 def get_upstream_segments(origin: str, upstream_dict: dict[str, list[str]]) -> set[str]:
@@ -48,7 +48,9 @@ def get_upstream_segments(origin: str, upstream_dict: dict[str, list[str]]) -> s
     return upstream_ids
 
 
-def find_origin_flowpath(catalog: Catalog, domain: HydrofabricDomains, identifier: str, id_type: str) -> str:
+def find_origin_flowpath(
+    catalog: Catalog, domain: HydrofabricDomains, identifier: str, id_type: str
+) -> tuple[str, str]:
     """
     Find the origin flowpath for a given identifier using Polars
 
@@ -71,7 +73,7 @@ def find_origin_flowpath(catalog: Catalog, domain: HydrofabricDomains, identifie
 
     # Find matching network entries
     if id_type == "hl_uri":
-        matches = network_table.filter(pl.col("hl_uri") == identifier).select("id").collect()
+        matches = network_table.filter(pl.col("hl_uri") == identifier).select(["id", "vpuid"]).collect()
     else:
         raise ValueError(f"ID type {id_type} not yet implemented")
 
@@ -79,16 +81,17 @@ def find_origin_flowpath(catalog: Catalog, domain: HydrofabricDomains, identifie
         raise ValueError(f"No network entry found for {identifier}")
 
     network_ids = matches.get_column("id").to_list()
+    vpu_ids = matches.get_column("vpuid").to_list()
 
     if len(network_ids) == 1:
-        return network_ids[0]
+        return network_ids[0], vpu_ids[0]
     else:
         # TODO: provide a solution for when multiple IDs correspond to the same gauge
-        return network_ids[0]
+        return network_ids[0], vpu_ids[0]
 
 
 def subset_layers(
-    catalog: Catalog, domain: HydrofabricDomains, layers: list[str], upstream_ids: set[str]
+    catalog: Catalog, domain: HydrofabricDomains, layers: list[str], upstream_ids: set[str], vpu_id: str
 ) -> dict[str, pd.DataFrame | gpd.GeoDataFrame]:
     """
     Efficiently subset a layer using Polars and the upstream IDs
@@ -114,36 +117,51 @@ def subset_layers(
     layers = list(set(layers))
 
     upstream_ids_list = list(upstream_ids)
-    id_filter = In("id", upstream_ids_list)
 
-    network = catalog.load_table(f"{domain.value}.network")
-    filtered_network = network.scan(row_filter=id_filter).to_pandas()
-    filtered_network["poi_id"] = filtered_network["poi_id"].apply(
-        lambda x: str(int(x)) if pd.notna(x) else None
+    # Create VPU filter
+    if vpu_id in UPSTREAM_VPUS:
+        # Use upstream VPUs mapping if available
+        vpu_filter = In("vpuid", UPSTREAM_VPUS[vpu_id])
+    else:
+        # Use single VPU filter
+        vpu_filter = EqualTo("vpuid", vpu_id)
+
+    print("Subsetting network layer")
+    network = catalog.load_table(f"{domain.value}.network").scan(row_filter=vpu_filter).to_pandas()
+    mask = network["id"].isin(upstream_ids_list) | network["toid"].isin(upstream_ids_list)
+    filtered_network = network.loc[mask]
+    filtered_network.loc[:, "poi_id"] = (
+        filtered_network["poi_id"]
+        .apply(lambda x: str(int(x)) if pd.notna(x) and x != 0 else None)
+        .astype("object")
     )
 
-    valid_divide_ids = filtered_network["divide_id"].dropna().drop_duplicates().values.tolist()
-    assert valid_divide_ids, "No valid divide_ids found"
-
-    flowpaths = catalog.load_table(f"{domain.value}.flowpaths")
-    filtered_flowpaths = flowpaths.scan(row_filter=In("divide_id", valid_divide_ids)).to_pandas()
+    print("Subsetting flowpaths layer")
+    flowpaths = catalog.load_table(f"{domain.value}.flowpaths").scan(row_filter=vpu_filter).to_pandas()
+    mask = flowpaths["id"].isin(upstream_ids_list)
+    filtered_flowpaths = flowpaths.loc[mask]
     assert len(filtered_flowpaths) > 0, "No flowpaths found"
-    valid_toids = filtered_flowpaths["toid"].dropna().values.tolist()
-    assert valid_toids, "No flowpaths found"
     filtered_flowpaths = to_geopandas(filtered_flowpaths)
 
-    nexus = catalog.load_table(f"{domain.value}.nexus")
-    filtered_nexus_points = nexus.scan(row_filter=In("id", valid_toids)).to_pandas()
+    print("Subsetting nexus layer")
+    valid_toids = filtered_flowpaths["toid"].dropna().values.tolist()
+    assert valid_toids, "No nexus points found"
+    nexus = catalog.load_table(f"{domain.value}.nexus").scan(row_filter=vpu_filter).to_pandas()
+    mask = nexus["id"].isin(valid_toids)
+    filtered_nexus_points = nexus.loc[mask]
     filtered_nexus_points = to_geopandas(filtered_nexus_points)
-    filtered_nexus_points["poi_id"] = filtered_nexus_points["poi_id"].apply(
-        lambda x: str(int(x)) if pd.notna(x) else None
+    filtered_nexus_points.loc[:, "poi_id"] = (
+        filtered_nexus_points["poi_id"]
+        .apply(lambda x: str(int(x)) if pd.notna(x) and x != 0 else None)
+        .astype("object")
     )
 
-    valid_divide_ids_for_divides = filtered_flowpaths["divide_id"].dropna().values.tolist()
-    assert valid_divide_ids_for_divides, "No divide IDs found"
-
-    divides = catalog.load_table(f"{domain.value}.divides")
-    filtered_divides = divides.scan(row_filter=In("divide_id", valid_divide_ids_for_divides)).to_pandas()
+    print("Subsetting divides layer")
+    valid_divide_ids = filtered_network["divide_id"].dropna().drop_duplicates().values.tolist()
+    assert valid_divide_ids, "No valid divide_ids found"
+    divides = catalog.load_table(f"{domain.value}.divides").scan(row_filter=vpu_filter).to_pandas()
+    mask = divides["divide_id"].isin(valid_divide_ids)
+    filtered_divides = divides.loc[mask]
     filtered_divides = to_geopandas(filtered_divides)
 
     output_layers = {
@@ -154,47 +172,57 @@ def subset_layers(
     }
 
     if "lakes" in layers:
-        lakes = catalog.load_table(f"{domain.value}.lakes")
-        filtered_lakes = lakes.scan(row_filter=In("divide_id", valid_divide_ids_for_divides)).to_pandas()
+        print("Subsetting lakes layer")
+        lakes = catalog.load_table(f"{domain.value}.lakes").scan(row_filter=vpu_filter).to_pandas()
+        mask = lakes["divide_id"].isin(valid_divide_ids)
+        filtered_lakes = lakes.loc[mask]
         filtered_lakes = to_geopandas(filtered_lakes)
         output_layers["lakes"] = filtered_lakes
 
     if "divide-attributes" in layers:
-        divides_attr = catalog.load_table(f"{domain.value}.divide-attributes")
-        filtered_divide_attr = divides_attr.scan(
-            row_filter=In("divide_id", valid_divide_ids_for_divides)
-        ).to_pandas()
+        print("Subsetting divide-attributes layer")
+        divides_attr = (
+            catalog.load_table(f"{domain.value}.divide-attributes").scan(row_filter=vpu_filter).to_pandas()
+        )
+        mask = divides_attr["divide_id"].isin(valid_divide_ids)
+        filtered_divide_attr = divides_attr.loc[mask]
         output_layers["divide-attributes"] = filtered_divide_attr
 
     if "flowpath-attributes" in layers:
-        flowpath_attr = catalog.load_table(f"{domain.value}.flowpath-attributes")
-        valid_flowpath_ids = filtered_flowpaths["id"].dropna().values.tolist()
-        filtered_flowpath_attr = flowpath_attr.scan(row_filter=In("id", valid_flowpath_ids)).to_pandas()
+        print("Subsetting flowpath-attributes layer")
+        flowpath_attr = (
+            catalog.load_table(f"{domain.value}.flowpath-attributes").scan(row_filter=vpu_filter).to_pandas()
+        )
+        mask = flowpath_attr["id"].isin(upstream_ids_list)
+        filtered_flowpath_attr = flowpath_attr.loc[mask]
         output_layers["flowpath-attributes"] = filtered_flowpath_attr
 
     if "flowpath-attributes-ml" in layers:
-        flowpath_attr_ml = catalog.load_table(f"{domain.value}.flowpath-attributes-ml")
-        valid_flowpath_ids = filtered_flowpaths["id"].dropna().values.tolist()
-        filtered_flowpath_attr_ml = flowpath_attr_ml.scan(row_filter=In("id", valid_flowpath_ids)).to_pandas()
+        print("Subsetting flowpath-attributes-ml layer")
+        flowpath_attr_ml = (
+            catalog.load_table(f"{domain.value}.flowpath-attributes-ml")
+            .scan(row_filter=vpu_filter)
+            .to_pandas()
+        )
+        mask = flowpath_attr_ml["id"].isin(upstream_ids_list)
+        filtered_flowpath_attr_ml = flowpath_attr_ml.loc[mask]
         output_layers["flowpath-attributes-ml"] = filtered_flowpath_attr_ml
 
     if "pois" in layers:
-        pois = catalog.load_table(f"{domain.value}.pois")
-        poi_values = filtered_flowpaths["poi_id"].dropna().values
-        filtered_poi_list = list({int(x) for x in poi_values if pd.notna(x)})
-        if filtered_poi_list:
-            filtered_pois = pois.scan(row_filter=In("poi_id", filtered_poi_list)).to_pandas()
-            output_layers["pois"] = filtered_pois
+        print("Subsetting pois layer")
+        pois = catalog.load_table(f"{domain.value}.pois").scan(row_filter=vpu_filter).to_pandas()
+        mask = pois["id"].isin(upstream_ids_list)
+        filtered_pois = pois.loc[mask]
+        output_layers["pois"] = filtered_pois
 
     if "hydrolocations" in layers:
-        hydrolocations = catalog.load_table(f"{domain.value}.hydrolocations")
-        poi_values = filtered_flowpaths["poi_id"].dropna().values
-        filtered_poi_list = list({int(x) for x in poi_values if pd.notna(x)})
-        if filtered_poi_list:
-            filtered_hydrolocations = hydrolocations.scan(
-                row_filter=In("poi_id", filtered_poi_list)
-            ).to_pandas()
-            output_layers["hydrolocations"] = filtered_hydrolocations
+        print("Subsetting hydrolocations layer")
+        hydrolocations = (
+            catalog.load_table(f"{domain.value}.hydrolocations").scan(row_filter=vpu_filter).to_pandas()
+        )
+        mask = hydrolocations["id"].isin(upstream_ids_list)
+        filtered_hydrolocations = hydrolocations.loc[mask]
+        output_layers["hydrolocations"] = filtered_hydrolocations
 
     return output_layers
 
@@ -232,13 +260,15 @@ def subset_hydrofabric(
     """
     print(f"Starting subset for {identifier}")
 
-    origin_id = find_origin_flowpath(catalog, domain, identifier, id_type)
+    origin_id, vpu_id = find_origin_flowpath(catalog, domain, identifier, id_type)
     print(f"Found origin flowpath: {origin_id}")
 
     upstream_ids = get_upstream_segments(origin_id, upstream_dict)
     print(f"Found {len(upstream_ids)} upstream segments")
 
-    output_layers = subset_layers(catalog=catalog, domain=domain, layers=layers, upstream_ids=upstream_ids)
+    output_layers = subset_layers(
+        catalog=catalog, domain=domain, layers=layers, upstream_ids=upstream_ids, vpu_id=vpu_id
+    )
 
     return output_layers
 
