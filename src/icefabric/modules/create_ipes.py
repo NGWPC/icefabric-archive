@@ -13,8 +13,6 @@ from icefabric.hydrofabric import subset
 from icefabric.schemas.hydrofabric import HydrofabricDomains, IdType
 from icefabric.schemas.modules import SFT, IceFractionScheme, Snow17, CalibratableScheme, SMP, SoilScheme, SacSma, SacSmaValues, LSTM, LASAM, NoahOwpModular, TRoute, Topmodel, Topoflow
 
-import warnings
-warnings.filterwarnings("ignore")
 
 ROOT_DIR = os.path.abspath(os.curdir)
 
@@ -519,6 +517,7 @@ def get_sacsma_parameters(
     )
     
     # Extraction of relevant features from divides layer
+    pd.options.mode.chained_assignment = None
     result_df = gauge["divides"][["divide_id", "areasqkm"]]
 
     # Default parameter values used only for CONUS
