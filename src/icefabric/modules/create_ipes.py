@@ -216,7 +216,6 @@ def get_smp_parameters(
     -------
     list[SMP]
         The list of all initial parameters for catchments using SMP
-        
     """
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset(
         catalog=catalog,
@@ -306,7 +305,6 @@ def get_lstm_parameters(
 
     *Note: Per HF API, the following attributes for LSTM does not carry any relvant information:
     'train_cfg_file' & basin_name' -- remove if desire
-    
     """
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset(
         catalog=catalog,
@@ -642,7 +640,6 @@ def get_topmodel_parameters(
     
     - The divide_id is the same as catchment, but will return divide_id variable name here
     since expected from HF API - remove if needed.
-    
     """
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset(
         catalog=catalog,
