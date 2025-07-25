@@ -39,7 +39,6 @@ from icefabric.schemas.hydrofabric import HydrofabricDomains, IdType
 )
 @click.option(
     "--layers",
-    type=list,
     multiple=True,
     default=["divides", "flowpaths", "network", "nexus"],
     help="The layers to include in the geopackage. Will always include ['divides', 'flowpaths', 'network', 'nexus']",
@@ -56,7 +55,7 @@ def subset(
     identifier: str,
     id_type: str,
     domain: str,
-    layers: list[str],
+    layers: tuple[str],
     output_file: Path,
 ):
     """Subsets the hydrofabric based on a unique identifier"""
@@ -64,7 +63,7 @@ def subset(
 
     # Create or load upstream lookup table
     upstream_connections_path = (
-        Path(__file__).parents[2] / f"data/hydrofabric/{domain}_upstream_connections.json"
+        Path(__file__).parents[3] / f"data/hydrofabric/{domain}_upstream_connections.json"
     )
     assert upstream_connections_path.exists(), (
         f"Upstream Connections missing for {domain}. Please run `icefabric build-upstream-connections` to generate this file"
@@ -77,11 +76,13 @@ def subset(
         )
         upstream_dict = data["upstream_connections"]
 
+    layers_list = list(layers) if layers else ["divides", "flowpaths", "network", "nexus"]
+
     output_layers = subset_hydrofabric(
         catalog=get_catalog(catalog),
         identifier=identifier,
         id_type=id_type_enum,
-        layers=layers,
+        layers=layers_list,
         namespace=domain,
         upstream_dict=upstream_dict,
     )
