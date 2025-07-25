@@ -95,49 +95,40 @@ class MockTable:
     def __init__(self, table_name: str, data: pd.DataFrame):
         self.table_name = table_name
         self.data = data
-        self._polars_data = pl.from_pandas(data)
-        self._arrow_data = pa.Table.from_pandas(data)
+        self._polars_data = pl.from_pandas(data).lazy()
 
     def scan(self, row_filter=None):
         """Mock scan method that applies filters"""
         return MockScan(self._polars_data, row_filter)
 
-    def to_polars(self) -> pl.DataFrame:
+    def to_polars(self) -> pl.LazyFrame:
         """Returns data as Polars DataFrame"""
         return self._polars_data
-
-    def to_pandas(self) -> pd.DataFrame:
-        """Returns data as Pandas DataFrame"""
-        return self.data
-
-    def to_arrow(self) -> pa.Table:
-        """Returns data as arrow table"""
-        return self._arrow_data
 
 
 class MockScan:
     """Mock scan result that can be filtered and converted"""
 
-    def __init__(self, data: pl.DataFrame, row_filter=None):
+    def __init__(self, data: pl.LazyFrame, row_filter=None):
         self.data = data
         self.row_filter = row_filter
 
     def _apply_filters(self) -> pl.DataFrame:
         """Apply filters to the data and return filtered Polars DataFrame"""
         if self.row_filter is None:
-            return self.data
+            return self.data.collect()
 
         # Handle different filter types
         if isinstance(self.row_filter, EqualTo):
             column_name = self.row_filter.term.name
             value = self.row_filter.literal.value
-            return self.data.filter(pl.col(column_name) == value)
+            return self.data.filter(pl.col(column_name) == value).collect()
         elif isinstance(self.row_filter, In):
             column_name = self.row_filter.term.name
             values = [lit.value for lit in self.row_filter.literals]
-            return self.data.filter(pl.col(column_name).is_in(values))
+            return self.data.filter(pl.col(column_name).is_in(values)).collect()
 
-        return self.data
+        return self.data.collect()
 
     def to_polars(self) -> pl.DataFrame:
         """Apply filters and returns a Polars DataFrame"""
@@ -145,8 +136,11 @@ class MockScan:
 
     def to_pandas(self) -> pd.DataFrame:
         """Apply filters and returns a Pandas DataFrame"""
-        filtered_data = self._apply_filters()
-        return filtered_data.to_pandas()
+        return self._apply_filters().to_pandas()
+
+    def to_arrow(self) -> pa.Table:
+        """Returns data as arrow table"""
+        return pa.Table.from_pandas()
 
 
 class MockCatalog:
@@ -207,7 +201,7 @@ class MockCatalog:
         upstream_connections = SAMPLE_UPSTREAM_CONNECTIONS["upstream_connections"]
 
         network_data = []
-        poi_counter = 12  # Start from a random POI number
+        poi_counter = 0
         hydroseq_counter = 1
 
         # Collect all unique watershed IDs
@@ -225,10 +219,9 @@ class MockCatalog:
             toid = f"nex-{wb_num}"  # Each watershed flows to its corresponding nexus
 
             # Some records have POIs
-            has_poi = poi_counter % 4 == 0  # Every 4th watershed has a POI
+            has_poi = poi_counter % 10 == 0  # Every 4th watershed has a POI
             poi_id = float(poi_counter) if has_poi else None
-            if has_poi:
-                poi_counter += 1
+            poi_counter += 1
 
             # Create the flowpath record
             record = {
@@ -240,13 +233,14 @@ class MockCatalog:
                 "poi_id": poi_id,
                 "hydroseq": float(hydroseq_counter),
                 "hf_source": "NHDPlusHR",
-                "hf_id": float(wb_num),
+                "hf_id": str(wb_num),
                 "lengthkm": round(0.5 + (wb_num % 100) / 10.0, 2),
                 "areasqkm": round(1.0 + (wb_num % 500) / 10.0, 2),
                 "tot_drainage_areasqkm": round(10.0 + (wb_num % 5000) / 10.0, 2),
                 "type": "waterbody",
                 "vpuid": "hi",
                 "topo": "fl-nex",  # All records in Hawaii are fl-nex
+                "hl_uri": f"gages-{wb_num:06d}" if has_poi else None,
             }
 
             network_data.append(record)
@@ -268,13 +262,14 @@ class MockCatalog:
                     "poi_id": None,
                     "hydroseq": float(hydroseq_counter),
                     "hf_source": "NHDPlusHR",
-                    "hf_id": float(child_num),
+                    "hf_id": str(child_num),
                     "lengthkm": 0.01,  # Nexus points have minimal length
                     "areasqkm": 0.001,
                     "tot_drainage_areasqkm": 0.01,
                     "type": "nexus",
                     "vpuid": "hi",
                     "topo": "fl-nex",
+                    "hl_uri": None,  # Nexus points don't have hl_uri
                 }
 
                 network_data.append(nexus_record)
@@ -305,13 +300,14 @@ class MockCatalog:
                 "poi_id": None,
                 "hydroseq": float(hydroseq_counter),
                 "hf_source": "NHDPlusHR",
-                "hf_id": float(outlet_num),
+                "hf_id": str(outlet_num),
                 "lengthkm": 0.01,
                 "areasqkm": 0.001,
                 "tot_drainage_areasqkm": 0.01,
                 "type": "nexus",
                 "vpuid": "hi",
                 "topo": "fl-nex",
+                "hl_uri": None,
             }
 
             network_data.append(outlet_nexus_record)
@@ -331,13 +327,14 @@ class MockCatalog:
                 "poi_id": None,
                 "hydroseq": float(hydroseq_counter),
                 "hf_source": "NHDPlusHR",
-                "hf_id": float(1000000000 + outlet_num),
+                "hf_id": str(1000000000 + outlet_num),
                 "lengthkm": 0.001,  # Very small for terminal points
                 "areasqkm": 0.0001,
                 "tot_drainage_areasqkm": 0.001,
                 "type": "terminal",
                 "vpuid": "hi",
                 "topo": "fl-nex",
+                "hl_uri": None,
             }
 
             network_data.append(terminal_nexus_record)
@@ -361,6 +358,7 @@ class MockCatalog:
                 "type": "coastal",
                 "vpuid": "hi",
                 "topo": "fl-nex",
+                "hl_uri": None,
             }
             network_data.append(record)
 
@@ -735,15 +733,9 @@ class MockCatalog:
 
 # Fixtures for testing
 @pytest.fixture
-def mock_glue_catalog():
+def mock_catalog():
     """Fixture providing a mock Glue catalog"""
-    return MockCatalog("glue")
-
-
-@pytest.fixture
-def mock_sql_catalog():
-    """Fixture providing a mock SQL catalog"""
-    return MockCatalog("sql")
+    return MockCatalog
 
 
 @pytest.fixture
@@ -787,6 +779,7 @@ def create_test_environment(tmp_path: Path) -> dict[str, Any]:
     }
 
 
+## Uncomment to test these conftest mock objects
 if __name__ == "__main__":
     # Example usage and verification
     print("Creating hydrofabric mock catalog...")
@@ -805,79 +798,79 @@ if __name__ == "__main__":
         "mock_hf.hydrolocations",
     ]
 
-    print("\nTable verification:")
-    for table_name in tables_to_test:
-        table = catalog.load_table(table_name)
-        df = table.to_polars()
-        print(f"✓ {table_name}: {df.height} records, {len(df.columns)} columns")
+#     print("\nTable verification:")
+#     for table_name in tables_to_test:
+#         table = catalog.load_table(table_name)
+#         df = table.to_polars()
+#         print(f"✓ {table_name}: {df.height} records, {len(df.columns)} columns")
 
-        # Show first few columns for verification
-        cols_to_show = df.columns[:5]
-        print(f"  Columns: {cols_to_show}")
+#         # Show first few columns for verification
+#         cols_to_show = df.columns[:5]
+#         print(f"  Columns: {cols_to_show}")
 
-    # Test network table structure specifically
-    print("\nNetwork table detailed verification:")
-    network_table = catalog.load_table("mock_hf.network")
-    network_df = network_table.to_polars()
+#     # Test network table structure specifically
+#     print("\nNetwork table detailed verification:")
+#     network_table = catalog.load_table("mock_hf.network")
+#     network_df = network_table.to_polars()
 
-    print(f"Total records: {network_df.height}")
-    wb_records = network_df.filter(pl.col("topo") == "fl-wb")
-    nex_records = network_df.filter(pl.col("topo") == "fl-nex")
-    print(f"Flowpath records (fl-wb): {wb_records.height}")
-    print(f"Nexus records (fl-nex): {nex_records.height}")
+#     print(f"Total records: {network_df.height}")
+#     wb_records = network_df.filter(pl.col("topo") == "fl-wb")
+#     nex_records = network_df.filter(pl.col("topo") == "fl-nex")
+#     print(f"Flowpath records (fl-wb): {wb_records.height}")
+#     print(f"Nexus records (fl-nex): {nex_records.height}")
 
-    # Check VPU
-    vpu_values = set(network_df.get_column("vpuid").to_list())
-    print(f"VPU values: {vpu_values}")
+#     # Check VPU
+#     vpu_values = set(network_df.get_column("vpuid").to_list())
+#     print(f"VPU values: {vpu_values}")
 
-    # Check for POIs
-    poi_records = network_df.filter(pl.col("poi_id").is_not_null())
-    print(f"Records with POI IDs: {poi_records.height}")
+#     # Check for POIs
+#     poi_records = network_df.filter(pl.col("poi_id").is_not_null())
+#     print(f"Records with POI IDs: {poi_records.height}")
 
-    # Test filtering
-    print("\nTesting table filtering:")
-    vpu_filter = EqualTo("vpuid", "hi")
-    filtered_scan = network_table.scan(row_filter=vpu_filter)
-    filtered_data = filtered_scan.to_polars()
-    print(f"Filtered by VPU 'hi': {filtered_data.height} records")
+#     # Test filtering
+#     print("\nTesting table filtering:")
+#     vpu_filter = EqualTo("vpuid", "hi")
+#     filtered_scan = network_table.scan(row_filter=vpu_filter)
+#     filtered_data = filtered_scan.to_polars()
+#     print(f"Filtered by VPU 'hi': {filtered_data.height} records")
 
-    # Test upstream connections consistency
-    print("\nTesting upstream connections:")
-    sample_connections = SAMPLE_UPSTREAM_CONNECTIONS["upstream_connections"]
-    found_connections = 0
+#     # Test upstream connections consistency
+#     print("\nTesting upstream connections:")
+#     sample_connections = SAMPLE_UPSTREAM_CONNECTIONS["upstream_connections"]
+#     found_connections = 0
 
-    for parent, children in list(sample_connections.items())[:5]:
-        parent_records = network_df.filter(pl.col("id") == parent)
-        if parent_records.height > 0:
-            print(f"✓ Found parent: {parent}")
-            for child in children:
-                child_records = network_df.filter(pl.col("id") == child)
-                if child_records.height > 0:
-                    child_toid = child_records.get_column("toid")[0]
-                    if child_toid == parent:
-                        print(f"  ✓ Child {child} correctly points to {parent}")
-                        found_connections += 1
-                    else:
-                        print(f"  ✗ Child {child} points to {child_toid}, not {parent}")
+#     for parent, children in list(sample_connections.items())[:5]:
+#         parent_records = network_df.filter(pl.col("id") == parent)
+#         if parent_records.height > 0:
+#             print(f"✓ Found parent: {parent}")
+#             for child in children:
+#                 child_records = network_df.filter(pl.col("id") == child)
+#                 if child_records.height > 0:
+#                     child_toid = child_records.get_column("toid")[0]
+#                     if child_toid == parent:
+#                         print(f"  ✓ Child {child} correctly points to {parent}")
+#                         found_connections += 1
+#                     else:
+#                         print(f"  ✗ Child {child} points to {child_toid}, not {parent}")
 
-    print(f"Verified {found_connections} upstream connections")
+#     print(f"Verified {found_connections} upstream connections")
 
-    # Test hydrolocations
-    print("\nTesting hydrolocations:")
-    hydrolocations_table = catalog.load_table("mock_hf.hydrolocations")
-    hydrolocations_df = hydrolocations_table.to_polars()
-    print(f"Hydrolocations: {hydrolocations_df.height} records")
+#     # Test hydrolocations
+#     print("\nTesting hydrolocations:")
+#     hydrolocations_table = catalog.load_table("mock_hf.hydrolocations")
+#     hydrolocations_df = hydrolocations_table.to_polars()
+#     print(f"Hydrolocations: {hydrolocations_df.height} records")
 
-    if hydrolocations_df.height > 0:
-        print("Sample hl_uri values:")
-        for hl_uri in hydrolocations_df.get_column("hl_uri").to_list()[:3]:
-            print(f"  - {hl_uri}")
+#     if hydrolocations_df.height > 0:
+#         print("Sample hl_uri values:")
+#         for hl_uri in hydrolocations_df.get_column("hl_uri").to_list()[:3]:
+#             print(f"  - {hl_uri}")
 
-    print("\nMock catalog verification completed successfully!")
-    print("You can now use this catalog to test your hydrofabric functions.")
-    print("\nExample usage:")
-    print("  catalog = MockCatalog()")
-    print("  network_table = catalog.load_table('mock_hf.network')")
-    print("  network_df = network_table.to_polars()")
-    print("  # Test find_origin with: 'Gages-16717000' or 'coastal-HI2'")
-    print("  # Test upstream tracing with: 'wb-2700' (has multiple upstream)")
+#     print("\nMock catalog verification completed successfully!")
+#     print("You can now use this catalog to test your hydrofabric functions.")
+#     print("\nExample usage:")
+#     print("  catalog = MockCatalog()")
+#     print("  network_table = catalog.load_table('mock_hf.network')")
+#     print("  network_df = network_table.to_polars()")
+#     print("  # Test find_origin with: 'Gages-16717000' or 'coastal-HI2'")
+#     print("  # Test upstream tracing with: 'wb-2700' (has multiple upstream)")

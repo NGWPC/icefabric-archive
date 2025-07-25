@@ -6,7 +6,9 @@ from polars import LazyFrame
 from icefabric.schemas.hydrofabric import IdType
 
 
-def find_origin(network_table: LazyFrame, identifier: str, id_type: IdType = IdType.HL_URI) -> pl.DataFrame:
+def find_origin(
+    network_table: LazyFrame, identifier: str | float, id_type: IdType = IdType.HL_URI
+) -> pl.DataFrame:
     """Find an origin point in the hydrofabric network.
 
     This function handles the case where multiple records match the identifier.
@@ -17,7 +19,7 @@ def find_origin(network_table: LazyFrame, identifier: str, id_type: IdType = IdT
     ----------
     network_table : LazyFrame
         The HF network table from the hydrofabric catalog
-    identifier : str
+    identifier : str | float
         The unique identifier you want to find the origin of
     id_type : IdType, optional
         The network table column you can query from, by default "hl_uri"
