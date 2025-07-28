@@ -32,7 +32,11 @@ async def get_hydrofabric_subset_gpkg(
     id_type: IdType = Query(
         IdType.HL_URI,
         description="The type of identifier being used",
-        examples=[IdType.ID, IdType.HL_URI, IdType.POI_ID],
+        openapi_examples={
+            "wb-id": {"summary": "Watershed ID", "value": IdType.ID},
+            "hl_uri": {"summary": "USGS Gauge", "value": IdType.HL_URI},
+            "poi": {"summary": "POI ID", "value": IdType.POI_ID},
+        },
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS, description="The iceberg namespace used to query the hydrofabric"

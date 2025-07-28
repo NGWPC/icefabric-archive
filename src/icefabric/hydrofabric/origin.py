@@ -40,7 +40,7 @@ def find_origin(
     """
     # Get all matching records
     origin_candidates = (
-        network_table.filter(pl.col(id_type.value) == identifier)
+        network_table.filter(pl.col(id_type.value).is_not_null() & (pl.col(id_type.value) == identifier))
         .select(["id", "toid", "vpuid", "hydroseq"])
         .collect()
     )

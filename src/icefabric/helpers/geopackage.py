@@ -67,4 +67,4 @@ def to_geopandas(df: pd.DataFrame, crs: str = "EPSG:5070") -> gpd.GeoDataFrame:
     if "geometry" not in df.columns:
         raise ValueError("The provided table does not have a geometry column.")
 
-    gdf = gpd.GeoDataFrame(df, geometry=gpd.GeoSeries.from_wkb(df["geometry"]), crs=crs)
+    return gpd.GeoDataFrame(df, geometry=gpd.GeoSeries.from_wkb(df["geometry"]), crs=crs)

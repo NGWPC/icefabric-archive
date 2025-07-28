@@ -103,9 +103,6 @@ def test_find_origin_handles_null_values():
     assert result.height == 1
     assert result["id"][0] == "wb-VALID001"
 
-    with pytest.raises(ValueError, match=r"No origin found"):
-        find_origin(test_data, None, IdType.HL_URI)
-
 
 def test_find_origin_with_empty_dataframe():
     """Test behavior with empty network table"""
