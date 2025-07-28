@@ -1,4 +1,6 @@
+import json
 import os
+from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
@@ -7,7 +9,7 @@ import pyiceberg.exceptions as ex
 from botocore.exceptions import ClientError
 from pyiceberg.catalog import Catalog, load_catalog
 
-from icefabric.hydrofabric import subset
+from icefabric.hydrofabric import subset_hydrofabric
 from icefabric.schemas.hydrofabric import HydrofabricDomains, IdType
 from icefabric.schemas.modules import SFT, IceFractionScheme
 
@@ -67,13 +69,27 @@ def get_sft_parameters(
     list[SFT]
         The list of all initial parameters for catchments using SFT
     """
-    gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset(
+    upstream_connections_path = (
+        Path(__file__).parents[3] / f"data/hydrofabric/{domain.value}_upstream_connections.json"
+    )
+    assert upstream_connections_path.exists(), (
+        f"Upstream Connections missing for {domain}. Please run `icefabric build-upstream-connections` to generate this file"
+    )
+
+    with open(upstream_connections_path) as f:
+        data = json.load(f)
+        print(
+            f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
+        )
+        upstream_dict = data["upstream_connections"]
+    gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
         id_type=IdType.HL_URI,
-        domain=domain,
+        namespace=domain.value,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-    )  # type: ignore
+        upstream_dict=upstream_dict,
+    )
     attr = {"smcmax": "mean.smcmax", "bexp": "mode.bexp", "psisat": "geom_mean.psisat"}
 
     df = pl.DataFrame(gauge["divide-attributes"])
