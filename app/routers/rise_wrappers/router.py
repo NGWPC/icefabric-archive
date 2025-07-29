@@ -9,7 +9,6 @@ from app.routers.rise_wrappers.rise_parameters import (
     CatItemParams,
     CatRecParams,
     LocItemParams,
-    ResParams,
 )
 
 api_router = APIRouter(prefix="/rise")
@@ -119,15 +118,16 @@ async def get_location_by_id(id: str):
         return rise_response["detail"]
 
 
-@api_router.get("/result", tags=["RISE"])
-async def get_result(query: ResParams = Depends()):
-    """Retrieves the collection of Result resources."""
-    query_url_portion = basemodel_to_query_string(query)
-    rise_response = await make_get_req_to_rise(f"{EXT_RISE_BASE_URL}/result{query_url_portion}")
-    if rise_response["status_code"] != 200:
-        raise HTTPException(**rise_response)
-    else:
-        return rise_response["detail"]
+# TODO - Restore endpoint once the RISE api/result endpoint is no longer timing out
+# @api_router.get("/result", tags=["RISE"])
+# async def get_result(query: ResParams = Depends()):
+#     """Retrieves the collection of Result resources."""
+#     query_url_portion = basemodel_to_query_string(query)
+#     rise_response = await make_get_req_to_rise(f"{EXT_RISE_BASE_URL}/result{query_url_portion}")
+#     if rise_response["status_code"] != 200:
+#         raise HTTPException(**rise_response)
+#     else:
+#         return rise_response["detail"]
 
 
 @api_router.get("/result/{id}", tags=["RISE"])

@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel
 
 # Conversion dict for python-incompatible names found in the RISE API
@@ -18,83 +17,87 @@ PARAM_CONV = {
     "dateTimeStrictlyBefore": "dateTime[strictly_before]",
     "dateTimeAfter": "dateTime[after]",
     "dateTimeStrictlyAfter": "dateTime[strictly_after]",
-    "catalogItemIsModeled": "catalogItem.isModeled"
+    "catalogItemIsModeled": "catalogItem.isModeled",
 }
 
 
 class CatItemParams(BaseModel):
     """Parameters for the catalog-item resource"""
-    page: Optional[int] = 1
-    itemsPerPage: Optional[int] = 25
-    id: Optional[str] = None
-    hasItemStructure: Optional[bool] = None
+
+    page: int | None = 1
+    itemsPerPage: int | None = 25
+    id: str | None = None
+    hasItemStructure: bool | None = None
 
 
 class CatRecParams(BaseModel):
     """Parameters for the catalog-record resource"""
-    page: Optional[int] = 1
-    itemsPerPage: Optional[int] = 25
-    updateDateBefore: Optional[str] = None
-    updateDateStrictlyBefore: Optional[str] = None
-    updateDateAfter: Optional[str] = None
-    updateDateStrictlyAfter: Optional[str] = None
-    id: Optional[str] = None
-    stateId: Optional[str] = None
-    regionId: Optional[str] = None
-    unifiedRegionId: Optional[str] = None
-    locationTypeId: Optional[str] = None
-    themeId: Optional[str] = None
-    itemStructureId: Optional[str] = None
-    generationEffortId: Optional[str] = None
-    search: Optional[str] = None
-    hasItemStructure: Optional[bool] = None
-    hasCatalogItems: Optional[bool] = None
-    orderUpdateDate: Optional[str] = None
-    orderRecordTitle: Optional[str] = None
-    orderId: Optional[str] = None
-    orderFulltext: Optional[str] = None
-    orderLikematch: Optional[str] = None
+
+    page: int | None = 1
+    itemsPerPage: int | None = 25
+    updateDateBefore: str | None = None
+    updateDateStrictlyBefore: str | None = None
+    updateDateAfter: str | None = None
+    updateDateStrictlyAfter: str | None = None
+    id: str | None = None
+    stateId: str | None = None
+    regionId: str | None = None
+    unifiedRegionId: str | None = None
+    locationTypeId: str | None = None
+    themeId: str | None = None
+    itemStructureId: str | None = None
+    generationEffortId: str | None = None
+    search: str | None = None
+    hasItemStructure: bool | None = None
+    hasCatalogItems: bool | None = None
+    orderUpdateDate: str | None = None
+    orderRecordTitle: str | None = None
+    orderId: str | None = None
+    orderFulltext: str | None = None
+    orderLikematch: str | None = None
 
 
 class LocItemParams(BaseModel):
     """Parameters for the location resource"""
-    page: Optional[int] = 1
-    itemsPerPage: Optional[int] = 25
-    id: Optional[str] = None
-    stateId: Optional[str] = None
-    regionId: Optional[str] = None
-    locationTypeId: Optional[str] = None
-    themeId: Optional[str] = None
-    parameterId: Optional[str] = None
-    parameterTimestepId: Optional[str] = None
-    parameterGroupId: Optional[str] = None
-    itemStructureId: Optional[str] = None
-    unifiedRegionId: Optional[str] = None
-    generationEffortId: Optional[str] = None
-    search: Optional[str] = None
-    catalogItemsIsModeled: Optional[bool] = None
-    hasItemStructure: Optional[bool] = None
-    hasCatalogItems: Optional[bool] = None
-    orderUpdateDate: Optional[str] = None
-    orderLocationName: Optional[str] = None
-    orderId: Optional[str] = None
-    orderFulltext: Optional[str] = None
-    orderLikematch: Optional[str] = None
+
+    page: int | None = 1
+    itemsPerPage: int | None = 25
+    id: str | None = None
+    stateId: str | None = None
+    regionId: str | None = None
+    locationTypeId: str | None = None
+    themeId: str | None = None
+    parameterId: str | None = None
+    parameterTimestepId: str | None = None
+    parameterGroupId: str | None = None
+    itemStructureId: str | None = None
+    unifiedRegionId: str | None = None
+    generationEffortId: str | None = None
+    search: str | None = None
+    catalogItemsIsModeled: bool | None = None
+    hasItemStructure: bool | None = None
+    hasCatalogItems: bool | None = None
+    orderUpdateDate: str | None = None
+    orderLocationName: str | None = None
+    orderId: str | None = None
+    orderFulltext: str | None = None
+    orderLikematch: str | None = None
 
 
 class ResParams(BaseModel):
     """Parameters for the result resource"""
-    page: Optional[int] = 1
-    itemsPerPage: Optional[int] = 25
-    id: Optional[str] = None
-    itemId: Optional[str] = None
-    modelRunId: Optional[str] = None
-    locationId: Optional[str] = None
-    parameterId: Optional[str] = None
-    dateTimeBefore: Optional[str] = None
-    dateTimeStrictlyBefore: Optional[str] = None
-    dateTimeAfter: Optional[str] = None
-    dateTimeStrictlyAfter: Optional[str] = None
-    orderDateTime: Optional[str] = None
-    orderId: Optional[str] = None
-    catalogItemIsModeled: Optional[bool] = None
+
+    page: int | None = 1
+    itemsPerPage: int | None = 25
+    id: str | None = None
+    itemId: str | None = None
+    modelRunId: str | None = None
+    locationId: str | None = None
+    parameterId: str | None = None
+    dateTimeBefore: str | None = None
+    dateTimeStrictlyBefore: str | None = None
+    dateTimeAfter: str | None = None
+    dateTimeStrictlyAfter: str | None = None
+    orderDateTime: str | None = None
+    orderId: str | None = None
+    catalogItemIsModeled: bool | None = None
