@@ -99,6 +99,7 @@ examples = [
 tests = [
     "moto==5.1.8",
     "pytest==8.4.1",
+    "pytest-asyncio==1.1.0",
     "pytest-cov==6.1.1",
 ]
 
