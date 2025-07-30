@@ -99,6 +99,7 @@ def get_sft_parameters(
             f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
         )
         upstream_dict = data["upstream_connections"]
+
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
@@ -180,6 +181,7 @@ def get_snow17_parameters(
             f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
         )
         upstream_dict = data["upstream_connections"]
+
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
@@ -283,6 +285,7 @@ def get_smp_parameters(
             f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
         )
         upstream_dict = data["upstream_connections"]
+
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
@@ -385,6 +388,7 @@ def get_lstm_parameters(catalog: Catalog, domain: HydrofabricDomains, identifier
             f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
         )
         upstream_dict = data["upstream_connections"]
+
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
@@ -488,6 +492,7 @@ def get_lasam_parameters(
             f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
         )
         upstream_dict = data["upstream_connections"]
+
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
@@ -558,6 +563,7 @@ def get_noahowp_parameters(
             f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
         )
         upstream_dict = data["upstream_connections"]
+
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
@@ -650,6 +656,7 @@ def get_sacsma_parameters(
             f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
         )
         upstream_dict = data["upstream_connections"]
+
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
@@ -757,6 +764,7 @@ def get_troute_parameters(catalog: Catalog, domain: HydrofabricDomains, identifi
             f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
         )
         upstream_dict = data["upstream_connections"]
+
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
@@ -765,7 +773,6 @@ def get_troute_parameters(catalog: Catalog, domain: HydrofabricDomains, identifi
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
         upstream_dict=upstream_dict,
     )
-
     # Extraction of relevant features from divide attributes layer
     divide_attr_df = pd.DataFrame(gauge["divide-attributes"])
     nwtopo_param = collections.defaultdict(dict)
@@ -820,6 +827,7 @@ def get_topmodel_parameters(catalog: Catalog, domain: HydrofabricDomains, identi
             f"Loading upstream connections connected generated on: {data['_metadata']['generated_at']} from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
         )
         upstream_dict = data["upstream_connections"]
+
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=f"gages-{identifier}",
@@ -885,4 +893,5 @@ def get_topoflow_parameters(catalog: Catalog, domain: HydrofabricDomains, identi
     *Note: This is a placeholder for Topoflow as the generation of IPEs for
     Topoflow does not exist currently.
     """
-    raise NotImplementedError
+    raise NotImplementedError("Topoflow not implemented yet")
+
