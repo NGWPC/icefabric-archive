@@ -189,6 +189,7 @@ def get_snow17_parameters(
         namespace=domain.value,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
         upstream_dict=upstream_dict,
+
     )
     attr = {"elevation_mean": "mean.elevation", "lat": "centroid_y", "lon": "centroid_x"}
 
@@ -293,6 +294,7 @@ def get_smp_parameters(
         namespace=domain.value,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
         upstream_dict=upstream_dict,
+
     )
     attr = {"smcmax": "mean.smcmax", "bexp": "mode.bexp", "psisat": "geom_mean.psisat"}
 
@@ -396,6 +398,7 @@ def get_lstm_parameters(catalog: Catalog, domain: HydrofabricDomains, identifier
         namespace=domain.value,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
         upstream_dict=upstream_dict,
+
     )
     attr = {
         "slope": "mean.slope",
@@ -773,6 +776,7 @@ def get_troute_parameters(catalog: Catalog, domain: HydrofabricDomains, identifi
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
         upstream_dict=upstream_dict,
     )
+
     # Extraction of relevant features from divide attributes layer
     divide_attr_df = pd.DataFrame(gauge["divide-attributes"])
     nwtopo_param = collections.defaultdict(dict)
@@ -894,4 +898,3 @@ def get_topoflow_parameters(catalog: Catalog, domain: HydrofabricDomains, identi
     Topoflow does not exist currently.
     """
     raise NotImplementedError("Topoflow not implemented yet")
-
