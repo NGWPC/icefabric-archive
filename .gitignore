@@ -208,3 +208,12 @@ tests/data/topo_tifs
 
 # hydrofabric parquets
 data/hydrofabric
+
+# mip data
+data/mip_full_collection
+
+# R code
+.Rproj.user
+.Rdata
+.Rhistory
+icefabric.Rproj
