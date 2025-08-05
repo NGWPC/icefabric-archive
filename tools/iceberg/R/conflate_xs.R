@@ -5,10 +5,12 @@
 # Author: Lynker-Spatial, Raytheon
 # Converts FEMA flood model cross-sections to representative channel geometry features
 
+# NOTE THIS FILE REQUIRES THE FOLLOWING LIBRARIES: dplyr, sf, and glue. This file also requires an installation of R
+
 # Set your file paths here
-ref_path <- "/Users/taddbindas/projects/NGWPC/icefabric/reference_fabric.gpkg"
-fema <- "/Users/taddbindas/projects/NGWPC/icefabric/data/mip_full_collection"
-output_file <- "all_processed_cross_sections.gpkg"
+ref_path <- "./reference_fabric.gpkg"
+fema <- "./data/mip_full_collection"
+output_file <- "./all_processed_cross_sections.gpkg"
 
 # Load required packages
 library(dplyr)
