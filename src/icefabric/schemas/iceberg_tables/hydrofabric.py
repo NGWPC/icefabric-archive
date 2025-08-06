@@ -12,81 +12,81 @@ class DivideAttributes:
     ----------
     divide_id : str
         Unique divide identifier
-    mode_bexp_soil_layers_stag_1 : float
+    mode.bexp_soil_layers_stag=1 : float
         Beta Parameter: soil C-H B exponent for soil layer 1 (mode)
-    mode_bexp_soil_layers_stag_2 : float
+    mode.bexp_soil_layers_stag=2 : float
         Beta Parameter: soil C-H B exponent for soil layer 2 (mode)
-    mode_bexp_soil_layers_stag_3 : float
+    mode.bexp_soil_layers_stag=3 : float
         Beta Parameter: soil C-H B exponent for soil layer 3 (mode)
-    mode_bexp_soil_layers_stag_4 : float
+    mode.bexp_soil_layers_stag=4 : float
         Beta Parameter: soil C-H B exponent for soil layer 4 (mode)
-    mode_ISLTYP : float
+    mode.ISLTYP : float
         Dominant soil type category (mode)
-    mode_IVGTYP : float
+    mode.IVGTYP : float
         Dominant vegetation type category (mode)
-    geom_mean_dksat_soil_layers_stag_1 : float
+    geom_mean.dksat_soil_layers_stag=1 : float
         Saturated Soil Connectivity for soil layer 1 (geometric mean) [mm/h]
-    geom_mean_dksat_soil_layers_stag_2 : float
+    geom_mean.dksat_soil_layers_stag=2 : float
         Saturated Soil Connectivity for soil layer 2 (geometric mean) [mm/h]
-    geom_mean_dksat_soil_layers_stag_3 : float
+    geom_mean.dksat_soil_layers_stag=3 : float
         Saturated Soil Connectivity for soil layer 3 (geometric mean) [mm/h]
-    geom_mean_dksat_soil_layers_stag_4 : float
+    geom_mean.dksat_soil_layers_stag=4 : float
         Saturated Soil Connectivity for soil layer 4 (geometric mean) [mm/h]
-    geom_mean_psisat_soil_layers_stag_1 : float
+    geom_mean.psisat_soil_layers_stag=1 : float
         Saturated soil matric potential for soil layer 1 (geometric mean) [kPa]
-    geom_mean_psisat_soil_layers_stag_2 : float
+    geom_mean.psisat_soil_layers_stag=2 : float
         Saturated soil matric potential for soil layer 2 (geometric mean) [kPa]
-    geom_mean_psisat_soil_layers_stag_3 : float
+    geom_mean.psisat_soil_layers_stag=3 : float
         Saturated soil matric potential for soil layer 3 (geometric mean) [kPa]
-    geom_mean_psisat_soil_layers_stag_4 : float
+    geom_mean.psisat_soil_layers_stag=4 : float
         Saturated soil matric potential for soil layer 4 (geometric mean) [kPa]
-    mean_cwpvt : float
+    mean.cwpvt : float
         Empirical canopy wind parameter [1/m]
-    mean_mfsno : float
+    mean.mfsno : float
         Snowmelt m parameter (unitless)
-    mean_mp : float
+    mean.mp : float
         Slope of Conductance to photosynthesis relationship (unitless)
-    mean_refkdt : float
+    mean.refkdt : float
         Parameter in the surface runoff parameterization (unitless)
-    mean_slope_1km : float
+    mean.slope_1km : float
         Slope [0-1] at 1km resolution [degrees]
-    mean_smcmax_soil_layers_stag_1 : float
+    mean.smcmax_soil_layers_stag=1 : float
         Saturated value of soil moisture [volumetric] for soil layer 1 [m/m]
-    mean_smcmax_soil_layers_stag_2 : float
+    mean.smcmax_soil_layers_stag=2 : float
         Saturated value of soil moisture [volumetric] for soil layer 2 [m/m]
-    mean_smcmax_soil_layers_stag_3 : float
+    mean.smcmax_soil_layers_stag=3 : float
         Saturated value of soil moisture [volumetric] for soil layer 3 [m/m]
-    mean_smcmax_soil_layers_stag_4 : float
+    mean.smcmax_soil_layers_stag=4 : float
         Saturated value of soil moisture [volumetric] for soil layer 4 [m/m]
-    mean_smcwlt_soil_layers_stag_1 : float
+    mean.smcwlt_soil_layers_stag=1 : float
         Wilting point soil moisture [volumetric] for soil layer 1 [m/m]
-    mean_smcwlt_soil_layers_stag_2 : float
+    mean.smcwlt_soil_layers_stag=2 : float
         Wilting point soil moisture [volumetric] for soil layer 2 [m/m]
-    mean_smcwlt_soil_layers_stag_3 : float
+    mean.smcwlt_soil_layers_stag=3 : float
         Wilting point soil moisture [volumetric] for soil layer 3 [m/m]
-    mean_smcwlt_soil_layers_stag_4 : float
+    mean.smcwlt_soil_layers_stag=4 : float
         Wilting point soil moisture [volumetric] for soil layer 4 [m/m]
-    mean_vcmx25 : float
+    mean.vcmx25 : float
         Maximum rate of carboxylation at 25 C [μmol/m²/s]
-    mean_Coeff : float
+    mean.Coeff : float
         Groundwater Coefficient [m³/s]
-    mean_Zmax : float
+    mean.Zmax : float
         The total height of the baseflow "bucket" [mm]
-    mode_Expon : float
+    mode.Expon : float
         Groundwater Exponent (unitless)
     centroid_x : float
         X coordinates of divide centroid [units of CRS]
     centroid_y : float
         Y coordinates of divide centroid [units of CRS]
-    mean_impervious : float
+    mean.impervious : float
         Percent Impervious Surface [percent]
-    mean_elevation : float
+    mean.elevation : float
         Elevation from DEM [meters]
-    mean_slope : float
+    mean.slope : float
         Slope computed from DEM [0-100] [degrees]
-    circ_mean_aspect : float
+    circ_mean.aspect : float
         Aspect computed from DEM [degrees]
-    dist_4_twi : str
+    dist_4.twi : str
         Topographic Wetness Index quartile distribution (unitless)
     vpuid : str
         Vector Processing Unit ID
@@ -103,44 +103,44 @@ class DivideAttributes:
         """
         return [
             "divide_id",
-            "mode_bexp_soil_layers_stag_1",
-            "mode_bexp_soil_layers_stag_2",
-            "mode_bexp_soil_layers_stag_3",
-            "mode_bexp_soil_layers_stag_4",
-            "mode_ISLTYP",
-            "mode_IVGTYP",
-            "geom_mean_dksat_soil_layers_stag_1",
-            "geom_mean_dksat_soil_layers_stag_2",
-            "geom_mean_dksat_soil_layers_stag_3",
-            "geom_mean_dksat_soil_layers_stag_4",
-            "geom_mean_psisat_soil_layers_stag_1",
-            "geom_mean_psisat_soil_layers_stag_2",
-            "geom_mean_psisat_soil_layers_stag_3",
-            "geom_mean_psisat_soil_layers_stag_4",
-            "mean_cwpvt",
-            "mean_mfsno",
-            "mean_mp",
-            "mean_refkdt",
-            "mean_slope_1km",
-            "mean_smcmax_soil_layers_stag_1",
-            "mean_smcmax_soil_layers_stag_2",
-            "mean_smcmax_soil_layers_stag_3",
-            "mean_smcmax_soil_layers_stag_4",
-            "mean_smcwlt_soil_layers_stag_1",
-            "mean_smcwlt_soil_layers_stag_2",
-            "mean_smcwlt_soil_layers_stag_3",
-            "mean_smcwlt_soil_layers_stag_4",
-            "mean_vcmx25",
-            "mean_Coeff",
-            "mean_Zmax",
-            "mode_Expon",
+            "mode.bexp_soil_layers_stag=1",
+            "mode.bexp_soil_layers_stag=2",
+            "mode.bexp_soil_layers_stag=3",
+            "mode.bexp_soil_layers_stag=4",
+            "mode.ISLTYP",
+            "mode.IVGTYP",
+            "geom_mean.dksat_soil_layers_stag=1",
+            "geom_mean.dksat_soil_layers_stag=2",
+            "geom_mean.dksat_soil_layers_stag=3",
+            "geom_mean.dksat_soil_layers_stag=4",
+            "geom_mean.psisat_soil_layers_stag=1",
+            "geom_mean.psisat_soil_layers_stag=2",
+            "geom_mean.psisat_soil_layers_stag=3",
+            "geom_mean.psisat_soil_layers_stag=4",
+            "mean.cwpvt",
+            "mean.mfsno",
+            "mean.mp",
+            "mean.refkdt",
+            "mean.slope_1km",
+            "mean.smcmax_soil_layers_stag=1",
+            "mean.smcmax_soil_layers_stag=2",
+            "mean.smcmax_soil_layers_stag=3",
+            "mean.smcmax_soil_layers_stag=4",
+            "mean.smcwlt_soil_layers_stag=1",
+            "mean.smcwlt_soil_layers_stag=2",
+            "mean.smcwlt_soil_layers_stag=3",
+            "mean.smcwlt_soil_layers_stag=4",
+            "mean.vcmx25",
+            "mean.Coeff",
+            "mean.Zmax",
+            "mode.Expon",
             "centroid_x",
             "centroid_y",
-            "mean_impervious",
-            "mean_elevation",
-            "mean_slope",
-            "circ_mean_aspect",
-            "dist_4_twi",
+            "mean.impervious",
+            "mean.elevation",
+            "mean.slope",
+            "circ_mean.aspect",
+            "dist_4.twi",
             "vpuid",
         ]
 
@@ -155,50 +155,50 @@ class DivideAttributes:
         """
         return Schema(
             NestedField(1, "divide_id", StringType(), required=True),
-            NestedField(2, "mode_bexp_soil_layers_stag_1", DoubleType(), required=False),
-            NestedField(3, "mode_bexp_soil_layers_stag_2", DoubleType(), required=False),
-            NestedField(4, "mode_bexp_soil_layers_stag_3", DoubleType(), required=False),
-            NestedField(5, "mode_bexp_soil_layers_stag_4", DoubleType(), required=False),
-            NestedField(6, "mode_ISLTYP", DoubleType(), required=False),
-            NestedField(7, "mode_IVGTYP", DoubleType(), required=False),
-            NestedField(8, "geom_mean_dksat_soil_layers_stag_1", DoubleType(), required=False),
-            NestedField(9, "geom_mean_dksat_soil_layers_stag_2", DoubleType(), required=False),
-            NestedField(10, "geom_mean_dksat_soil_layers_stag_3", DoubleType(), required=False),
-            NestedField(11, "geom_mean_dksat_soil_layers_stag_4", DoubleType(), required=False),
-            NestedField(12, "geom_mean_psisat_soil_layers_stag_1", DoubleType(), required=False),
-            NestedField(13, "geom_mean_psisat_soil_layers_stag_2", DoubleType(), required=False),
-            NestedField(14, "geom_mean_psisat_soil_layers_stag_3", DoubleType(), required=False),
-            NestedField(15, "geom_mean_psisat_soil_layers_stag_4", DoubleType(), required=False),
-            NestedField(16, "mean_cwpvt", DoubleType(), required=False),
-            NestedField(17, "mean_mfsno", DoubleType(), required=False),
-            NestedField(18, "mean_mp", DoubleType(), required=False),
-            NestedField(19, "mean_refkdt", DoubleType(), required=False),
-            NestedField(20, "mean_slope_1km", DoubleType(), required=False),
-            NestedField(21, "mean_smcmax_soil_layers_stag_1", DoubleType(), required=False),
-            NestedField(22, "mean_smcmax_soil_layers_stag_2", DoubleType(), required=False),
-            NestedField(23, "mean_smcmax_soil_layers_stag_3", DoubleType(), required=False),
-            NestedField(24, "mean_smcmax_soil_layers_stag_4", DoubleType(), required=False),
-            NestedField(25, "mean_smcwlt_soil_layers_stag_1", DoubleType(), required=False),
-            NestedField(26, "mean_smcwlt_soil_layers_stag_2", DoubleType(), required=False),
-            NestedField(27, "mean_smcwlt_soil_layers_stag_3", DoubleType(), required=False),
-            NestedField(28, "mean_smcwlt_soil_layers_stag_4", DoubleType(), required=False),
-            NestedField(29, "mean_vcmx25", DoubleType(), required=False),
-            NestedField(30, "mean_Coeff", DoubleType(), required=False),
-            NestedField(31, "mean_Zmax", DoubleType(), required=False),
-            NestedField(32, "mode_Expon", DoubleType(), required=False),
+            NestedField(2, "mode.bexp_soil_layers_stag=1", DoubleType(), required=False),
+            NestedField(3, "mode.bexp_soil_layers_stag=2", DoubleType(), required=False),
+            NestedField(4, "mode.bexp_soil_layers_stag=3", DoubleType(), required=False),
+            NestedField(5, "mode.bexp_soil_layers_stag=4", DoubleType(), required=False),
+            NestedField(6, "mode.ISLTYP", DoubleType(), required=False),
+            NestedField(7, "mode.IVGTYP", DoubleType(), required=False),
+            NestedField(8, "geom_mean.dksat_soil_layers_stag=1", DoubleType(), required=False),
+            NestedField(9, "geom_mean.dksat_soil_layers_stag=2", DoubleType(), required=False),
+            NestedField(10, "geom_mean.dksat_soil_layers_stag=3", DoubleType(), required=False),
+            NestedField(11, "geom_mean.dksat_soil_layers_stag=4", DoubleType(), required=False),
+            NestedField(12, "geom_mean.psisat_soil_layers_stag=1", DoubleType(), required=False),
+            NestedField(13, "geom_mean.psisat_soil_layers_stag=2", DoubleType(), required=False),
+            NestedField(14, "geom_mean.psisat_soil_layers_stag=3", DoubleType(), required=False),
+            NestedField(15, "geom_mean.psisat_soil_layers_stag=4", DoubleType(), required=False),
+            NestedField(16, "mean.cwpvt", DoubleType(), required=False),
+            NestedField(17, "mean.mfsno", DoubleType(), required=False),
+            NestedField(18, "mean.mp", DoubleType(), required=False),
+            NestedField(19, "mean.refkdt", DoubleType(), required=False),
+            NestedField(20, "mean.slope_1km", DoubleType(), required=False),
+            NestedField(21, "mean.smcmax_soil_layers_stag=1", DoubleType(), required=False),
+            NestedField(22, "mean.smcmax_soil_layers_stag=2", DoubleType(), required=False),
+            NestedField(23, "mean.smcmax_soil_layers_stag=3", DoubleType(), required=False),
+            NestedField(24, "mean.smcmax_soil_layers_stag=4", DoubleType(), required=False),
+            NestedField(25, "mean.smcwlt_soil_layers_stag=1", DoubleType(), required=False),
+            NestedField(26, "mean.smcwlt_soil_layers_stag=2", DoubleType(), required=False),
+            NestedField(27, "mean.smcwlt_soil_layers_stag=3", DoubleType(), required=False),
+            NestedField(28, "mean.smcwlt_soil_layers_stag=4", DoubleType(), required=False),
+            NestedField(29, "mean.vcmx25", DoubleType(), required=False),
+            NestedField(30, "mean.Coeff", DoubleType(), required=False),
+            NestedField(31, "mean.Zmax", DoubleType(), required=False),
+            NestedField(32, "mode.Expon", DoubleType(), required=False),
             NestedField(33, "centroid_x", DoubleType(), required=False),
             NestedField(34, "centroid_y", DoubleType(), required=False),
-            NestedField(35, "mean_impervious", DoubleType(), required=False),
-            NestedField(36, "mean_elevation", DoubleType(), required=False),
-            NestedField(37, "mean_slope", DoubleType(), required=False),
-            NestedField(38, "circ_mean_aspect", DoubleType(), required=False),
-            NestedField(39, "dist_4_twi", StringType(), required=False),
+            NestedField(35, "mean.impervious", DoubleType(), required=False),
+            NestedField(36, "mean.elevation", DoubleType(), required=False),
+            NestedField(37, "mean.slope", DoubleType(), required=False),
+            NestedField(38, "circ_mean.aspect", DoubleType(), required=False),
+            NestedField(39, "dist_4.twi", StringType(), required=False),
             NestedField(40, "vpuid", StringType(), required=True),
             identifier_field_ids=[1, 40],
         )
 
     @classmethod
-    def arrow_schema(cls) -> pa.Schema:
+    def arrow_schema(cls):
         """Returns the PyArrow Schema object.
 
         Returns
@@ -206,50 +206,50 @@ class DivideAttributes:
         pa.Schema
             PyArrow schema for divide attributes table
         """
-        return pa.schema(
-            [
-                pa.field("divide_id", pa.string(), nullable=False),
-                pa.field("mode_bexp_soil_layers_stag_1", pa.float64(), nullable=True),
-                pa.field("mode_bexp_soil_layers_stag_2", pa.float64(), nullable=True),
-                pa.field("mode_bexp_soil_layers_stag_3", pa.float64(), nullable=True),
-                pa.field("mode_bexp_soil_layers_stag_4", pa.float64(), nullable=True),
-                pa.field("mode_ISLTYP", pa.float64(), nullable=True),
-                pa.field("mode_IVGTYP", pa.float64(), nullable=True),
-                pa.field("geom_mean_dksat_soil_layers_stag_1", pa.float64(), nullable=True),
-                pa.field("geom_mean_dksat_soil_layers_stag_2", pa.float64(), nullable=True),
-                pa.field("geom_mean_dksat_soil_layers_stag_3", pa.float64(), nullable=True),
-                pa.field("geom_mean_dksat_soil_layers_stag_4", pa.float64(), nullable=True),
-                pa.field("geom_mean_psisat_soil_layers_stag_1", pa.float64(), nullable=True),
-                pa.field("geom_mean_psisat_soil_layers_stag_2", pa.float64(), nullable=True),
-                pa.field("geom_mean_psisat_soil_layers_stag_3", pa.float64(), nullable=True),
-                pa.field("geom_mean_psisat_soil_layers_stag_4", pa.float64(), nullable=True),
-                pa.field("mean_cwpvt", pa.float64(), nullable=True),
-                pa.field("mean_mfsno", pa.float64(), nullable=True),
-                pa.field("mean_mp", pa.float64(), nullable=True),
-                pa.field("mean_refkdt", pa.float64(), nullable=True),
-                pa.field("mean_slope_1km", pa.float64(), nullable=True),
-                pa.field("mean_smcmax_soil_layers_stag_1", pa.float64(), nullable=True),
-                pa.field("mean_smcmax_soil_layers_stag_2", pa.float64(), nullable=True),
-                pa.field("mean_smcmax_soil_layers_stag_3", pa.float64(), nullable=True),
-                pa.field("mean_smcmax_soil_layers_stag_4", pa.float64(), nullable=True),
-                pa.field("mean_smcwlt_soil_layers_stag_1", pa.float64(), nullable=True),
-                pa.field("mean_smcwlt_soil_layers_stag_2", pa.float64(), nullable=True),
-                pa.field("mean_smcwlt_soil_layers_stag_3", pa.float64(), nullable=True),
-                pa.field("mean_smcwlt_soil_layers_stag_4", pa.float64(), nullable=True),
-                pa.field("mean_vcmx25", pa.float64(), nullable=True),
-                pa.field("mean_Coeff", pa.float64(), nullable=True),
-                pa.field("mean_Zmax", pa.float64(), nullable=True),
-                pa.field("mode_Expon", pa.float64(), nullable=True),
-                pa.field("centroid_x", pa.float64(), nullable=True),
-                pa.field("centroid_y", pa.float64(), nullable=True),
-                pa.field("mean_impervious", pa.float64(), nullable=True),
-                pa.field("mean_elevation", pa.float64(), nullable=True),
-                pa.field("mean_slope", pa.float64(), nullable=True),
-                pa.field("circ_mean_aspect", pa.float64(), nullable=True),
-                pa.field("dist_4_twi", pa.string(), nullable=True),
-                pa.field("vpuid", pa.string(), nullable=False),
-            ]
-        )
+        fields = [
+            pa.field("divide_id", pa.string(), nullable=False),
+            pa.field("mode.bexp_soil_layers_stag=1", pa.float64()),
+            pa.field("mode.bexp_soil_layers_stag=2", pa.float64()),
+            pa.field("mode.bexp_soil_layers_stag=3", pa.float64()),
+            pa.field("mode.bexp_soil_layers_stag=4", pa.float64()),
+            pa.field("mode.ISLTYP", pa.float64()),
+            pa.field("mode.IVGTYP", pa.float64()),
+            pa.field("geom_mean.dksat_soil_layers_stag=1", pa.float64()),
+            pa.field("geom_mean.dksat_soil_layers_stag=2", pa.float64()),
+            pa.field("geom_mean.dksat_soil_layers_stag=3", pa.float64()),
+            pa.field("geom_mean.dksat_soil_layers_stag=4", pa.float64()),
+            pa.field("geom_mean.psisat_soil_layers_stag=1", pa.float64()),
+            pa.field("geom_mean.psisat_soil_layers_stag=2", pa.float64()),
+            pa.field("geom_mean.psisat_soil_layers_stag=3", pa.float64()),
+            pa.field("geom_mean.psisat_soil_layers_stag=4", pa.float64()),
+            pa.field("mean.cwpvt", pa.float64()),
+            pa.field("mean.mfsno", pa.float64()),
+            pa.field("mean.mp", pa.float64()),
+            pa.field("mean.refkdt", pa.float64()),
+            pa.field("mean.slope_1km", pa.float64()),
+            pa.field("mean.smcmax_soil_layers_stag=1", pa.float64()),
+            pa.field("mean.smcmax_soil_layers_stag=2", pa.float64()),
+            pa.field("mean.smcmax_soil_layers_stag=3", pa.float64()),
+            pa.field("mean.smcmax_soil_layers_stag=4", pa.float64()),
+            pa.field("mean.smcwlt_soil_layers_stag=1", pa.float64()),
+            pa.field("mean.smcwlt_soil_layers_stag=2", pa.float64()),
+            pa.field("mean.smcwlt_soil_layers_stag=3", pa.float64()),
+            pa.field("mean.smcwlt_soil_layers_stag=4", pa.float64()),
+            pa.field("mean.vcmx25", pa.float64()),
+            pa.field("mean.Coeff", pa.float64()),
+            pa.field("mean.Zmax", pa.float64()),
+            pa.field("mode.Expon", pa.float64()),
+            pa.field("centroid_x", pa.float64()),
+            pa.field("centroid_y", pa.float64()),
+            pa.field("mean.impervious", pa.float64()),
+            pa.field("mean.elevation", pa.float64()),
+            pa.field("mean.slope", pa.float64()),
+            pa.field("circ_mean.aspect", pa.float64()),
+            pa.field("dist_4.twi", pa.string()),
+            pa.field("vpuid", pa.string(), nullable=False),
+        ]
+
+        return pa.schema(fields)
 
 
 class Divides:
@@ -315,17 +315,17 @@ class Divides:
         """
         return Schema(
             NestedField(1, "divide_id", StringType(), required=True),
-            NestedField(2, "toid", StringType(), required=True),
+            NestedField(2, "toid", StringType(), required=False),
             NestedField(3, "type", StringType(), required=False),
             NestedField(4, "ds_id", DoubleType(), required=False),
             NestedField(5, "areasqkm", DoubleType(), required=False),
             NestedField(6, "vpuid", StringType(), required=True),
-            NestedField(7, "id", StringType(), required=True),
+            NestedField(7, "id", StringType(), required=False),
             NestedField(8, "lengthkm", DoubleType(), required=False),
             NestedField(9, "tot_drainage_areasqkm", DoubleType(), required=False),
             NestedField(10, "has_flowline", BooleanType(), required=False),
             NestedField(11, "geometry", BinaryType(), required=False),
-            identifier_field_ids=[1, 2, 6, 7],
+            identifier_field_ids=[1, 6],
         )
 
     @classmethod
@@ -340,12 +340,12 @@ class Divides:
         return pa.schema(
             [
                 pa.field("divide_id", pa.string(), nullable=False),
-                pa.field("toid", pa.string(), nullable=False),
+                pa.field("toid", pa.string(), nullable=True),
                 pa.field("type", pa.string(), nullable=True),
                 pa.field("ds_id", pa.float64(), nullable=True),
                 pa.field("areasqkm", pa.float64(), nullable=True),
                 pa.field("vpuid", pa.string(), nullable=False),
-                pa.field("id", pa.string(), nullable=False),
+                pa.field("id", pa.string(), nullable=True),
                 pa.field("lengthkm", pa.float64(), nullable=True),
                 pa.field("tot_drainage_areasqkm", pa.float64(), nullable=True),
                 pa.field("has_flowline", pa.bool_(), nullable=True),
@@ -1135,9 +1135,9 @@ class Network:
             PyIceberg schema for network table
         """
         return Schema(
-            NestedField(1, "id", StringType(), required=True),
-            NestedField(2, "toid", StringType(), required=True),
-            NestedField(3, "divide_id", StringType(), required=True),
+            NestedField(1, "id", StringType(), required=False),
+            NestedField(2, "toid", StringType(), required=False),
+            NestedField(3, "divide_id", StringType(), required=False),
             NestedField(4, "ds_id", DoubleType(), required=False),
             NestedField(5, "mainstem", DoubleType(), required=False),
             NestedField(6, "hydroseq", DoubleType(), required=False),
@@ -1154,7 +1154,6 @@ class Network:
             NestedField(17, "topo", StringType(), required=False),
             NestedField(18, "poi_id", DoubleType(), required=False),
             NestedField(19, "hl_uri", StringType(), required=False),
-            identifier_field_ids=[1, 2, 3],
         )
 
     @classmethod
@@ -1168,9 +1167,9 @@ class Network:
         """
         return pa.schema(
             [
-                pa.field("id", pa.string(), nullable=False),
-                pa.field("toid", pa.string(), nullable=False),
-                pa.field("divide_id", pa.string(), nullable=False),
+                pa.field("id", pa.string(), nullable=True),
+                pa.field("toid", pa.string(), nullable=True),
+                pa.field("divide_id", pa.string(), nullable=True),
                 pa.field("ds_id", pa.float64(), nullable=True),
                 pa.field("mainstem", pa.float64(), nullable=True),
                 pa.field("hydroseq", pa.float64(), nullable=True),

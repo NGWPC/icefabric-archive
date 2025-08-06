@@ -43,8 +43,8 @@ def gpkg_to_parquet(input_file: Path, output_folder: Path) -> None:
     layers = [
         ("divide-attributes", DivideAttributes),
         ("divides", Divides),
-        ("flowpath-attributes-ml", FlowpathAttributes),
-        ("flowpath-attributes", FlowpathAttributesML),
+        ("flowpath-attributes-ml", FlowpathAttributesML),
+        ("flowpath-attributes", FlowpathAttributes),
         ("flowpaths", Flowpaths),
         ("hydrolocations", Hydrolocations),
         ("lakes", Lakes),
@@ -56,7 +56,7 @@ def gpkg_to_parquet(input_file: Path, output_folder: Path) -> None:
         if not input_file.exists():
             raise FileNotFoundError(f"Input file not found: {input_file}")
 
-        print(f"Converting {input_file} to parquet")
+        print(f"Converting {layer} to parquet")
 
         output_folder.mkdir(parents=True, exist_ok=True)
 
@@ -65,14 +65,15 @@ def gpkg_to_parquet(input_file: Path, output_folder: Path) -> None:
         except DataLayerError:
             print(f"No layer existing for: {layer}")
             continue
-        # NOTE there will be an warning as we're overriding the geometry. This is fine for now
-        gdf["geometry"] = gdf["geometry"].to_wkb()
+        if "geometry" in gdf.columns:
+            # NOTE there will be an warning as we're overriding the geometry. This is fine for now
+            gdf["geometry"] = gdf["geometry"].to_wkb()
 
         # Create PyArrow table with schema validation
         table = pa.Table.from_pandas(gdf[schema.columns()], schema=schema.arrow_schema())
 
         # Write parquet file
-        output_path = output_folder / f"{input_file.stem}.parquet"
+        output_path = output_folder / f"{layer}.parquet"
         pq.write_table(table, output_path)
         print(f"Successfully converted to {output_path}")
 
