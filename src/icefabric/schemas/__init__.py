@@ -1,6 +1,7 @@
 """Contains helper functions to support NWM modules"""
 
 from .hydrofabric import UPSTREAM_VPUS, HydrofabricDomains, IdType
+from .iceberg_tables.ras_xs import ExtractedRasXS
 from .modules import (
     LASAM,
     LSTM,
@@ -22,6 +23,7 @@ from .ras_xs import XsType
 from .topobathy import FileType, NGWPCLocations, NGWPCTestLocations
 
 __all__ = [
+    "ExtractedRasXS",
     "UPSTREAM_VPUS",
     "IdType",
     "HydrofabricDomains",
