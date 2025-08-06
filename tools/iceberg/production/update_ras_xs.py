@@ -58,7 +58,3 @@ if __name__ == "__main__":
 
     catalog = load_catalog(args.catalog)
     update_table(catalog=catalog, file_path=args.file)
-    # table = "conflated"
-    # file = "/Users/taddbindas/projects/NGWPC/icefabric/riverML_ripple_beta.parquet"
-    # catalog = load_catalog("sql")
-    # update_table(catalog, file)
