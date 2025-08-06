@@ -82,7 +82,7 @@ if __name__ == "__main__":
         "--crs",
         type=str,
         default="EPSG:5070",
-        help="The CRS to save the outputted .gpkg to (default is EPSG:5070)",
+        help="The CRS to save the outputted .gpkg to (default is EPSG:5070). Change for oCONUS domains.",
     )
     args = parser.parse_args()
 
