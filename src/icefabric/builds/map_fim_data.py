@@ -53,6 +53,7 @@ class MapData:
         self.crs_dict: dict = collections.defaultdict(dict)
         self.consolidated_id2xs: geopandas.GeoDataFrame = geopandas.GeoDataFrame()
 
+        # NOTE Commenting out as the manipulated states between these function calls may be needed. Not wise to run all data preprocessing inside the initialization function
         # self.read_data_dirs()
         # self.cat_data_dirs(self.subfolder_key_prefix)
         # self.map_model2huc()
@@ -148,7 +149,6 @@ class MapData:
             if x.endswith(".gpkg"):
                 self.gpkg_dirs.append(x)
                 t = re.search(f"/{subfolder_key_prefix}(.*)", x)
-                print(t)
                 gpkg_tblname = t.group()  # type: ignore[union-attr]
                 self.gpkg_tablenames.append(gpkg_tblname.lstrip("/").replace("/", "_"))
 

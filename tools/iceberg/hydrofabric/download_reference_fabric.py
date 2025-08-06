@@ -1,4 +1,4 @@
-"""A script to download the Hydrofabric to disk as a geopackage"""
+"""A script to download the Reference Fabric to disk as a geopackage"""
 
 import argparse
 from pathlib import Path
@@ -15,7 +15,7 @@ load_creds(dir=Path.cwd())
 NAMESPACE = "conus_reference"
 
 
-def download_hydrofabric(catalog: Catalog, output_folder: Path, crs: str) -> None:
+def download_reference_fabric(catalog: Catalog, output_folder: Path, crs: str) -> None:
     """Build the RAS XS table in a PyIceberg warehouse.
 
     Parameters
@@ -73,4 +73,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     catalog = load_catalog(args.catalog)
-    download_hydrofabric(catalog=catalog, output_folder=args.output_folder, crs=args.crs)
+    download_reference_fabric(catalog=catalog, output_folder=args.output_folder, crs=args.crs)
