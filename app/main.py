@@ -37,8 +37,8 @@ tags_metadata = [
         "externalDocs": {"description": "Link to the RISE API", "url": "https://data.usbr.gov/rise-api"},
     },
     {
-        "name": "HF Modules",
-        "description": "Functions that interact with the Hydrofabric modules. Mainly supports IPE generation.",
+        "name": "NWM Modules",
+        "description": "Functions that interact with NWM modules. Mainly supports IPE generation.",
     },
 ]
 
