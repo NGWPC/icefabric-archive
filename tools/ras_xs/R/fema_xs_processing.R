@@ -5,9 +5,9 @@
 # Converts FEMA flood model cross-sections to representative channel geometry features
 
 # Define path to FEMA BLE data and output directory
-fema <- '/Users/taddbindas/projects/NGWPC/icefabric/data/mip_full_collection'
-outdir <- '/Users/taddbindas/projects/NGWPC/icefabric/riverML5'
-ref_path <- "/Users/taddbindas/Desktop/sc_reference_fabric.gpkg"
+fema <- './mip_full_collection/'
+ref_path <- "./sc_reference_fabric.gpkg"
+outdir <- glue::glue("./riverML3")
 outdir <- glue::glue("./riverML5")
 dir.create(outdir, showWarnings = FALSE)
 
