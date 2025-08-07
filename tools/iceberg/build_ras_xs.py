@@ -10,8 +10,15 @@ from icefabric.helpers import load_creds
 from icefabric.schemas import ExtractedRasXS
 
 load_creds(dir=Path.cwd())
+with open(os.environ["PYICEBERG_HOME"]) as f:
+    CONFIG = yaml.safe_load(f)
+WAREHOUSE = Path(CONFIG["catalog"]["sql"]["warehouse"].replace("file://", ""))
+WAREHOUSE.mkdir(parents=True, exist_ok=True)
 
-LOCATION = {"glue": "s3://edfs-data/icefabric_catalog/extracted_ras_xs"}
+LOCATION = {
+    "glue": "s3://edfs-data/icefabric_catalog",
+    "sql": CONFIG["catalog"]["sql"]["warehouse"],
+}
 NAMESPACE = "ras_xs"
 TABLE_NAME = "extracted"
 
@@ -62,7 +69,7 @@ def build_table(catalog_type: str, file_path: Path) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Build a PyIceberg catalog in the S3 endpoint for FEMA-BLE data"
+        description="Build a PyIceberg catalog in the S3 Table for FEMA-BLE data"
     )
 
     parser.add_argument(
@@ -79,12 +86,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    if args.catalog == "sql":
-        with open(os.environ["PYICEBERG_HOME"]) as f:
-            config = yaml.safe_load(f)
-        warehouse = Path(config["catalog"]["sql"]["warehouse"].replace("file://", ""))
-        warehouse.mkdir(parents=True, exist_ok=True)
-        LOCATION["sql"] = f"{config['catalog']['sql']['warehouse']}/extracted_ras_xs"
 
     build_table(catalog_type=args.catalog, file_path=args.file)

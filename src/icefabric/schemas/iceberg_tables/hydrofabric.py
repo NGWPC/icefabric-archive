@@ -1257,10 +1257,10 @@ class Nexus:
         """
         return pa.schema(
             [
-                pa.field("id", pa.string(), nullable=True),
-                pa.field("toid", pa.string(), nullable=True),
+                pa.field("id", pa.string(), nullable=False),
+                pa.field("toid", pa.string(), nullable=False),
                 pa.field("type", pa.string(), nullable=True),
-                pa.field("vpuid", pa.string(), nullable=True),
+                pa.field("vpuid", pa.string(), nullable=False),
                 pa.field("poi_id", pa.float64(), nullable=True),
                 pa.field("geometry", pa.binary(), nullable=True),
             ]

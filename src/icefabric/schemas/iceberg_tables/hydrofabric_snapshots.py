@@ -2,7 +2,7 @@
 
 import pyarrow as pa
 from pyiceberg.schema import Schema
-from pyiceberg.types import LongType, NestedField
+from pyiceberg.types import LongType, NestedField, StringType
 
 
 class HydrofabricSnapshot:
@@ -10,6 +10,7 @@ class HydrofabricSnapshot:
 
     Attributes
     ----------
+    - domain
     - divide-attributes
     - divides
     - flowpath-attributes
@@ -32,7 +33,7 @@ class HydrofabricSnapshot:
             The schema columns
         """
         return [
-            "divide-attributes",
+            "domaindivide-attributes",
             "divides",
             "flowpath-attributes",
             "flowpath-attributes-ml",
@@ -54,16 +55,18 @@ class HydrofabricSnapshot:
             PyIceberg schema for Hydrofabric
         """
         return Schema(
-            NestedField(1, "divide-attributes", LongType(), required=False),
-            NestedField(2, "divides", LongType(), required=False),
-            NestedField(3, "flowpath-attributes", LongType(), required=False),
-            NestedField(4, "flowpath-attributes-ml", LongType(), required=False),
-            NestedField(5, "flowpaths", LongType(), required=False),
-            NestedField(6, "hydrolocations", LongType(), required=False),
-            NestedField(7, "lakes", LongType(), required=False),
-            NestedField(8, "network", LongType(), required=False),
-            NestedField(9, "nexus", LongType(), required=False),
-            NestedField(10, "pois", LongType(), required=False),
+            NestedField(1, "domain", StringType(), required=True),
+            NestedField(2, "divide-attributes", LongType(), required=False),
+            NestedField(3, "divides", LongType(), required=False),
+            NestedField(4, "flowpath-attributes", LongType(), required=False),
+            NestedField(5, "flowpath-attributes-ml", LongType(), required=False),
+            NestedField(6, "flowpaths", LongType(), required=False),
+            NestedField(7, "hydrolocations", LongType(), required=False),
+            NestedField(8, "lakes", LongType(), required=False),
+            NestedField(9, "network", LongType(), required=False),
+            NestedField(10, "nexus", LongType(), required=False),
+            NestedField(11, "pois", LongType(), required=False),
+            identifier_field_ids=[1],
         )
 
     @classmethod
@@ -77,6 +80,7 @@ class HydrofabricSnapshot:
         """
         return pa.schema(
             [
+                pa.field("domain", pa.string(), nullable=False),
                 pa.field("divide-attributes", pa.int64(), nullable=True),
                 pa.field("divides", pa.int64(), nullable=True),
                 pa.field("flowpath-attributes", pa.int64(), nullable=True),

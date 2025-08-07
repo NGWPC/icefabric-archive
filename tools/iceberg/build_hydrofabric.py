@@ -1,9 +1,12 @@
+"""A file to create/build the hydrofabric table and snapshots for a specific domain"""
+
 import argparse
 import os
+import warnings
 from pathlib import Path
 
-import pandas as pd
 import pyarrow as pa
+import pyarrow.parquet as pq
 import yaml
 from pyiceberg.catalog import load_catalog
 from pyiceberg.transforms import IdentityTransform
@@ -23,34 +26,20 @@ from icefabric.schemas import (
     POIs,
 )
 
+# Loading credentials, setting path to save outputs
 load_creds(dir=Path.cwd())
+with open(os.environ["PYICEBERG_HOME"]) as f:
+    CONFIG = yaml.safe_load(f)
+WAREHOUSE = Path(CONFIG["catalog"]["sql"]["warehouse"].replace("file://", ""))
+WAREHOUSE.mkdir(parents=True, exist_ok=True)
 
-LOCATION = {"glue": "s3://edfs-data/icefabric_catalog"}
+LOCATION = {
+    "glue": "s3://edfs-data/icefabric_catalog",
+    "sql": CONFIG["catalog"]["sql"]["warehouse"],
+}
 
-
-def clean_parquet_schema(parquet_file: str) -> pa.Table:
-    """Clean parquet file to handle null types (ex: WaterbodyID and waterbody_nex_id)
-
-    Parameters
-    ----------
-    parquet_file : str
-        Path to the parquet file
-
-    Returns
-    -------
-    pa.Table
-        Cleaned Arrow table
-    """
-    # Read with pandas first to handle null types easily
-    df = pd.read_parquet(parquet_file)
-    null_columns = []
-    for col in df.columns:
-        if df[col].dtype == "object" and df[col].isna().all():
-            df[col] = df[col].astype("string")
-            null_columns.append(col)
-    if null_columns:
-        print(f"Converted null-type columns to string: {null_columns}")
-    return pa.Table.from_pandas(df, preserve_index=False)
+# Suppress threading cleanup warnings
+warnings.filterwarnings("ignore", category=ResourceWarning)
 
 
 def build_hydrofabric(catalog_type: str, file_dir: str, domain: str):
@@ -81,14 +70,14 @@ def build_hydrofabric(catalog_type: str, file_dir: str, domain: str):
         ("pois", POIs),
     ]
     snapshots = {}
+    snapshots["domain"] = domain
     for layer, schema in layers:
         print(f"Building layer: {layer}")
         try:
-            cleaned_table = clean_parquet_schema(f"{file_dir}/{layer}.parquet")
+            table = pq.read_table(f"{file_dir}/{layer}.parquet", schema=schema.arrow_schema())
         except FileNotFoundError:
             print(f"Cannot find {layer} in the given file dir {file_dir}")
             continue
-        schema = schema.schema()
         if catalog.table_exists(f"{namespace}.{layer}"):
             print(f"Table {layer} already exists. Skipping build")
             current_snapshot = catalog.load_table(f"{namespace}.{layer}").current_snapshot()
@@ -96,30 +85,30 @@ def build_hydrofabric(catalog_type: str, file_dir: str, domain: str):
         else:
             iceberg_table = catalog.create_table(
                 f"{namespace}.{layer}",
-                schema=cleaned_table.schema,
+                schema=schema.schema(),
                 location=f"{LOCATION[catalog_type]}/{namespace.lower()}/{layer}",
             )
             partition_spec = iceberg_table.spec()
             if len(partition_spec.fields) == 0:
                 with iceberg_table.update_spec() as update:
                     update.add_field("vpuid", IdentityTransform(), "vpuid_partition")
-            iceberg_table.append(cleaned_table)
+            iceberg_table.append(table)
             current_snapshot = iceberg_table.current_snapshot()
             snapshots[layer] = current_snapshot.snapshot_id
 
-    snapshot_namespace = f"{domain}_snapshots"
+    snapshot_namespace = "hydrofabric_snapshots"
     catalog.create_namespace_if_not_exists(snapshot_namespace)
-    tbl = catalog.create_table(f"{snapshot_namespace}.ids", schema=HydrofabricSnapshot.schema())
+    tbl = catalog.create_table(f"{snapshot_namespace}.id", schema=HydrofabricSnapshot.schema())
     df = pa.Table.from_pylist([snapshots], schema=HydrofabricSnapshot.arrow_schema())
     tbl.append(df)
     tbl.manage_snapshots().create_tag(tbl.current_snapshot().snapshot_id, "base").commit()
     print(f"Build complete. Files written into metadata store on {catalog.name} @ {namespace}")
-    print(f"Snapshots written to: {snapshot_namespace}.ids")
+    print(f"Snapshots written to: {snapshot_namespace}.id")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Build a PyIceberg catalog in the S3 endpoint for the Hydrofabric"
+        description="Build a PyIceberg catalog in the S3 Table for the Hydrofabric"
     )
 
     parser.add_argument(
@@ -143,12 +132,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    if args.catalog == "sql":
-        with open(os.environ["PYICEBERG_HOME"]) as f:
-            config = yaml.safe_load(f)
-        warehouse = Path(config["catalog"]["sql"]["warehouse"].replace("file://", ""))
-        warehouse.mkdir(parents=True, exist_ok=True)
-        LOCATION["sql"] = config["catalog"]["sql"]["warehouse"]
 
     build_hydrofabric(catalog_type=args.catalog, file_dir=args.files, domain=args.domain)
