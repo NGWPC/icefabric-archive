@@ -33,7 +33,8 @@ class HydrofabricSnapshot:
             The schema columns
         """
         return [
-            "domaindivide-attributes",
+            "domain",
+            "divide-attributes",
             "divides",
             "flowpath-attributes",
             "flowpath-attributes-ml",
