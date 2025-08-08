@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 from pyiceberg.catalog import load_catalog
+from pyiceberg.exceptions import NamespaceAlreadyExistsError
+from pyiceberg.expressions import EqualTo
 from pyiceberg.transforms import IdentityTransform
 from tqdm import tqdm
 
@@ -33,7 +35,11 @@ def export(namespace: str, snapshot: int | None = None):
 
     glue_catalog = load_catalog("glue")
     local_catalog = load_catalog("sql")
-    local_catalog.create_namespace_if_not_exists(namespace)
+    try:
+        local_catalog.create_namespace(namespace)
+    except NamespaceAlreadyExistsError as e:
+        print("Cannot Export Catalog. Already exists")
+        raise NamespaceAlreadyExistsError from e
     namespace_tables = glue_catalog.list_tables(namespace=namespace)
     for _, table in tqdm(namespace_tables, desc=f"Exporting {namespace} tables", total=len(namespace_tables)):
         _table = glue_catalog.load_table(f"{namespace}.{table}").scan(snapshot_id=snapshot)
@@ -49,6 +55,19 @@ def export(namespace: str, snapshot: int | None = None):
                 with iceberg_table.update_spec() as update:
                     update.add_field("vpuid", IdentityTransform(), "vpuid_partition")
         iceberg_table.append(_arrow)
+    if "hf" in namespace:
+        domain = namespace.split("_")[0]
+        local_catalog.create_namespace("hydrofabric_snapshots")
+        _arrow = (
+            glue_catalog.load_table("hydrofabric_snapshots.id")
+            .scan(row_filter=EqualTo("domain", domain))
+            .to_arrow()
+        )
+        snapshot_table = local_catalog.create_table_if_not_exists(
+            "hydrofabric_snapshots.id",
+            schema=_arrow.schema,
+        )
+        snapshot_table.append(_arrow)
     print(f"Exported {namespace} into local pyiceberg DB")
 
 
