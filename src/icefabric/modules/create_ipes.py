@@ -8,6 +8,7 @@ from pyiceberg.catalog import Catalog
 from pyproj import Transformer
 
 from icefabric.hydrofabric import subset_hydrofabric
+from icefabric.schemas import load_upstream_connections
 from icefabric.schemas.hydrofabric import IdType
 from icefabric.schemas.modules import (
     LASAM,
@@ -42,8 +43,7 @@ def get_sft_parameters(
     catalog: Catalog,
     namespace: str,
     identifier: str,
-    upstream_dict: dict[str, list[str]],
-    use_schaake: bool = False,
+    use_schaake: bool | None = False,
 ) -> list[SFT]:
     """Creates the initial parameter estimates for the SFT module
 
@@ -63,6 +63,7 @@ def get_sft_parameters(
     list[SFT]
         The list of all initial parameters for catchments using SFT
     """
+    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
@@ -109,7 +110,7 @@ def get_sft_parameters(
 
 
 def get_snow17_parameters(
-    catalog: Catalog, namespace: str, identifier: str, envca: bool, upstream_dict: dict[str, list[str]]
+    catalog: Catalog, namespace: str, identifier: str, envca: bool | None = False
 ) -> list[Snow17]:
     """Creates the initial parameter estimates for the Snow17 module
 
@@ -129,6 +130,7 @@ def get_snow17_parameters(
     list[Snow17]
         The list of all initial parameters for catchments using Snow17
     """
+    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
@@ -204,7 +206,6 @@ def get_smp_parameters(
     catalog: Catalog,
     namespace: str,
     identifier: str,
-    upstream_dict: dict[str, list[str]],
     module: str | None = None,
 ) -> list[SMP]:
     """Creates the initial parameter estimates for the SMP module
@@ -226,6 +227,7 @@ def get_smp_parameters(
     list[SMP]
         The list of all initial parameters for catchments using SMP
     """
+    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
@@ -296,9 +298,7 @@ def get_smp_parameters(
     return pydantic_models
 
 
-def get_lstm_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
-) -> list[LSTM]:
+def get_lstm_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[LSTM]:
     """Creates the initial parameter estimates for the LSTM module
 
     Parameters
@@ -318,6 +318,7 @@ def get_lstm_parameters(
     *Note: Per HF API, the following attributes for LSTM does not carry any relvant information:
     'train_cfg_file' & basin_name' -- remove if desire
     """
+    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
@@ -384,9 +385,8 @@ def get_lasam_parameters(
     catalog: Catalog,
     namespace: str,
     identifier: str,
-    sft_included: bool,
-    upstream_dict: dict[str, list[str]],
-    soil_params_file: str = "vG_default_params_HYDRUS.dat",
+    sft_included: bool | None = False,
+    soil_params_file: str | None = "vG_default_params_HYDRUS.dat",
 ) -> list[LASAM]:
     """Creates the initial parameter estimates for the LASAM module
 
@@ -409,6 +409,7 @@ def get_lasam_parameters(
     list[LASAM]
         The list of all initial parameters for catchments using LASAM
     """
+    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
@@ -447,9 +448,7 @@ def get_lasam_parameters(
     return pydantic_models
 
 
-def get_noahowp_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
-) -> list[NoahOwpModular]:
+def get_noahowp_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[NoahOwpModular]:
     """Creates the initial parameter estimates for the Noah OWP Modular module
 
     Parameters
@@ -466,6 +465,7 @@ def get_noahowp_parameters(
     list[NoahOwpModular]
         The list of all initial parameters for catchments using NoahOwpModular
     """
+    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
@@ -523,7 +523,7 @@ def get_noahowp_parameters(
 
 
 def get_sacsma_parameters(
-    catalog: Catalog, namespace: str, identifier: str, envca: bool, upstream_dict: dict[str, list[str]]
+    catalog: Catalog, namespace: str, identifier: str, envca: bool | None = False
 ) -> list[SacSma]:
     """Creates the initial parameter estimates for the SAC SMA module
 
@@ -544,6 +544,7 @@ def get_sacsma_parameters(
     list[SacSma]
         The list of all initial parameters for catchments using SacSma
     """
+    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
@@ -624,9 +625,7 @@ def get_sacsma_parameters(
     return pydantic_models
 
 
-def get_troute_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
-) -> list[TRoute]:
+def get_troute_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[TRoute]:
     """Creates the initial parameter estimates for the T-Route
 
     Parameters
@@ -643,6 +642,7 @@ def get_troute_parameters(
     list[TRoute]
         The list of all initial parameters for catchments using TRoute
     """
+    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
@@ -667,9 +667,7 @@ def get_troute_parameters(
     return pydantic_models
 
 
-def get_topmodel_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
-) -> list[Topmodel]:
+def get_topmodel_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[Topmodel]:
     """Creates the initial parameter estimates for the Topmodel
 
     Parameters
@@ -695,6 +693,7 @@ def get_topmodel_parameters(
     - The divide_id is the same as catchment, but will return divide_id variable name here
     since expected from HF API - remove if needed.
     """
+    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
@@ -740,9 +739,7 @@ def get_topmodel_parameters(
     return pydantic_models
 
 
-def get_topoflow_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
-) -> list[Topoflow]:
+def get_topoflow_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[Topoflow]:
     """Creates the initial parameter estimates for the Topoflow module
 
     Parameters
