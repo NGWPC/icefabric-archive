@@ -18,7 +18,7 @@ from icefabric.schemas.modules import (
     SacSma,
     Snow17,
     Topmodel,
-    Topoflow,
+    TopoflowGlacier,
     TRoute,
 )
 
@@ -31,7 +31,7 @@ noahowp_router = APIRouter(prefix="/modules/noahowp")
 sacsma_router = APIRouter(prefix="/modules/sacsma")
 troute_router = APIRouter(prefix="/modules/troute")
 topmodel_router = APIRouter(prefix="/modules/topmodel")
-topoflow_router = APIRouter(prefix="/modules/topoflow")
+topoflow_glacier_router = APIRouter(prefix="/modules/topoflow_glacier")
 
 
 class SmpModules(str, Enum):
@@ -448,21 +448,23 @@ async def get_topmodel_ipes(
     )
 
 
-@topoflow_router.get("/", tags=["NWM Modules"])
-async def get_topoflow_ipes(
+@topoflow_glacier_router.get("/", tags=["NWM Modules"])
+async def get_topoflow_glacier_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
         examples=["gages-01010000"],
-        openapi_examples={"topoflow_example": {"summary": "TopoFlow Example", "value": "gages-01010000"}},
+        openapi_examples={
+            "topoflow_glacier_example": {"summary": "TopoFlow Example", "value": "gages-01010000"}
+        },
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
         description="The iceberg namespace used to query the hydrofabric.",
-        openapi_examples={"topoflow_example": {"summary": "TopoFlow Example", "value": "conus_hf"}},
+        openapi_examples={"topoflow_glacier_example": {"summary": "TopoFlow Example", "value": "conus_hf"}},
     ),
     catalog: Catalog = Depends(get_catalog),
-) -> list[Topoflow]:
+) -> list[TopoflowGlacier]:
     """
     An endpoint to return configurations for TopoFlow.
 
@@ -477,7 +479,7 @@ async def get_topoflow_ipes(
     A list of TopoFlow pydantic objects for each catchment.
     """
     upstream_dict = load_upstream_connections(domain.value)
-    return config_mapper["topoflow"](
+    return config_mapper["topoflow_glacier"](
         catalog=catalog,
         namespace=domain.value,
         identifier=identifier,
@@ -485,7 +487,7 @@ async def get_topoflow_ipes(
     )
 
 
-@topoflow_router.get("/albedo", tags=["NWM Modules"])
+@topoflow_glacier_router.get("/albedo", tags=["NWM Modules"])
 async def get_albedo(
     landcover_state: Albedo = Query(
         ...,

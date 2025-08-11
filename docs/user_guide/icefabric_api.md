@@ -255,7 +255,7 @@ curl "http://localhost:8000/v1/hydrofabric/01031500/gpkg" -o "subset.gpkg"
 curl "http://localhost:8000/v1/modules/sft/?identifier=01010000&domain=conus_hf&use_schaake=false"
 
 # Return albedo value for given catchment state (snow, ice, or other)
-curl "http://localhost:8000/v1/modules/topoflow/albedo?landcover=snow"
+curl "http://localhost:8000/v1/modules/topoflow_glacier/albedo?landcover=snow"
 ```
 
 ### RAS Cross-sections

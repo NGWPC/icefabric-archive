@@ -22,7 +22,7 @@ from icefabric.schemas.modules import (
     Snow17,
     SoilScheme,
     Topmodel,
-    Topoflow,
+    TopoflowGlacier,
     TRoute,
 )
 
@@ -740,10 +740,10 @@ def get_topmodel_parameters(
     return pydantic_models
 
 
-def get_topoflow_parameters(
+def get_topoflow_glacier_parameters(
     catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
-) -> list[Topoflow]:
-    """Creates the initial parameter estimates for the Topoflow module
+) -> list[TopoflowGlacier]:
+    """Creates the initial parameter estimates for the TopoflowGlacier module
 
     Parameters
     ----------
@@ -756,8 +756,8 @@ def get_topoflow_parameters(
 
     Returns
     -------
-    list[Topoflow]
-        The list of all initial parameters for catchments using Topoflow
+    list[TopoflowGlacier]
+        The list of all initial parameters for catchments using TopoflowGlacier
     """
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
@@ -770,6 +770,6 @@ def get_topoflow_parameters(
 
     pydantic_models = []
     for _idx, row_dict in gauge["divide-attributes"].iterrows():
-        model_instance = Topoflow(catchment=row_dict["divide_id"])
+        model_instance = TopoflowGlacier(catchment=row_dict["divide_id"])
         pydantic_models.append(model_instance)
     return pydantic_models

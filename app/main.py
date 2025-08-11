@@ -18,7 +18,7 @@ from app.routers.nwm_modules.router import (
     smp_router,
     snow17_router,
     topmodel_router,
-    topoflow_router,
+    topoflow_glacier_router,
     troute_router,
 )
 from app.routers.ras_xs.router import api_router as ras_api_router
@@ -86,7 +86,7 @@ app.include_router(noahowp_router, prefix="/v1")
 app.include_router(sacsma_router, prefix="/v1")
 app.include_router(troute_router, prefix="/v1")
 app.include_router(topmodel_router, prefix="/v1")
-app.include_router(topoflow_router, prefix="/v1")
+app.include_router(topoflow_glacier_router, prefix="/v1")
 app.include_router(ras_api_router, prefix="/v1")
 app.include_router(rise_api_wrap_router, prefix="/v1")
 

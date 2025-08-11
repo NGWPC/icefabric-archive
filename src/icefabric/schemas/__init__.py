@@ -29,7 +29,7 @@ from .modules import (
     Snow17,
     SoilScheme,
     Topmodel,
-    Topoflow,
+    TopoflowGlacier,
     TRoute,
 )
 from .ras_xs import XsType
@@ -66,7 +66,7 @@ __all__ = [
     "NoahOwpModular",
     "TRoute",
     "Topmodel",
-    "Topoflow",
+    "TopoflowGlacier",
     "FileType",
     "NGWPCLocations",
     "NGWPCTestLocations",

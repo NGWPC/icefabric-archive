@@ -11,7 +11,7 @@ from .create_ipes import (
     get_smp_parameters,
     get_snow17_parameters,
     get_topmodel_parameters,
-    get_topoflow_parameters,
+    get_topoflow_glacier_parameters,
     get_troute_parameters,
 )
 from .rnr import get_rnr_segment
@@ -29,7 +29,7 @@ class NWMModules(enum.Enum):
     SACSMA = "sacsma"
     TROUTE = "troute"
     TOPMODEL = "topmodel"
-    TOPOFLOW = "topoflow"
+    TOPOFLOW = "topoflow_glacier"
 
 
 config_mapper = {
@@ -42,7 +42,7 @@ config_mapper = {
     "sacsma": get_sacsma_parameters,
     "troute": get_troute_parameters,
     "topmodel": get_topmodel_parameters,
-    "topoflow": get_topoflow_parameters,
+    "topoflow_glacier": get_topoflow_glacier_parameters,
 }
 
 __all__ = [
@@ -56,5 +56,5 @@ __all__ = [
     "get_sacsma_parameters",
     "get_troute_parameters",
     "get_topmodel_parameters",
-    "get_topoflow_parameters",
+    "get_topoflow_glacier_parameters",
 ]

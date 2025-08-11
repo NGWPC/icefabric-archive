@@ -106,7 +106,7 @@ class AlbedoValues(enum.Enum):
 
 
 class Albedo(BaseModel):
-    """A model to handle `/topoflow/albedo` inputs and outputs.
+    """A model to handle `/topoflow_glacier/albedo` inputs and outputs.
 
     Note:
     This Literal will fail static type checking due to dynamically created values.
@@ -987,7 +987,7 @@ class Topmodel(BaseModel):
         return topmodel_bmi_file
 
 
-class Topoflow(BaseModel):
+class TopoflowGlacier(BaseModel):
     """
     Pydantic model for Topoflow module configuration
 
@@ -1029,7 +1029,7 @@ class Topoflow(BaseModel):
             The path to the written config file
         """
         cfg_dict = self.to_bmi_config()
-        topoflow_bmi_file = output_path / f"{self.catchment}_topoflow_config.yaml"
-        with open(topoflow_bmi_file, "w") as f:
+        topoflow_glacier_bmi_file = output_path / f"{self.catchment}_topoflow_glacier_config.yaml"
+        with open(topoflow_glacier_bmi_file, "w") as f:
             yaml.dump(cfg_dict, f, default_flow_style=False, sort_keys=False, indent=2)
-        return topoflow_bmi_file
+        return topoflow_glacier_bmi_file

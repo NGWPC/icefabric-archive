@@ -9,7 +9,7 @@ from icefabric.modules import (
     get_smp_parameters,
     get_snow17_parameters,
     get_topmodel_parameters,
-    get_topoflow_parameters,
+    get_topoflow_glacier_parameters,
     get_troute_parameters,
 )
 
@@ -179,16 +179,16 @@ def test_lstm_parameters(mock_catalog, sample_upstream_connections, test_identif
 
 
 def test_topopflow_parameters(mock_catalog, sample_upstream_connections, test_identifiers):
-    """Test topoflow parameter generation"""
+    """Test topoflow_glacier parameter generation"""
     catalog = mock_catalog("glue")
     namespace = "mock_hf"
     for identifier in test_identifiers:
-        topoflow_models = get_topoflow_parameters(
+        topoflow_glacier_models = get_topoflow_glacier_parameters(
             catalog, namespace, identifier, upstream_dict=sample_upstream_connections
         )
-        assert len(topoflow_models) > 0, f"No Topoflow parameters generated for {identifier}"
+        assert len(topoflow_glacier_models) > 0, f"No Topoflow parameters generated for {identifier}"
 
         # Verify the first model has the required catchment field
-        model = topoflow_models[0]
+        model = topoflow_glacier_models[0]
         assert hasattr(model, "catchment"), "Model should have catchment attribute"
         assert model.catchment is not None, "Catchment should not be None"
