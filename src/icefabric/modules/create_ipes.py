@@ -758,8 +758,18 @@ def get_topoflow_parameters(
     -------
     list[Topoflow]
         The list of all initial parameters for catchments using Topoflow
-
-    *Note: This is a placeholder for Topoflow as the generation of IPEs for
-    Topoflow does not exist currently.
     """
-    raise NotImplementedError("Topoflow not implemented yet")
+    gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
+        catalog=catalog,
+        identifier=identifier,
+        id_type=IdType.HL_URI,
+        namespace=namespace,
+        layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
+        upstream_dict=upstream_dict,
+    )
+
+    pydantic_models = []
+    for _idx, row_dict in gauge["divide-attributes"].iterrows():
+        model_instance = Topoflow(catchment=row_dict["divide_id"])
+        pydantic_models.append(model_instance)
+    return pydantic_models

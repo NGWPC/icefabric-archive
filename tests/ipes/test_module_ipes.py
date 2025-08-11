@@ -9,6 +9,7 @@ from icefabric.modules import (
     get_smp_parameters,
     get_snow17_parameters,
     get_topmodel_parameters,
+    get_topoflow_parameters,
     get_troute_parameters,
 )
 
@@ -175,3 +176,19 @@ def test_lstm_parameters(mock_catalog, sample_upstream_connections, test_identif
         assert len(lstm_variables) == 48, (
             f"LSTM: Expected 48 attributes, got {len(lstm_variables)} for {identifier}"
         )
+
+
+def test_topopflow_parameters(mock_catalog, sample_upstream_connections, test_identifiers):
+    """Test topoflow parameter generation"""
+    catalog = mock_catalog("glue")
+    namespace = "mock_hf"
+    for identifier in test_identifiers:
+        topoflow_models = get_topoflow_parameters(
+            catalog, namespace, identifier, upstream_dict=sample_upstream_connections
+        )
+        assert len(topoflow_models) > 0, f"No Topoflow parameters generated for {identifier}"
+
+        # Verify the first model has the required catchment field
+        model = topoflow_models[0]
+        assert hasattr(model, "catchment"), "Model should have catchment attribute"
+        assert model.catchment is not None, "Catchment should not be None"

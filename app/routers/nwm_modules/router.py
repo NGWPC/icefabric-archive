@@ -18,6 +18,7 @@ from icefabric.schemas.modules import (
     SacSma,
     Snow17,
     Topmodel,
+    Topoflow,
     TRoute,
 )
 
@@ -68,13 +69,13 @@ def load_upstream_connections(domain_val):
     return upstream_dict
 
 
-@sft_router.get("/", tags=["HF Modules"])
+@sft_router.get("/", tags=["NWM Modules"])
 async def get_sft_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
-        examples=["01010000"],
-        openapi_examples={"sft_example": {"summary": "SFT Example", "value": "01010000"}},
+        examples=["gages-01010000"],
+        openapi_examples={"sft_example": {"summary": "SFT Example", "value": "gages-01010000"}},
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
@@ -106,19 +107,19 @@ async def get_sft_ipes(
     return config_mapper["sft"](
         catalog=catalog,
         namespace=domain.value,
-        identifier=f"gages-{identifier}",
+        identifier=identifier,
         upstream_dict=upstream_dict,
         use_schaake=use_schaake,
     )
 
 
-@snow17_router.get("/", tags=["HF Modules"])
+@snow17_router.get("/", tags=["NWM Modules"])
 async def get_snow17_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
-        examples=["01010000"],
-        openapi_examples={"snow17_example": {"summary": "SNOW-17 Example", "value": "01010000"}},
+        examples=["gages-01010000"],
+        openapi_examples={"snow17_example": {"summary": "SNOW-17 Example", "value": "gages-01010000"}},
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
@@ -150,19 +151,19 @@ async def get_snow17_ipes(
     return config_mapper["snow17"](
         catalog=catalog,
         namespace=domain.value,
-        identifier=f"gages-{identifier}",
+        identifier=identifier,
         upstream_dict=upstream_dict,
         envca=envca,
     )
 
 
-@smp_router.get("/", tags=["HF Modules"])
+@smp_router.get("/", tags=["NWM Modules"])
 async def get_smp_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
-        examples=["01010000"],
-        openapi_examples={"smp_example": {"summary": "SMP Example", "value": "01010000"}},
+        examples=["gages-01010000"],
+        openapi_examples={"smp_example": {"summary": "SMP Example", "value": "gages-01010000"}},
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
@@ -194,19 +195,19 @@ async def get_smp_ipes(
     return config_mapper["smp"](
         catalog=catalog,
         namespace=domain.value,
-        identifier=f"gages-{identifier}",
+        identifier=identifier,
         upstream_dict=upstream_dict,
         module=module,
     )
 
 
-@lstm_router.get("/", tags=["HF Modules"])
+@lstm_router.get("/", tags=["NWM Modules"])
 async def get_lstm_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
-        examples=["01010000"],
-        openapi_examples={"lstm_example": {"summary": "LSTM Example", "value": "01010000"}},
+        examples=["gages-01010000"],
+        openapi_examples={"lstm_example": {"summary": "LSTM Example", "value": "gages-01010000"}},
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
@@ -232,18 +233,18 @@ async def get_lstm_ipes(
     return config_mapper["lstm"](
         catalog=catalog,
         namespace=domain.value,
-        identifier=f"gages-{identifier}",
+        identifier=identifier,
         upstream_dict=upstream_dict,
     )
 
 
-@lasam_router.get("/", tags=["HF Modules"])
+@lasam_router.get("/", tags=["NWM Modules"])
 async def get_lasam_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
-        examples=["01010000"],
-        openapi_examples={"lasam_example": {"summary": "LASAM Example", "value": "01010000"}},
+        examples=["gages-01010000"],
+        openapi_examples={"lasam_example": {"summary": "LASAM Example", "value": "gages-01010000"}},
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
@@ -283,20 +284,22 @@ async def get_lasam_ipes(
     return config_mapper["lasam"](
         catalog=catalog,
         namespace=domain.value,
-        identifier=f"gages-{identifier}",
+        identifier=identifier,
         upstream_dict=upstream_dict,
         sft_included=sft_included,
         soil_params_file=soil_params_file,
     )
 
 
-@noahowp_router.get("/", tags=["HF Modules"])
+@noahowp_router.get("/", tags=["NWM Modules"])
 async def get_noahowp_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
-        examples=["01010000"],
-        openapi_examples={"noahowp_example": {"summary": "Noah-OWP-Modular Example", "value": "01010000"}},
+        examples=["gages-01010000"],
+        openapi_examples={
+            "noahowp_example": {"summary": "Noah-OWP-Modular Example", "value": "gages-01010000"}
+        },
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
@@ -322,18 +325,18 @@ async def get_noahowp_ipes(
     return config_mapper["noah_owp"](
         catalog=catalog,
         namespace=domain.value,
-        identifier=f"gages-{identifier}",
+        identifier=identifier,
         upstream_dict=upstream_dict,
     )
 
 
-@sacsma_router.get("/", tags=["HF Modules"])
+@sacsma_router.get("/", tags=["NWM Modules"])
 async def get_sacsma_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
-        examples=["01010000"],
-        openapi_examples={"sacsma_example": {"summary": "SAC-SMA Example", "value": "01010000"}},
+        examples=["gages-01010000"],
+        openapi_examples={"sacsma_example": {"summary": "SAC-SMA Example", "value": "gages-01010000"}},
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
@@ -365,19 +368,19 @@ async def get_sacsma_ipes(
     return config_mapper["sacsma"](
         catalog=catalog,
         namespace=domain.value,
-        identifier=f"gages-{identifier}",
+        identifier=identifier,
         upstream_dict=upstream_dict,
         envca=envca,
     )
 
 
-@troute_router.get("/", tags=["HF Modules"])
+@troute_router.get("/", tags=["NWM Modules"])
 async def get_troute_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
-        examples=["01010000"],
-        openapi_examples={"troute_example": {"summary": "T-Route Example", "value": "01010000"}},
+        examples=["gages-01010000"],
+        openapi_examples={"troute_example": {"summary": "T-Route Example", "value": "gages-01010000"}},
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
@@ -403,18 +406,18 @@ async def get_troute_ipes(
     return config_mapper["troute"](
         catalog=catalog,
         namespace=domain.value,
-        identifier=f"gages-{identifier}",
+        identifier=identifier,
         upstream_dict=upstream_dict,
     )
 
 
-@topmodel_router.get("/", tags=["HF Modules"])
+@topmodel_router.get("/", tags=["NWM Modules"])
 async def get_topmodel_ipes(
     identifier: str = Query(
         ...,
         description="Gage ID from which to trace upstream catchments.",
-        examples=["01010000"],
-        openapi_examples={"topmodel_example": {"summary": "TOPMODEL Example", "value": "01010000"}},
+        examples=["gages-01010000"],
+        openapi_examples={"topmodel_example": {"summary": "TOPMODEL Example", "value": "gages-01010000"}},
     ),
     domain: HydrofabricDomains = Query(
         HydrofabricDomains.CONUS,
@@ -440,50 +443,49 @@ async def get_topmodel_ipes(
     return config_mapper["topmodel"](
         catalog=catalog,
         namespace=domain.value,
-        identifier=f"gages-{identifier}",
+        identifier=identifier,
         upstream_dict=upstream_dict,
     )
 
 
-# TODO - Restore endpoint once the generation of IPEs for TopoFlow is possible/implemented
-# @topoflow_router.get("/", tags=["HF Modules"])
-# async def get_topoflow_ipes(
-#     identifier: str = Query(
-#         ...,
-#         description="Gage ID from which to trace upstream catchments.",
-#         examples=["01010000"],
-#         openapi_examples={"topoflow_example": {"summary": "TopoFlow Example", "value": "01010000"}},
-#     ),
-#     domain: HydrofabricDomains = Query(
-#         HydrofabricDomains.CONUS,
-#         description="The iceberg namespace used to query the hydrofabric.",
-#         openapi_examples={"topoflow_example": {"summary": "TopoFlow Example", "value": "conus_hf"}},
-#     ),
-#     catalog: Catalog = Depends(get_catalog),
-# ) -> list[Topoflow]:
-#     """
-#     An endpoint to return configurations for TopoFlow.
-#
-#     This endpoint traces upstream from a given gage ID to get all catchments
-#     and returns TopoFlow parameter configurations for each catchment.
-#
-#     **Parameters:**
-#     - **identifier**: The Gage ID from which upstream catchments are traced.
-#     - **domain**: The geographic domain used to filter catchments.
-#
-#     **Returns:**
-#     A list of TopoFlow pydantic objects for each catchment.
-#     """
-#     upstream_dict = load_upstream_connections(domain.value)
-#     return config_mapper["topoflow"](
-#         catalog=catalog,
-#         namespace=domain.value,
-#         identifier=f"gages-{identifier}",
-#         upstream_dict=upstream_dict,
-#     )
+@topoflow_router.get("/", tags=["NWM Modules"])
+async def get_topoflow_ipes(
+    identifier: str = Query(
+        ...,
+        description="Gage ID from which to trace upstream catchments.",
+        examples=["gages-01010000"],
+        openapi_examples={"topoflow_example": {"summary": "TopoFlow Example", "value": "gages-01010000"}},
+    ),
+    domain: HydrofabricDomains = Query(
+        HydrofabricDomains.CONUS,
+        description="The iceberg namespace used to query the hydrofabric.",
+        openapi_examples={"topoflow_example": {"summary": "TopoFlow Example", "value": "conus_hf"}},
+    ),
+    catalog: Catalog = Depends(get_catalog),
+) -> list[Topoflow]:
+    """
+    An endpoint to return configurations for TopoFlow.
+
+    This endpoint traces upstream from a given gage ID to get all catchments
+    and returns TopoFlow parameter configurations for each catchment.
+
+    **Parameters:**
+    - **identifier**: The Gage ID from which upstream catchments are traced.
+    - **domain**: The geographic domain used to filter catchments.
+
+    **Returns:**
+    A list of TopoFlow pydantic objects for each catchment.
+    """
+    upstream_dict = load_upstream_connections(domain.value)
+    return config_mapper["topoflow"](
+        catalog=catalog,
+        namespace=domain.value,
+        identifier=identifier,
+        upstream_dict=upstream_dict,
+    )
 
 
-@topoflow_router.get("/albedo", tags=["HF Modules"])
+@topoflow_router.get("/albedo", tags=["NWM Modules"])
 async def get_albedo(
     landcover_state: Albedo = Query(
         ...,

@@ -2,8 +2,9 @@
 
 import enum
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
+import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -997,12 +998,22 @@ class Topoflow(BaseModel):
 
     model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
     catchment: str = Field(..., description="The catchment ID")
+    dt: float = Field(3600.0, description="Timestep for snowmelt process [sec]")
+    Cp_snow: float = Field(2090.0, description="Heat capacity of snow [J/kg/K]")
+    rho_snow: float = Field(300.0, description="Density of snow [kg/m^3]")
+    h0_snow: float = Field(0.5, description="Initial depth of snow [m]")
+    h0_swe: float = Field(0.15, description="Initial depth of snow water equivalent (SWE) [m]")
+    Cp_ice: float = Field(2060.0, description="Heat capacity of ice [J/kg/K]")
+    rho_ice: float = Field(917.0, description="Density of ice [kg/m^3]")
+    h_active_layer: float = Field(0.125, description="Thickness of active ice layer [m]")
+    h0_ice: float = Field(10.0, description="Initial depth of ice [m]")
+    h0_iwe: float = Field(1.0, description="Initial depth of ice water equivalent (IWE) [m]")
+    snow_albedo: float = Field(AlbedoValues.snow.value, description="The static Albedo value for snow [-]")
+    ice_albedo: float = Field(AlbedoValues.ice.value, description="The static Albedo value for ice [-]")
 
-    def to_bmi_config(self) -> list[str]:
+    def to_bmi_config(self) -> dict[str, Any]:
         """Convert the model back to the original config file format"""
-        return [
-            f"catchment={self.catchment}",
-        ]
+        return self.model_dump(exclude_none=True)
 
     def model_dump_config(self, output_path: Path) -> Path:
         """Outputs the BaseModel to a BMI Config file
@@ -1017,8 +1028,8 @@ class Topoflow(BaseModel):
         Path
             The path to the written config file
         """
-        file_output = self.to_bmi_config()
-        topoflow_bmi_file = output_path / f"{self.catchment}_bmi_config_topoflow.txt"
+        cfg_dict = self.to_bmi_config()
+        topoflow_bmi_file = output_path / f"{self.catchment}_topoflow_config.yaml"
         with open(topoflow_bmi_file, "w") as f:
-            f.write("\n".join(file_output))
+            yaml.dump(cfg_dict, f, default_flow_style=False, sort_keys=False, indent=2)
         return topoflow_bmi_file
