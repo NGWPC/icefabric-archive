@@ -2,7 +2,7 @@
 
 import pyarrow as pa
 from pyiceberg.schema import Schema
-from pyiceberg.types import BinaryType, DoubleType, IntegerType, NestedField, StringType
+from pyiceberg.types import BinaryType, DoubleType, NestedField, StringType
 
 
 class RepresentativeRasXS:
@@ -57,7 +57,7 @@ class RepresentativeRasXS:
             PyIceberg schema for RAS XS table
         """
         return Schema(
-            NestedField(1, "flowpath_id", IntegerType(), required=True),
+            NestedField(1, "flowpath_id", StringType(), required=True),
             NestedField(2, "r", DoubleType(), required=False),
             NestedField(3, "TW", DoubleType(), required=False),
             NestedField(4, "Y", DoubleType(), required=False),
@@ -84,7 +84,7 @@ class RepresentativeRasXS:
         """
         return pa.schema(
             [
-                pa.field("flowpath_id", pa.int64(), nullable=False),
+                pa.field("flowpath_id", pa.string(), nullable=False),
                 pa.field("r", pa.float64(), nullable=True),
                 pa.field("TW", pa.float64(), nullable=True),
                 pa.field("Y", pa.float64(), nullable=True),
@@ -172,7 +172,7 @@ class ConflatedRasXS:
         return Schema(
             NestedField(1, "Ym", DoubleType(), required=False),
             NestedField(2, "TW", DoubleType(), required=False),
-            NestedField(3, "flowpath_id", IntegerType(), required=True),
+            NestedField(3, "flowpath_id", StringType(), required=True),
             NestedField(4, "river_station", DoubleType(), required=False),
             NestedField(5, "model", StringType(), required=False),
             NestedField(6, "A", DoubleType(), required=False),
@@ -206,7 +206,7 @@ class ConflatedRasXS:
             [
                 pa.field("Ym", pa.float64(), nullable=True),
                 pa.field("TW", pa.float64(), nullable=True),
-                pa.field("flowpath_id", pa.int64(), nullable=False),
+                pa.field("flowpath_id", pa.string(), nullable=False),
                 pa.field("river_station", pa.float64(), nullable=True),
                 pa.field("model", pa.string(), nullable=True),
                 pa.field("A", pa.float64(), nullable=True),

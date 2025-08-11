@@ -20,7 +20,6 @@ LOCATION = {
     "sql": CONFIG["catalog"]["sql"]["warehouse"],
 }
 NAMESPACE = "ras_xs"
-TABLE_NAME = "extracted"
 
 
 def build_table(catalog_type: str, file_path: Path, schema_type: str) -> None:
@@ -47,7 +46,7 @@ def build_table(catalog_type: str, file_path: Path, schema_type: str) -> None:
     catalog = load_catalog(catalog_type)
     catalog.create_namespace_if_not_exists(NAMESPACE)
 
-    table_identifier = f"{NAMESPACE}.{TABLE_NAME}"
+    table_identifier = f"{NAMESPACE}.{schema_type}"
 
     if catalog.table_exists(table_identifier):
         print(f"Table {table_identifier} already exists. Skipping build")
