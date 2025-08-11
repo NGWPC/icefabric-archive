@@ -7,8 +7,8 @@ import geopandas as gpd
 
 from icefabric.builds import build_upstream_json
 from icefabric.cli import get_catalog
+from icefabric.hydrofabric import load_upstream_connections
 from icefabric.hydrofabric.subset import subset_hydrofabric
-from icefabric.schemas import load_upstream_connections
 from icefabric.schemas.hydrofabric import HydrofabricDomains, IdType
 
 

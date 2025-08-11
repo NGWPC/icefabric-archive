@@ -9,8 +9,8 @@ from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
 from app import get_catalog
+from icefabric.hydrofabric import load_upstream_connections
 from icefabric.hydrofabric.subset import subset_hydrofabric
-from icefabric.schemas import load_upstream_connections
 from icefabric.schemas.hydrofabric import HydrofabricDomains, IdType
 
 api_router = APIRouter(prefix="/hydrofabric")

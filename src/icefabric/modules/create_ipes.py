@@ -7,8 +7,7 @@ import polars as pl
 from pyiceberg.catalog import Catalog
 from pyproj import Transformer
 
-from icefabric.hydrofabric import subset_hydrofabric
-from icefabric.schemas import load_upstream_connections
+from icefabric.hydrofabric import load_upstream_connections, subset_hydrofabric
 from icefabric.schemas.hydrofabric import IdType
 from icefabric.schemas.modules import (
     LASAM,

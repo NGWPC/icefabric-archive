@@ -131,7 +131,6 @@ def params(
                 ipe_kwargs[extra_arg] = locals()[extra_arg]
 
     get_param_func = config_mapper[nwm_module]
-    print(ipe_kwargs)
     configs = get_param_func(**ipe_kwargs)
 
     output.parent.mkdir(parents=True, exist_ok=True)
