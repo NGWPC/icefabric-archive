@@ -3,6 +3,7 @@
 import enum
 
 from .create_ipes import (
+    get_cfe_parameters,
     get_lasam_parameters,
     get_lstm_parameters,
     get_noahowp_parameters,
@@ -13,6 +14,7 @@ from .create_ipes import (
     get_topmodel_parameters,
     get_topoflow_parameters,
     get_troute_parameters,
+    get_ueb_parameters,
 )
 from .rnr import get_rnr_segment
 
@@ -30,6 +32,8 @@ class NWMModules(enum.Enum):
     TROUTE = "troute"
     TOPMODEL = "topmodel"
     TOPOFLOW = "topoflow"
+    UEB = "ueb"
+    CFE = "cfe"
 
 
 class SmpModules(str, enum.Enum):
@@ -61,6 +65,8 @@ config_mapper = {
     "troute": get_troute_parameters,
     "topmodel": get_topmodel_parameters,
     "topoflow": get_topoflow_parameters,
+    "ueb": get_ueb_parameters,
+    "cfe": get_cfe_parameters,
 }
 
 __all__ = [
@@ -75,4 +81,6 @@ __all__ = [
     "get_troute_parameters",
     "get_topmodel_parameters",
     "get_topoflow_parameters",
+    "get_ueb_parameters",
+    "get_cfe_parameters",
 ]
