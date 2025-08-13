@@ -74,6 +74,7 @@ Currently supports:
 Provides geospatial watershed data:
 
 - **Subset Generation** - Creates upstream watershed subsets from identifiers
+- **History** - Gets the iceberg snapshot history for a specific domain namespace
 
 !!! note "Data Storage"
     All data is stored remotely as Apache Iceberg tables on AWS glue unless you built the catalog locally. Then, it is stored at SQLite-backed catalog locally built at `/tmp/warehouse/pyiceberg_catalog.db`
@@ -83,8 +84,19 @@ Retrieve National Water Model (NWM) module parameters.
 
 Currently supports:
 
-- **Soil Freeze Thaw (SFT)** - Retrieve paramters for Soil Freeze Thaw module
-- **TopoFlow-Glacier** - Retrieve parameters for the TopoFlow Glacier module
+- **SFT (Soil Freeze-Thaw)** - Retrieve parameters for the Soil Freeze-Thaw module
+- **SNOW-17 (Snow Accumulation and Ablation Model)** - Retrieve parameters for the Snow Accumulation and Ablation Model module
+- **SMP (Soil Moisture Profile)** - Retrieve parameters for the Soil Moisture Profile module
+- **LSTM (Long Short-Term Memory)** - Retrieve parameters for the Long Short-Term Memory module
+- **LASAM (Lumped Arid/Semi-arid Model)** - Retrieve parameters for the Lumped Arid/Semi-arid Model module
+- **Noah-OWP-Modular** - Retrieve parameters for the Noah-OWP-Modular module
+- **SAC-SMA (Sacramento Soil Moisture Accounting)** - Retrieve parameters for the Sacramento Soil Moisture Accounting module
+- **T-Route (Tree-Based Channel Routing)** - Retrieve parameters for the Tree-Based Channel Routing module
+- **TOPMODEL** - Retrieve parameters for the TOPMODEL module
+
+#### Other
+
+- **TopoFlow-Glacier Albedo** - Return TopoFlow-Glacier albedo value for given catchment state (snow, ice, or other)
 
 ### RAS Cross-sections
 Retrieves geopackage data of HEC-RAS cross-sections
@@ -249,10 +261,39 @@ curl "http://localhost:8000/v1/hydrofabric/01010000/gpkg" -o "subset.gpkg"
 curl "http://localhost:8000/v1/hydrofabric/01031500/gpkg" -o "subset.gpkg"
 ```
 
+```bash
+# Get iceberg snapshot history for the CONUS domain
+curl "http://localhost:8000/v1/hydrofabric/history?domain=conus_hf
+```
+
 ### NWM Modules
 ```bash
-# Return parameters for Soil Freeze Thaw by catchment
+# Return parameters for SFT (Soil Freeze-Thaw) by catchment
 curl "http://localhost:8000/v1/modules/sft/?identifier=01010000&domain=conus_hf&use_schaake=false"
+
+# Return parameters for SNOW-17 (Snow Accumulation and Ablation Model) by catchment
+curl "http://localhost:8000/v1/modules/snow17/?identifier=01010000&domain=conus_hf&envca=false"
+
+# Return parameters for SMP (Soil Moisture Profile) by catchment
+curl "http://localhost:8000/v1/modules/smp/?identifier=01010000&domain=conus_hf&module=CFE-S"
+
+# Return parameters for LSTM (Long Short-Term Memory) by catchment
+curl "http://localhost:8000/v1/modules/lstm/?identifier=01010000&domain=conus_hf"
+
+# Return parameters for LASAM (Lumped Arid/Semi-arid Model) by catchment
+curl "http://localhost:8000/v1/modules/lasam/?identifier=01010000&domain=conus_hf&sft_included=false&soil_params_file=vG_default_params_HYDRUS.dat"
+
+# Return parameters for Noah-OWP-Modular by catchment
+curl "http://localhost:8000/v1/modules/noahowp/?identifier=01010000&domain=conus_hf"
+
+# Return parameters for SAC-SMA (Sacramento Soil Moisture Accounting) by catchment
+curl "http://localhost:8000/v1/modules/sacsma/?identifier=01010000&domain=conus_hf&envca=false"
+
+# Return parameters for T-Route (Tree-Based Channel Routing) by catchment
+curl "http://localhost:8000/v1/modules/troute/?identifier=01010000&domain=conus_hf"
+
+# Return parameters for TOPMODEL by catchment
+curl "http://localhost:8000/v1/modules/topmodel/?identifier=01010000&domain=conus_hf"
 
 # Return albedo value for given catchment state (snow, ice, or other)
 curl "http://localhost:8000/v1/modules/topoflow/albedo?landcover=snow"

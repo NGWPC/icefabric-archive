@@ -49,18 +49,18 @@ The SFT module uses a Pydantic model to validate and structure configuration par
 
 ```python
 class SFT(BaseModel):
-    catchment: str                              # Catchment identifier
-    verbosity: str = "none"                     # Logging level
-    soil_moisture_bmi: int = 1                  # BMI soil moisture flag
-    end_time: str = "1.[d]"                     # Simulation duration
-    dt: str = "1.0[h]"                          # Time step
-    soil_params_smcmax: float                   # Maximum soil moisture
-    soil_params_b: float                        # Soil retention parameter
-    soil_params_satpsi: float                   # Saturated soil suction
-    soil_params_quartz: float = 1.0             # Quartz content
-    ice_fraction_scheme: IceFractionScheme      # Ice fraction method
-    soil_z: list[float] = [0.1, 0.3, 1.0, 2.0]  # Soil layer depths
-    soil_temperature: list[float]               # Initial temperatures
+    catchment: str = Field(..., description="The catchment ID")
+    verbosity: str = Field(default="none", description="Verbosity level")
+    soil_moisture_bmi: int = Field(default=1, description="Soil moisture BMI parameter")
+    end_time: str = Field(default="1.[d]", description="End time with units")
+    dt: str = Field(default="1.0[h]", description="Time step with units")
+    soil_params_smcmax: float = Field(..., description="Maximum soil moisture content", alias="smcmax")
+    soil_params_b: float = Field(..., description="Soil moisture retention curve parameter (bexp)", alias="b")
+    soil_params_satpsi: float = Field(..., description="Saturated soil suction (psisat)", alias="satpsi")
+    soil_params_quartz: float = Field(default=1.0, description="Quartz content", alias="quartz")
+    ice_fraction_scheme: IceFractionScheme = Field(..., description="Ice fraction scheme")
+    soil_z: list[float] = Field(default=[0.1, 0.3, 1.0, 2.0], description="Soil depth layers in meters")
+    soil_temperature: list[float] = Field(..., description="Soil temperature in Kelvin for each layer")
 ```
 
 ### Ice Fraction Schemes
@@ -125,7 +125,7 @@ catalog = load_catalog("glue")
 # Get SFT parameters
 configs = get_sft_parameters(
     catalog=catalog,
-    domain=HydrofabricDomains.CONUS,
+    namespace=HydrofabricDomains.CONUS,
     identifier="01010000",
     use_schaake=False
 )
