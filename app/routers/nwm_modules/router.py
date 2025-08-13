@@ -1,3 +1,4 @@
+from enum import Enum
 from fastapi import APIRouter, Depends, Query
 from pyiceberg.catalog import Catalog
 
@@ -29,7 +30,16 @@ topmodel_router = APIRouter(prefix="/modules/topmodel")
 topoflow_router = APIRouter(prefix="/modules/topoflow")
 
 
-@sft_router.get("/", tags=["NWM Modules"])
+class SmpModules(str, Enum):
+    """Enum class for defining acceptable inputs for the SMP module variable"""
+
+    cfe_s = "CFE-S"
+    cfe_x = "CFE-X"
+    lasam = "LASAM"
+    topmodel = "TopModel"
+
+
+@sft_router.get("/", tags=["HF Modules"])
 async def get_sft_ipes(
     identifier: str = Query(
         ...,
