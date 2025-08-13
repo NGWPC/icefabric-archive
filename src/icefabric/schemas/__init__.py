@@ -1,5 +1,8 @@
 """Contains helper functions to support NWM modules"""
 
+import json
+from pathlib import Path
+
 from .hydrofabric import UPSTREAM_VPUS, HydrofabricDomains, IdType
 from .iceberg_tables.hydrofabric import (
     DivideAttributes,
@@ -16,10 +19,12 @@ from .iceberg_tables.hydrofabric import (
 from .iceberg_tables.hydrofabric_snapshots import HydrofabricSnapshot
 from .iceberg_tables.ras_xs import ConflatedRasXS, RepresentativeRasXS
 from .modules import (
+    CFE,
     LASAM,
     LSTM,
     SFT,
     SMP,
+    UEB,
     Albedo,
     CalibratableScheme,
     IceFractionScheme,
@@ -65,6 +70,8 @@ __all__ = [
     "LASAM",
     "NoahOwpModular",
     "TRoute",
+    "UEB",
+    "CFE",
     "Topmodel",
     "Topoflow",
     "FileType",
