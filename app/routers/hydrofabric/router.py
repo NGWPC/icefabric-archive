@@ -1,8 +1,6 @@
-import json
 import pathlib
 import tempfile
 import uuid
-from pathlib import Path
 
 import geopandas as gpd
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,7 +8,7 @@ from fastapi import Path as FastAPIPath
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
-from app import get_catalog
+from app import get_catalog, get_graphs
 from icefabric.hydrofabric.subset import subset_hydrofabric
 from icefabric.schemas.hydrofabric import HydrofabricDomains, IdType
 
@@ -47,6 +45,7 @@ async def get_hydrofabric_subset_gpkg(
         examples=["divides", "flowpaths", "network", "nexus", "lakes", "pois", "hydrolocations"],
     ),
     catalog=Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ):
     """
     Get hydrofabric subset as a geopackage file (.gpkg)
@@ -68,25 +67,6 @@ async def get_hydrofabric_subset_gpkg(
     tmp_path = temp_dir / f"subset_{identifier}_{unique_id}.gpkg"
 
     try:
-        # Load upstream connections (same as CLI)
-        upstream_connections_path = (
-            Path(__file__).parents[3] / f"data/hydrofabric/{domain.value}_upstream_connections.json"
-        )
-
-        if not upstream_connections_path.exists():
-            raise HTTPException(
-                status_code=400,
-                detail=f"Upstream connections missing for {domain.value}. Please run `icefabric build-upstream-connections` to generate this file",
-            )
-
-        with open(upstream_connections_path) as f:
-            data = json.load(f)
-            print(
-                f"Loading upstream connections generated on: {data['_metadata']['generated_at']} "
-                f"from snapshot id: {data['_metadata']['iceberg']['snapshot_id']}"
-            )
-            upstream_dict = data["upstream_connections"]
-
         # Create the subset (same as CLI logic)
         output_layers = subset_hydrofabric(
             catalog=catalog,
@@ -94,7 +74,7 @@ async def get_hydrofabric_subset_gpkg(
             id_type=id_type,
             layers=layers or ["divides", "flowpaths", "network", "nexus"],
             namespace=domain.value,
-            upstream_dict=upstream_dict,
+            graph=network_graphs[domain],
         )
 
         # Check if we got any data
