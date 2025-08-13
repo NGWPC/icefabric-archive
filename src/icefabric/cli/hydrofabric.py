@@ -91,33 +91,3 @@ def subset(
                 print(f"Warning: {table_name} layer is empty")
 
     click.echo(f"Hydrofabric file created successfully in the following folder: {output_file}")
-
-
-# @click.command()
-# @click.option(
-#     "--catalog",
-#     type=click.Choice(["glue", "sql"], case_sensitive=False),
-#     default="glue",
-#     help="The pyiceberg catalog type",
-# )
-# @click.option(
-#     "--domain",
-#     type=click.Choice([e.value for e in HydrofabricDomains], case_sensitive=False),
-#     required=True,
-#     help="The domain you are querying",
-# )
-# @click.option(
-#     "--output-path",
-#     "-o",
-#     type=click.Path(path_type=Path),
-#     default=Path.cwd(),
-#     help="Output path of the upstream connections json",
-# )
-# def build_upstream_connections(
-#     catalog: str,
-#     domain: str,
-#     output_path: Path,
-# ):
-#     """Creates a JSON file which documents the upstream connections from a particular basin"""
-#     build_upstream_json(catalog=get_catalog(catalog), namespace=domain, output_path=output_path)
-#     click.echo(f"Upstream json file created for {domain} in the following folder: {output_path}")

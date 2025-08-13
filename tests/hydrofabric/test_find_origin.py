@@ -23,25 +23,6 @@ def test_find_origin_success_with_hl_uri(mock_catalog):
             assert all(col in result.columns for col in expected_columns)
 
 
-def test_find_origin_with_poi_id_type(mock_catalog):
-    """Test finding origin by POI ID"""
-    catalog = mock_catalog("glue")
-    network_table = catalog.load_table("mock_hf.network").to_polars()
-    poi_records = network_table.filter(pl.col("poi_id").is_not_null()).collect()
-
-    if poi_records.height > 0:
-        test_poi_id = float(poi_records.get_column("poi_id")[0])
-        expected_wb_id = poi_records.get_column("id")[0]
-
-        result = find_origin(network_table, test_poi_id, IdType.POI_ID)
-
-        assert result.height == 1
-        assert result["id"][0] == expected_wb_id
-
-        expected_columns = ["id", "toid", "vpuid", "hydroseq"]
-        assert all(col in result.columns for col in expected_columns)
-
-
 def test_find_origin_with_wb_id_type(mock_catalog):
     """Test finding origin by watershed ID (wb-*)"""
     # Use an existing watershed ID from our mock data

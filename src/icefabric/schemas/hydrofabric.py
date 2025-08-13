@@ -21,7 +21,6 @@ class IdType(str, Enum):
     HL_URI = "hl_uri"
     HF_ID = "hf_id"
     ID = "id"
-    POI_ID = "poi_id"
 
 
 class HydrofabricDomains(str, Enum):

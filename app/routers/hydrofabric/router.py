@@ -20,20 +20,17 @@ async def get_hydrofabric_subset_gpkg(
     identifier: str = FastAPIPath(
         ...,
         description="Identifier to start tracing from (e.g., catchment ID, POI ID, HL_URI)",
-        examples=["wb-1010000", "01010000", "gages-01010000"],
         openapi_examples={
-            "wb-id": {"summary": "Watershed ID", "value": "wb-4581"},
             "hl_uri": {"summary": "USGS Gauge", "value": "gages-01010000"},
-            "poi": {"summary": "POI ID", "value": "1193"},
+            "wb-id": {"summary": "Watershed ID", "value": "wb-4581"},
         },
     ),
     id_type: IdType = Query(
         IdType.HL_URI,
         description="The type of identifier being used",
         openapi_examples={
-            "wb-id": {"summary": "Watershed ID", "value": IdType.ID},
             "hl_uri": {"summary": "USGS Gauge", "value": IdType.HL_URI},
-            "poi": {"summary": "POI ID", "value": IdType.POI_ID},
+            "wb-id": {"summary": "Watershed ID", "value": IdType.ID},
         },
     ),
     domain: HydrofabricDomains = Query(

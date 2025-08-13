@@ -27,7 +27,10 @@ def _build_graph(flowpaths: pl.LazyFrame, network: pl.LazyFrame) -> rx.PyDiGraph
     fp = flowpaths.select([pl.col("id"), pl.col("toid")]).collect()
 
     # Make sure wb-0 exists as a flowpath
-    fp = fp.extend(pl.DataFrame({"id": ["wb-0"], "toid": [None]})).lazy()
+    wb0_df = pl.DataFrame({"id": ["wb-0"], "toid": [None]})
+
+    # Use concat which handles empty DataFrames better than extend
+    fp = pl.concat([fp, wb0_df], how="vertical").lazy()
 
     network_table = network.select([pl.col("id"), pl.col("toid")]).collect()
     network_table = network_table.filter(pl.col("id").str.starts_with("wb-").not_())
@@ -35,19 +38,13 @@ def _build_graph(flowpaths: pl.LazyFrame, network: pl.LazyFrame) -> rx.PyDiGraph
     fp = fp.with_row_index(name="idx").collect()
     network_table = network_table.unique(subset=["id"])
 
-    # Create tuples of the index location and the downstream nexus ID
     _values = zip(fp["idx"], fp["toid"], strict=False)
-
-    # define flowpaths as a dictionary of ids to tuples of (index, downstream nexus id)
     fp = dict(zip(fp["id"], _values, strict=True))
 
     # define network as a dictionary of nexus ids to downstream flowpath ids
     network_dict = dict(zip(network_table["id"], network_table["toid"], strict=True))
 
-    # pre-allocate the graph with the number of flowpaths
     graph = rx.PyDiGraph(check_cycle=False, node_count_hint=len(fp), edge_count_hint=len(fp))
-    # in this graph form -- each waterbody/flowpath is a node and each nexus is a directed edge
-    # All flowpaths are nodes, add them upfront...
     gidx = graph.add_nodes_from(fp.keys())
     for idx in tqdm(gidx, desc="Building network graph"):
         id = graph.get_node_data(idx)
@@ -117,6 +114,7 @@ def load_upstream_json(catalog: Catalog, namespaces: list[str], output_path: Pat
                 node_attrs=serialize_node_attrs,
             )
         else:
+            print(f"Loading existing network graph from disk for: {namespace}")
             graph: rx.PyDiGraph = rx.from_node_link_json_file(
                 str(output_file),
                 edge_attrs=read_edge_attrs,
@@ -136,11 +134,11 @@ def load_upstream_json(catalog: Catalog, namespaces: list[str], output_path: Pat
                 graph.attrs = {
                     "generated_at": datetime.now(UTC).isoformat(),
                     "catalog_name": catalog.name,
-                    "flowpath_snapshot_id": flowpaths_table.current_snapshot().snapshot_id,
-                    "network_snapshot_id": network_table.current_snapshot().snapshot_id,
+                    "flowpath_snapshot_id": str(flowpaths_table.current_snapshot().snapshot_id),
+                    "network_snapshot_id": str(network_table.current_snapshot().snapshot_id),
                 }
                 rx.node_link_json(
-                    graph=graph,
+                    graph,
                     path=str(output_file),
                     graph_attrs=lambda attrs: attrs,  # using the graph's own attributes
                     edge_attrs=serialize_edge_attrs,

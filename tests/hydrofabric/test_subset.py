@@ -1,10 +1,13 @@
 """Concise tests for subset hydrofabric functionality using parameterization with type hints"""
 
+from pathlib import Path
+
 import geopandas as gpd
 import pandas as pd
 import polars as pl
 import pytest
 
+from icefabric.builds.graph_connectivity import load_upstream_json
 from icefabric.hydrofabric.subset import (
     get_upstream_segments,
     subset_hydrofabric,
@@ -38,10 +41,11 @@ class TestGetUpstreamSegments:
         ],
     )
     def test_upstream_tracing_scenarios(
-        self, origin: str, upstream_dict: dict[str, list[str]], expected: set[str]
+        self, origin: str, mock_catalog: MockCatalog, expected: set[str], tmp_path: Path
     ) -> None:
         """Test various upstream tracing scenarios"""
-        result = get_upstream_segments(origin, upstream_dict)
+        graph = load_upstream_json(catalog=mock_catalog, namespaces=["mock_hf"], output_path=tmp_path)
+        result = get_upstream_segments(origin, graph["mock_hf"])
         assert result == expected
 
     @pytest.mark.parametrize(

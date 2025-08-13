@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI):
     app.state.network_graphs = load_upstream_json(
         catalog=catalog,
         namespaces=hydrofabric_namespaces,
-        output_path=Path(__file__).parent / "data",
+        output_path=Path(__file__).parents[1] / "data",
     )
     yield
 
