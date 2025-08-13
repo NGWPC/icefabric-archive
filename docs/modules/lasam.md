@@ -1,8 +1,8 @@
-# LASAM (Long Short-Term Memory) Module Documentation
+# LASAM (Lumped Arid/Semi-arid Model) Module Documentation
 
 ## Overview
 
-The LASAM (Long Short-Term Memory) module simulates infiltration and runoff based on Layered Green & Ampt with redistribution (LGAR) model. LGAR is a model which partitions precipitation into infiltration and runoff, and is designed for use in arid or semi-arid climates.
+The LASAM (Lumped Arid/Semi-arid Model) module simulates infiltration and runoff based on Layered Green & Ampt with redistribution (LGAR) model. LGAR is a model which partitions precipitation into infiltration and runoff, and is designed for use in arid or semi-arid climates.
 
 ## Parameter Reference
 
@@ -74,7 +74,7 @@ icefabric params \
 
 **CLI Parameters:**
 - `--gauge`: Gauge ID to trace upstream catchments from
-- `--module`: Module type (use "lasam" for Long Short-Term Memory)
+- `--module`: Module type (use "lasam" for Lumped Arid/Semi-arid Model)
 - `--domain`: Hydrofabric domain (`conus`, `alaska`, etc.)
 - `--catalog`: PyIceberg Catalog type (`glue` or `sql`)
 - `--sft-included`: Denotes that SFT is in the "dep_modules_included" definition as declared in the HF API repo (`True`/`False`, defaults to `False`)
