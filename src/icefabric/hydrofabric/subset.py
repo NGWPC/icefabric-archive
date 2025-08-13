@@ -220,7 +220,10 @@ def subset_hydrofabric(
 
     upstream_ids = get_upstream_segments(origin_id, graph)
     print(f"Found {len(upstream_ids)} upstream segments")
-    upstream_ids.add(to_id)  # Adding the nexus point to ensure it's captured in the network table
+    if len(upstream_ids) == 0:
+        upstream_ids.add(origin_id)  # Ensuring the origin WB is captured
+    else:
+        upstream_ids.add(to_id)  # Adding the nexus point to ensure it's captured in the network table
 
     output_layers = subset_layers(
         catalog=catalog, namespace=namespace, layers=layers, upstream_ids=upstream_ids, vpu_id=vpu_id

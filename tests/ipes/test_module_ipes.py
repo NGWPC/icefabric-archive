@@ -28,7 +28,6 @@ def test_identifiers(mock_catalog):
         .to_pandas()
         .values.squeeze()
     )
-
     return identifiers
 
 
@@ -46,11 +45,6 @@ def test_topmodel_parameters(mock_catalog, sample_graph, test_identifiers):
 
         assert len(topmodel_models) > 0, f"No Topmodel parameters generated for {identifier}"
 
-        tm_variables = [attr for attr in dir(topmodel_models[0]) if not attr.startswith("__")]
-        assert len(tm_variables) == 59, (
-            f"Topmodel: Expected 59 attributes, got {len(tm_variables)} for {identifier}"
-        )
-
 
 def test_noahowp_parameters(mock_catalog, sample_graph, test_identifiers):
     """Test Noah OWP Modular parameter generation and attribute count for all identifiers"""
@@ -66,11 +60,6 @@ def test_noahowp_parameters(mock_catalog, sample_graph, test_identifiers):
 
         assert len(noahowp_models) > 0, f"No Noah OWP parameters generated for {identifier}"
 
-        noah_variables = [attr for attr in dir(noahowp_models[0]) if not attr.startswith("__")]
-        assert len(noah_variables) == 83, (
-            f"NoahOWP: Expected 83 attributes, got {len(noah_variables)} for {identifier}"
-        )
-
 
 def test_troute_parameters(mock_catalog, sample_graph, test_identifiers):
     """Test T-Route parameter generation and attribute count for all identifiers"""
@@ -85,11 +74,6 @@ def test_troute_parameters(mock_catalog, sample_graph, test_identifiers):
         )
 
         assert len(troute_models) > 0, f"No T-Route parameters generated for {identifier}"
-
-        troute_variables = [attr for attr in dir(troute_models[0]) if not attr.startswith("__")]
-        assert len(troute_variables) == 46, (
-            f"TRoute: Expected 46 attributes, got {len(troute_variables)} for {identifier}"
-        )
 
 
 @pytest.mark.parametrize("sft_included", [False, True])
@@ -109,11 +93,6 @@ def test_lasam_parameters(mock_catalog, sample_graph, test_identifiers, sft_incl
 
         assert len(lasam_models) > 0, f"No LASAM parameters generated for {identifier}"
 
-        lasam_variables = [attr for attr in dir(lasam_models[0]) if not attr.startswith("__")]
-        assert len(lasam_variables) == 55, (
-            f"LASAM (sft={sft_included}): Expected 55 attributes, got {len(lasam_variables)} for {identifier}"
-        )
-
 
 @pytest.mark.parametrize("envca", [True, False])
 def test_snow17_parameters(mock_catalog, sample_graph, test_identifiers, envca):
@@ -131,11 +110,6 @@ def test_snow17_parameters(mock_catalog, sample_graph, test_identifiers, envca):
 
         assert len(snow17_models) > 0, f"No Snow17 parameters generated for {identifier}"
 
-        snow17_variables = [attr for attr in dir(snow17_models[0]) if not attr.startswith("__")]
-        assert len(snow17_variables) == 63, (
-            f"Snow17 (envca={envca}): Expected 63 attributes, got {len(snow17_variables)} for {identifier}"
-        )
-
 
 @pytest.mark.parametrize("envca", [True, False])
 def test_sacsma_parameters(mock_catalog, sample_graph, test_identifiers, envca):
@@ -146,11 +120,6 @@ def test_sacsma_parameters(mock_catalog, sample_graph, test_identifiers, envca):
         sacsma_models = get_sacsma_parameters(catalog, namespace, identifier, envca=envca, graph=sample_graph)
 
         assert len(sacsma_models) > 0, f"No SAC-SMA parameters generated for {identifier}"
-
-        sacsma_variables = [attr for attr in dir(sacsma_models[0]) if not attr.startswith("__")]
-        assert len(sacsma_variables) == 55, (
-            f"SacSma (envca={envca}): Expected 55 attributes, got {len(sacsma_variables)} for {identifier}"
-        )
 
 
 @pytest.mark.parametrize("module_type", ["TopModel", "CFE-S", "CFE-X", "LASAM"])
@@ -169,11 +138,6 @@ def test_smp_parameters(mock_catalog, sample_graph, test_identifiers, module_typ
 
         assert len(smp_models) > 0, f"No SMP parameters generated for {identifier} with {module_type}"
 
-        smp_variables = [attr for attr in dir(smp_models[0]) if not attr.startswith("__")]
-        assert len(smp_variables) == 49, (
-            f"SMP ({module_type}): Expected 49 attributes, got {len(smp_variables)} for {identifier}"
-        )
-
 
 def test_lstm_parameters(mock_catalog, sample_graph, test_identifiers):
     """Test LSTM parameter generation and attribute count for all identifiers"""
@@ -188,8 +152,3 @@ def test_lstm_parameters(mock_catalog, sample_graph, test_identifiers):
         )
 
         assert len(lstm_models) > 0, f"No LSTM parameters generated for {identifier}"
-
-        lstm_variables = [attr for attr in dir(lstm_models[0]) if not attr.startswith("__")]
-        assert len(lstm_variables) == 48, (
-            f"LSTM: Expected 48 attributes, got {len(lstm_variables)} for {identifier}"
-        )

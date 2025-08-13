@@ -637,9 +637,9 @@ class MockCatalog:
                     "id": node_id,
                     "nex_id": f"nex-{wb_num}",
                     "hl_link": f"167{wb_num:05d}",
-                    "hl_reference": "Gages",
+                    "hl_reference": "gages",
                     "hl_source": "NWIS",
-                    "hl_uri": f"Gages-167{wb_num:05d}",
+                    "hl_uri": f"gages-167{wb_num:05d}",
                 }
 
             hydrolocations.append(
