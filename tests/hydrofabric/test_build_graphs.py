@@ -466,3 +466,18 @@ def test_build_graph_edge_cases(flowpath_ids, nexus_ids, expected_nodes):
 
     graph = _build_graph(flowpaths_data, network_data)
     assert len(graph.nodes()) == expected_nodes
+
+
+def test_mock_catalog_integration(mock_catalog, tmp_path):
+    """Test that mock catalog works with the fixed graph building"""
+    catalog = mock_catalog("glue")
+
+    graph_dict = load_upstream_json(catalog=catalog, namespaces=["mock_hf"], output_path=tmp_path)
+
+    assert "mock_hf" in graph_dict
+    assert graph_dict["mock_hf"].num_nodes() > 0
+
+    # Graph should be valid
+    graph = graph_dict["mock_hf"]
+    assert isinstance(graph.nodes(), list)
+    assert len(graph.nodes()) > 0

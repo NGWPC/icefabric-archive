@@ -4,6 +4,7 @@ import json
 import geopandas as gpd
 import pandas as pd
 import polars as pl
+import rustworkx as rx
 from pyiceberg.catalog import Catalog
 from pyproj import Transformer
 
@@ -42,7 +43,7 @@ def get_sft_parameters(
     catalog: Catalog,
     namespace: str,
     identifier: str,
-    upstream_dict: dict[str, list[str]],
+    graph: rx.PyDiGraph,
     use_schaake: bool = False,
 ) -> list[SFT]:
     """Creates the initial parameter estimates for the SFT module
@@ -69,7 +70,7 @@ def get_sft_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"smcmax": "mean.smcmax", "bexp": "mode.bexp", "psisat": "geom_mean.psisat"}
 
@@ -109,7 +110,7 @@ def get_sft_parameters(
 
 
 def get_snow17_parameters(
-    catalog: Catalog, namespace: str, identifier: str, envca: bool, upstream_dict: dict[str, list[str]]
+    catalog: Catalog, namespace: str, identifier: str, envca: bool, graph: rx.PyDiGraph
 ) -> list[Snow17]:
     """Creates the initial parameter estimates for the Snow17 module
 
@@ -135,7 +136,7 @@ def get_snow17_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"elevation_mean": "mean.elevation", "lat": "centroid_y", "lon": "centroid_x"}
 
@@ -204,7 +205,7 @@ def get_smp_parameters(
     catalog: Catalog,
     namespace: str,
     identifier: str,
-    upstream_dict: dict[str, list[str]],
+    graph: rx.PyDiGraph,
     module: str | None = None,
 ) -> list[SMP]:
     """Creates the initial parameter estimates for the SMP module
@@ -232,7 +233,7 @@ def get_smp_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"smcmax": "mean.smcmax", "bexp": "mode.bexp", "psisat": "geom_mean.psisat"}
 
@@ -296,9 +297,7 @@ def get_smp_parameters(
     return pydantic_models
 
 
-def get_lstm_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
-) -> list[LSTM]:
+def get_lstm_parameters(catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph) -> list[LSTM]:
     """Creates the initial parameter estimates for the LSTM module
 
     Parameters
@@ -324,7 +323,7 @@ def get_lstm_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {
         "slope": "mean.slope",
@@ -385,7 +384,7 @@ def get_lasam_parameters(
     namespace: str,
     identifier: str,
     sft_included: bool,
-    upstream_dict: dict[str, list[str]],
+    graph: rx.PyDiGraph,
     soil_params_file: str = "vG_default_params_HYDRUS.dat",
 ) -> list[LASAM]:
     """Creates the initial parameter estimates for the LASAM module
@@ -415,7 +414,7 @@ def get_lasam_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"soil_type": "mode.ISLTYP"}
 
@@ -448,7 +447,7 @@ def get_lasam_parameters(
 
 
 def get_noahowp_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
+    catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph
 ) -> list[NoahOwpModular]:
     """Creates the initial parameter estimates for the Noah OWP Modular module
 
@@ -472,7 +471,7 @@ def get_noahowp_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {
         "slope": "mean.slope",
@@ -523,7 +522,7 @@ def get_noahowp_parameters(
 
 
 def get_sacsma_parameters(
-    catalog: Catalog, namespace: str, identifier: str, envca: bool, upstream_dict: dict[str, list[str]]
+    catalog: Catalog, namespace: str, identifier: str, envca: bool, graph: rx.PyDiGraph
 ) -> list[SacSma]:
     """Creates the initial parameter estimates for the SAC SMA module
 
@@ -550,7 +549,7 @@ def get_sacsma_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
 
     # Extraction of relevant features from divides layer
@@ -625,7 +624,7 @@ def get_sacsma_parameters(
 
 
 def get_troute_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
+    catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph
 ) -> list[TRoute]:
     """Creates the initial parameter estimates for the T-Route
 
@@ -649,7 +648,7 @@ def get_troute_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
 
     # Extraction of relevant features from divide attributes layer
@@ -668,7 +667,7 @@ def get_troute_parameters(
 
 
 def get_topmodel_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
+    catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph
 ) -> list[Topmodel]:
     """Creates the initial parameter estimates for the Topmodel
 
@@ -701,7 +700,7 @@ def get_topmodel_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"twi": "dist_4.twi"}
 
@@ -741,7 +740,7 @@ def get_topmodel_parameters(
 
 
 def get_topoflow_parameters(
-    catalog: Catalog, namespace: str, identifier: str, upstream_dict: dict[str, list[str]]
+    catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph
 ) -> list[Topoflow]:
     """Creates the initial parameter estimates for the Topoflow module
 

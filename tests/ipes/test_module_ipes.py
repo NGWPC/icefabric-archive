@@ -32,13 +32,16 @@ def test_identifiers(mock_catalog):
     return identifiers
 
 
-def test_topmodel_parameters(mock_catalog, sample_upstream_connections, test_identifiers):
+def test_topmodel_parameters(mock_catalog, sample_graph, test_identifiers):
     """Test Topmodel parameter generation and attribute count for all identifiers"""
     catalog = mock_catalog("glue")
     namespace = "mock_hf"
     for identifier in test_identifiers:
         topmodel_models = get_topmodel_parameters(
-            catalog, namespace, identifier, upstream_dict=sample_upstream_connections
+            catalog,
+            namespace,
+            identifier,
+            graph=sample_graph,
         )
 
         assert len(topmodel_models) > 0, f"No Topmodel parameters generated for {identifier}"
@@ -49,13 +52,16 @@ def test_topmodel_parameters(mock_catalog, sample_upstream_connections, test_ide
         )
 
 
-def test_noahowp_parameters(mock_catalog, sample_upstream_connections, test_identifiers):
+def test_noahowp_parameters(mock_catalog, sample_graph, test_identifiers):
     """Test Noah OWP Modular parameter generation and attribute count for all identifiers"""
     catalog = mock_catalog("glue")
     namespace = "mock_hf"
     for identifier in test_identifiers:
         noahowp_models = get_noahowp_parameters(
-            catalog, namespace, identifier, upstream_dict=sample_upstream_connections
+            catalog,
+            namespace,
+            identifier,
+            graph=sample_graph,
         )
 
         assert len(noahowp_models) > 0, f"No Noah OWP parameters generated for {identifier}"
@@ -66,13 +72,16 @@ def test_noahowp_parameters(mock_catalog, sample_upstream_connections, test_iden
         )
 
 
-def test_troute_parameters(mock_catalog, sample_upstream_connections, test_identifiers):
+def test_troute_parameters(mock_catalog, sample_graph, test_identifiers):
     """Test T-Route parameter generation and attribute count for all identifiers"""
     mock_catalog = mock_catalog("glue")
     namespace = "mock_hf"
     for identifier in test_identifiers:
         troute_models = get_troute_parameters(
-            mock_catalog, namespace, identifier, upstream_dict=sample_upstream_connections
+            mock_catalog,
+            namespace,
+            identifier,
+            graph=sample_graph,
         )
 
         assert len(troute_models) > 0, f"No T-Route parameters generated for {identifier}"
@@ -84,7 +93,7 @@ def test_troute_parameters(mock_catalog, sample_upstream_connections, test_ident
 
 
 @pytest.mark.parametrize("sft_included", [False, True])
-def test_lasam_parameters(mock_catalog, sample_upstream_connections, test_identifiers, sft_included):
+def test_lasam_parameters(mock_catalog, sample_graph, test_identifiers, sft_included):
     """Test LASAM parameter generation with different sft_included values"""
     catalog = mock_catalog("glue")
     namespace = "mock_hf"
@@ -95,7 +104,7 @@ def test_lasam_parameters(mock_catalog, sample_upstream_connections, test_identi
             identifier,
             sft_included=sft_included,
             soil_params_file="vG_default_params_HYDRUS.dat",
-            upstream_dict=sample_upstream_connections,
+            graph=sample_graph,
         )
 
         assert len(lasam_models) > 0, f"No LASAM parameters generated for {identifier}"
@@ -107,13 +116,17 @@ def test_lasam_parameters(mock_catalog, sample_upstream_connections, test_identi
 
 
 @pytest.mark.parametrize("envca", [True, False])
-def test_snow17_parameters(mock_catalog, sample_upstream_connections, test_identifiers, envca):
+def test_snow17_parameters(mock_catalog, sample_graph, test_identifiers, envca):
     """Test Snow17 parameter generation with different envca values"""
     catalog = mock_catalog("glue")
     namespace = "mock_hf"
     for identifier in test_identifiers:
         snow17_models = get_snow17_parameters(
-            catalog, namespace, identifier, envca=envca, upstream_dict=sample_upstream_connections
+            catalog,
+            namespace,
+            identifier,
+            envca=envca,
+            graph=sample_graph,
         )
 
         assert len(snow17_models) > 0, f"No Snow17 parameters generated for {identifier}"
@@ -125,14 +138,12 @@ def test_snow17_parameters(mock_catalog, sample_upstream_connections, test_ident
 
 
 @pytest.mark.parametrize("envca", [True, False])
-def test_sacsma_parameters(mock_catalog, sample_upstream_connections, test_identifiers, envca):
+def test_sacsma_parameters(mock_catalog, sample_graph, test_identifiers, envca):
     """Test SAC-SMA parameter generation with different envca values"""
     catalog = mock_catalog("glue")
     namespace = "mock_hf"
     for identifier in test_identifiers:
-        sacsma_models = get_sacsma_parameters(
-            catalog, namespace, identifier, envca=envca, upstream_dict=sample_upstream_connections
-        )
+        sacsma_models = get_sacsma_parameters(catalog, namespace, identifier, envca=envca, graph=sample_graph)
 
         assert len(sacsma_models) > 0, f"No SAC-SMA parameters generated for {identifier}"
 
@@ -143,13 +154,17 @@ def test_sacsma_parameters(mock_catalog, sample_upstream_connections, test_ident
 
 
 @pytest.mark.parametrize("module_type", ["TopModel", "CFE-S", "CFE-X", "LASAM"])
-def test_smp_parameters(mock_catalog, sample_upstream_connections, test_identifiers, module_type):
+def test_smp_parameters(mock_catalog, sample_graph, test_identifiers, module_type):
     """Test SMP parameter generation for different modules"""
     catalog = mock_catalog("glue")
     namespace = "mock_hf"
     for identifier in test_identifiers:
         smp_models = get_smp_parameters(
-            catalog, namespace, identifier, module=module_type, upstream_dict=sample_upstream_connections
+            catalog,
+            namespace,
+            identifier,
+            module=module_type,
+            graph=sample_graph,
         )
 
         assert len(smp_models) > 0, f"No SMP parameters generated for {identifier} with {module_type}"
@@ -160,13 +175,16 @@ def test_smp_parameters(mock_catalog, sample_upstream_connections, test_identifi
         )
 
 
-def test_lstm_parameters(mock_catalog, sample_upstream_connections, test_identifiers):
+def test_lstm_parameters(mock_catalog, sample_graph, test_identifiers):
     """Test LSTM parameter generation and attribute count for all identifiers"""
     catalog = mock_catalog("glue")
     namespace = "mock_hf"
     for identifier in test_identifiers:
         lstm_models = get_lstm_parameters(
-            catalog, namespace, identifier, upstream_dict=sample_upstream_connections
+            catalog,
+            namespace,
+            identifier,
+            graph=sample_graph,
         )
 
         assert len(lstm_models) > 0, f"No LSTM parameters generated for {identifier}"

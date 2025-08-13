@@ -26,11 +26,11 @@ def _build_graph(flowpaths: pl.LazyFrame, network: pl.LazyFrame) -> rx.PyDiGraph
     """
     fp = flowpaths.select([pl.col("id"), pl.col("toid")]).collect()
 
-    # Make sure wb-0 exists as a flowpath
-    wb0_df = pl.DataFrame({"id": ["wb-0"], "toid": [None]})
+    if "wb-0" not in fp["id"].to_list():
+        wb0_df = pl.DataFrame({"id": ["wb-0"], "toid": [None]})
+        fp = pl.concat([fp, wb0_df], how="vertical")
 
-    # Use concat which handles empty DataFrames better than extend
-    fp = pl.concat([fp, wb0_df], how="vertical").lazy()
+    fp = fp.lazy()
 
     network_table = network.select([pl.col("id"), pl.col("toid")]).collect()
     network_table = network_table.filter(pl.col("id").str.starts_with("wb-").not_())
