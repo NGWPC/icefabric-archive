@@ -211,7 +211,7 @@ def get_smp_parameters(
     namespace: str,
     identifier: str,
     graph: rx.PyDiGraph,
-    module: str | None = None,
+    extra_module: str | None = None,
 ) -> list[SMP]:
     """Creates the initial parameter estimates for the SMP module
 
@@ -267,20 +267,20 @@ def get_smp_parameters(
     water_depth_layers = "NA"
     water_table_depth = "NA"
 
-    if module:
-        if module == "CFE-S" or module == "CFE-X":
+    if extra_module:
+        if extra_module == "CFE-S" or extra_module == "CFE-X":
             soil_storage_model = SoilScheme.CFE_SOIL_STORAGE.value
             soil_storage_depth = SoilScheme.CFE_STORAGE_DEPTH.value
-        elif module == "TopModel":
+        elif extra_module == "TopModel":
             soil_storage_model = SoilScheme.TOPMODEL_SOIL_STORAGE.value
             water_table_based_method = SoilScheme.TOPMODEL_WATER_TABLE_METHOD.value
-        elif module == "LASAM":
+        elif extra_module == "LASAM":
             soil_storage_model = SoilScheme.LASAM_SOIL_STORAGE.value
             soil_moisture_profile_option = SoilScheme.LASAM_SOIL_MOISTURE.value
             soil_depth_layers = SoilScheme.LASAM_SOIL_DEPTH_LAYERS.value
             water_table_depth = SoilScheme.LASAM_WATER_TABLE_DEPTH.value
         else:
-            raise ValueError(f"Passing unsupported module into endpoint: {module}")
+            raise ValueError(f"Passing unsupported module into endpoint: {extra_module}")
 
     pydantic_models = []
     for row_dict in result_df.iter_rows(named=True):
@@ -921,7 +921,7 @@ def get_cfe_parameters(
         the hydrofabric namespace
     identifier : str
         the gauge identifier
-    module: str
+    cfe_version: str
         the CFE module type (e.g. CFE-X, CFE-S) for which determines whether
         to use Shaake or Xinanjiang for surface partitioning.
     sft_included: bool
