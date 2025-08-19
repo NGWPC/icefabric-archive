@@ -1,5 +1,6 @@
 """A file to assist with querying data from the RISE app"""
 
+from typing import Any
 from urllib.parse import urlencode
 
 import httpx
@@ -49,3 +50,36 @@ async def make_get_req_to_rise(full_url: str):
             rise_response["status_code"] = int(err.response.status_code)
             rise_response["detail"] = err.response.text
         return rise_response
+
+
+def make_sync_get_req_to_rise(full_url: str) -> dict[str, Any]:
+    """
+    Makes a synchronous GET request to the RISE API.
+
+    Returns a response dict with the status code and the message body. If
+    the response is an error from RISE, the original code and message is
+    returned as well.
+
+    Parameters
+    ----------
+    full_url : str
+        The complete URL to make the GET request to
+
+    Returns
+    -------
+    dict[str, Any]
+        Dictionary containing 'status_code' and 'detail' keys
+    """
+    rise_response = {}
+    try:
+        rise_response = {"status_code": 200, "detail": ""}
+        print(f"Making GET request to RISE (full URL): {full_url}")
+
+        resp = httpx.get(full_url, headers=RISE_HEADERS, timeout=15)
+        resp.raise_for_status()
+        rise_response["detail"] = resp.json()
+    except httpx.HTTPError as err:
+        print(f"RISE API returned an HTTP error: {err}")
+        rise_response["status_code"] = int(err.response.status_code)
+        rise_response["detail"] = err.response.text
+    return rise_response
