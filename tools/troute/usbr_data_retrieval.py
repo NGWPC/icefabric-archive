@@ -323,6 +323,8 @@ def result_to_file(location_id: str, start_date: str, end_date: str, output_fold
         else:
             raise NotImplementedError("Series Data not found. Throwing error.")
         write_ds(df, params, location_id=location_id, info=_info, output_folder=output_folder)
+        output_filename = output_folder / f"{params['filename']}.nc"
+        print(f"Output file saved to: {output_filename}")
 
 
 if __name__ == "__main__":
