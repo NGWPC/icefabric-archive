@@ -121,10 +121,6 @@ def write_ds(df: pd.DataFrame, params: dict[str, Any], location_id: str, info: s
         # Reindex with nearest interpolation
         df_extended = df_indexed.reindex(hourly_index, method="nearest")
         df = df_extended.reset_index()
-
-        # Create synthetic mask: 1 for interpolated values, 0 for original
-        original_times = set(df_indexed.index)
-        synthetic_mask = [0 if timestamp in original_times else 1 for timestamp in hourly_index]
     else:
         raise ValueError(f"Cannot interpolate non-daily values. Timestep is: {timestep}")
     stationId = xr.DataArray(
@@ -132,14 +128,9 @@ def write_ds(df: pd.DataFrame, params: dict[str, Any], location_id: str, info: s
         dims=[],
         attrs={"long_name": info, "units": "-"},
     )
-    issueTimeUTC = xr.DataArray(
-        data=[pd.Timestamp(end_date).strftime("%Y-%m-%d_%H:%M:%S").encode("utf-8")],
-        dims=["nseries"],
-        name="issueTimeUTC",
-        attrs={"long_name": "YYYY-MM-DD_HH:mm:ss UTC", "units": "UTC"},
-    )
     discharges = xr.DataArray(
-        data=df["Result"].values.reshape(1, -1),  # Reshape to (nseries, forecastInd)
+        data=df["Result"].values.reshape(1, -1)
+        * 0.0283168,  # Reshape to (nseries, forecastInd). Convert to cms
         dims=["nseries", "forecastInd"],
         name="discharges",
         attrs={
@@ -147,36 +138,13 @@ def write_ds(df: pd.DataFrame, params: dict[str, Any], location_id: str, info: s
             "units": "m^3/s",
         },
     )
-    synthetic_values = xr.DataArray(
-        data=np.array(synthetic_mask, dtype=np.int8).reshape(1, -1),
-        dims=["nseries", "forecastInd"],
-        attrs={
-            "long_name": "Whether the discharge value is synthetic or orginal, 1 - synthetic, 0 - original",
-            "units": "-",
-        },
-    )
-    totalCounts = xr.DataArray(
-        data=[len(synthetic_mask)],
-        dims=["nseries"],
-        attrs={"long_name": "Total count of all observation and forecast values", "units": "-"},
-    )
-    observedCounts = xr.DataArray(
-        data=[len(synthetic_mask)],  # Keep original - all data is observed
-        dims=["nseries"],
-        attrs={"long_name": "Total observed values before T0", "units": "-"},
-    )
-    forecastCounts = xr.DataArray(
-        data=[0],  # Keep original - no forecasts, all observed
-        dims=["nseries"],
-        attrs={"long_name": "Total forecasted values including and after T0.", "units": "-"},
-    )
     timeSteps = xr.DataArray(
         data=[pd.Timedelta(hours=1).value],  # This gives nanoseconds
         dims=["nseries"],
         name="timeSteps",
         attrs={"long_name": "Frequency/temporal resolution of forecast values"},
     )
-    discharge_qualities = xr.DataArray(
+    discharge_quality = xr.DataArray(
         data=[100],
         dims=["nseries"],
         attrs={
@@ -190,22 +158,15 @@ def write_ds(df: pd.DataFrame, params: dict[str, Any], location_id: str, info: s
     ds = xr.Dataset(
         data_vars={
             "stationId": stationId,
-            "issueTimeUTC": issueTimeUTC,
             "discharges": discharges,
-            "synthetic_values": synthetic_values,
-            "totalCounts": totalCounts,
-            "observedCounts": observedCounts,
-            "forecastCounts": forecastCounts,
             "timeSteps": timeSteps,
-            "discharge_qualities": discharge_qualities,
+            "discharge_quality": discharge_quality,
             "queryTime": queryTime,
         },
         attrs={
             "fileUpdateTimeUTC": pd.Timestamp("now").strftime("%Y-%m-%d_%H:%M:%S"),
             "sliceStartTimeUTC": pd.Timestamp(start_date).strftime("%Y-%m-%d_%H:%M:%S"),  # Use start_date
             "sliceTimeResolutionMinutes": 60,
-            "missingValue": -999.99,
-            "newest_forecast": 0,
             "usbr_catalog_item_id": params["itemId"],
         },
     )
