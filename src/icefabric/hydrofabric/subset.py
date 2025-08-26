@@ -212,23 +212,24 @@ def subset_hydrofabric_vpu(
     vpu_filter = EqualTo("vpuid", vpu_id)
 
     print("Subsetting network layer")
-    filtered_network = catalog.load_table(f"{namespace}.network").scan(row_filter=vpu_filter).to_polars()
+    network = catalog.load_table(f"{namespace}.network").scan(row_filter=vpu_filter).to_polars()
+    filtered_network = network.with_columns(
+        pl.col("poi_id").map_elements(lambda x: str(int(x)) if x is not None else None, return_dtype=pl.Utf8)
+    )
     valid_hf_id = (
         filtered_network.select(pl.col("hf_id").drop_nulls().unique().cast(pl.Float64)).to_series().to_list()
     )
+    assert filtered_network.height > 0, "No network records found"
 
     print("Subsetting flowpaths layer")
-    # this gets used elsewhere
     filtered_flowpaths = catalog.load_table(f"{namespace}.flowpaths").scan(row_filter=vpu_filter).to_polars()
 
     assert filtered_flowpaths.height > 0, "No flowpaths found"
     filtered_flowpaths_geo = to_geopandas(filtered_flowpaths.to_pandas())
 
     print("Subsetting nexus layer")
-    valid_toids = filtered_flowpaths.filter(pl.col("toid").is_not_null()).get_column("toid").to_list()
-    assert valid_toids, "No nexus points found"
     nexus = catalog.load_table(f"{namespace}.nexus").scan(row_filter=vpu_filter).to_polars()
-    filtered_nexus_points = nexus.filter(pl.col("id").is_in(valid_toids)).with_columns(
+    filtered_nexus_points = nexus.with_columns(
         pl.col("poi_id").map_elements(lambda x: str(int(x)) if x is not None else None, return_dtype=pl.Utf8)
     )
     filtered_nexus_points_geo = to_geopandas(filtered_nexus_points.to_pandas())
@@ -239,8 +240,7 @@ def subset_hydrofabric_vpu(
     )
     assert valid_divide_ids, "No valid divide_ids found"
     divides = catalog.load_table(f"{namespace}.divides").scan(row_filter=vpu_filter).to_polars()
-    filtered_divides = divides.filter(pl.col("divide_id").is_in(valid_divide_ids))
-    filtered_divides_geo = to_geopandas(filtered_divides.to_pandas())
+    filtered_divides_geo = to_geopandas(divides.to_pandas())
 
     output_layers = {
         "flowpaths": filtered_flowpaths_geo,
@@ -265,28 +265,24 @@ def subset_hydrofabric_vpu(
         output_layers["divide-attributes"] = filtered_divide_attr.to_pandas()
 
     if "flowpath-attributes" in layers:
-        # TODO: check that this doesn't need upstream ids
         print("Subsetting flowpath-attributes layer")
         output_layers["flowpath-attributes"] = (
             catalog.load_table(f"{namespace}.flowpath-attributes").scan(row_filter=vpu_filter).to_pandas()
         )
 
     if "flowpath-attributes-ml" in layers:
-        # TODO: check that this doesn't need upstream ids
         print("Subsetting flowpath-attributes-ml layer")
         output_layers["flowpath-attributes-ml"] = (
             catalog.load_table(f"{namespace}.flowpath-attributes-ml").scan(row_filter=vpu_filter).to_pandas()
         )
 
     if "pois" in layers:
-        # TODO: check that this doesn't need upstream ids
         print("Subsetting pois layer")
         output_layers["pois"] = (
             catalog.load_table(f"{namespace}.pois").scan(row_filter=vpu_filter).to_pandas()
         )
 
     if "hydrolocations" in layers:
-        # TODO: check that this doesn't need upstream ids
         print("Subsetting hydrolocations layer")
         output_layers["hydrolocations"] = (
             catalog.load_table(f"{namespace}.hydrolocations").scan(row_filter=vpu_filter).to_pandas()
