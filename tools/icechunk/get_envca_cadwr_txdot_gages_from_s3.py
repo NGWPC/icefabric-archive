@@ -7,6 +7,7 @@ import pandas as pd
 GAGE_TYPE_CORRELATION = {"ENVCA": "ENVCA", "CADWR": "CADWR", "USGS": "TXDOT"}
 
 if __name__ == "__main__":
+    # This path is in the NGWPC AWS Data account
     conus_root_path = "s3://ngwpc-hydrofabric/2.1/CONUS"
     gage_collection_dir = "data/gage_data/"
     hourly_discharge_final_collection = "data/gage_csv_files"
