@@ -6,7 +6,6 @@ import pandas as pd
 import polars as pl
 from pyiceberg.catalog import Catalog
 from pyiceberg.expressions import And, EqualTo, In, LessThanOrEqual
-from pyprojroot import here
 
 from icefabric.helpers.geopackage import table_to_geopandas, to_geopandas
 from icefabric.schemas.hydrofabric import UPSTREAM_VPUS
@@ -124,17 +123,3 @@ def get_rnr_segment(
     if len(filtered_lakes) > 0:
         layers["lakes"] = filtered_lakes
     return layers
-
-
-if __name__ == "__main__":
-    from pyiceberg.catalog import load_catalog
-
-    from icefabric.helpers.creds import load_creds
-
-    load_creds()
-
-    catalog = load_catalog("glue")
-    layers = get_rnr_segment(catalog, "9963082")
-    # layers = get_rnr_segment(catalog, "19696547")
-    for table, layer in layers.items():
-        gpd.GeoDataFrame(layer).to_file(here() / "rnr_output_3.gpkg", layer=table, driver="GPKG")
