@@ -1,8 +1,10 @@
 import argparse
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, status
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pyiceberg.catalog import load_catalog
 from pyiceberg.exceptions import NoSuchTableError
@@ -114,8 +116,7 @@ app.include_router(topoflow_router, prefix="/v1")
 app.include_router(ras_api_router, prefix="/v1")
 app.include_router(rise_api_wrap_router, prefix="/v1")
 
-
-@app.head(
+@app.get(
     "/health",
     tags=["Health"],
     summary="Perform a Health Check",
@@ -123,10 +124,28 @@ app.include_router(rise_api_wrap_router, prefix="/v1")
     status_code=status.HTTP_200_OK,
     response_model=HealthCheck,
 )
+
+@app.head(
+    "/health",
+    tags=["Health"],
+    summary="Perform a Health Check",
+    response_description="Return HTTP Status Code 200 (OK)",
+    status_code=status.HTTP_200_OK,
+)
+
 def get_health() -> HealthCheck:
-    """Returns a HeatlhCheck for the server"""
+    """Returns a HealthCheck for the server"""
     return HealthCheck(status="OK")
 
+# Mount static files for mkdocs at the root
+# This tells FastAPI to serve the static documentation files at the '/' URL
+# We only mount the directory if it exists (only after 'mkdocs build' has run)
+# This prevents the app from crashing during tests or local development.
+docs_dir = Path("static/docs")
+if docs_dir.is_dir():
+    app.mount("/", StaticFiles(directory=docs_dir, html=True), name="static")
+else:
+    print("INFO: Documentation directory 'static/docs' not found. Docs will not be served.")
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
