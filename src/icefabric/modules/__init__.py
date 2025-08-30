@@ -16,7 +16,6 @@ from .create_ipes import (
     get_troute_parameters,
     get_ueb_parameters,
 )
-from .rnr import get_rnr_segment
 
 
 class NWMModules(enum.Enum):
@@ -72,7 +71,6 @@ config_mapper = {
 
 __all__ = [
     "get_sft_parameters",
-    "get_rnr_segment",
     "get_lstm_parameters",
     "get_lasam_parameters",
     "get_noahowp_parameters",

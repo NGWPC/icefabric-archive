@@ -6,7 +6,6 @@ import pandas as pd
 import polars as pl
 from pyiceberg.catalog import Catalog
 from pyiceberg.expressions import And, EqualTo, In, LessThanOrEqual
-from pyprojroot import here
 
 from icefabric.helpers.geopackage import table_to_geopandas, to_geopandas
 from icefabric.schemas.hydrofabric import UPSTREAM_VPUS

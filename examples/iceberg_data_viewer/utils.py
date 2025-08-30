@@ -6,7 +6,7 @@ from pyiceberg import expressions
 from pyiceberg.catalog import Catalog, load_catalog
 from pyiceberg.exceptions import NoSuchTableError
 
-from icefabric.schemas.hydrofabric import HydrofabricDomains
+from icefabric.schemas import HydrofabricDomains
 
 
 def get_streamflow_data(
