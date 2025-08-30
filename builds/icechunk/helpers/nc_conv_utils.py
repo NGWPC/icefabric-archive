@@ -3,11 +3,11 @@
 import os
 import subprocess
 
+import icechunk.helpers.arch_weather_file_utils as awf_utils
 from netCDF4 import Dataset as NCDataset
 from tqdm import tqdm
 
-import icefabric.helpers.arch_weather_file_utils as awf_utils
-from icefabric.builds.icechunk_s3_module import S3Path
+from icefabric.builds import S3Path
 
 
 def convert_files_to_netcdf4(

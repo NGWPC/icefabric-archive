@@ -2,7 +2,8 @@
 
 import os
 
-from icefabric.helpers import convert_topobathy_to_tiff, load_creds
+from helpers import convert_topobathy_to_tiff, load_creds
+
 from icefabric.schemas import NGWPCLocations
 
 load_creds()

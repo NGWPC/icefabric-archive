@@ -9,12 +9,13 @@ from dotenv import load_dotenv
 
 import icefabric.helpers.nc_conv_utils as ncc_utils
 from icefabric.builds import IcechunkRepo, S3Path
-from icefabric.helpers import (
+from icefabric.schemas import FileType, NGWPCLocations
+
+from .helpers import (
     get_archival_weather_files,
     load_tiff_file,
     virtualize_and_concat_archival_files_on_time,
 )
-from icefabric.schemas import FileType, NGWPCLocations
 
 ICECHUNK_STORES = [loc for loc in NGWPCLocations if "_IC" in loc.name]
 load_dotenv()

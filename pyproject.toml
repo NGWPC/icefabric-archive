@@ -2,31 +2,31 @@
 build-backend = "hatchling.build"
 requires = ["hatchling", "hatch-vcs"]
 
-[tool.hatch]
-version.source = "vcs"
-build.hooks.vcs.version-file = "src/icefabric/_version.py"
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/icefabric/_version.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/icefabric", "app", "tools"]
-
+packages = ["src/icefabric"]
 [project]
 name = "icefabric"
-version = "2025.7.1"
 description = "An Apache Iceberg + Icechunk implementation of Hydrofabric data services"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
+dynamic = ["version"]
 authors = [
   { name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" },
-  { name = "Sylvia Chin", email = "sylvia.c.chin@rtx.com" },
   { name = "Daniel Cumpton", email = "dcumpton@rtx.com" },
   { name = "Quercus Hamlin", email = "qhamlin@asrcfederal.com" },
   { name = "Brock Hinkson", email = "brock.w.hinkson@rtx.com" },
   { name = "Farshid Rahmani", email = "Farshid.Rahmani@rtx.com" },
+  { name = "Sylvia Chin", email = "sylvia.c.chin@rtx.com" },
 ]
 maintainers = [
   { name = "Tadd Bindas", email = "tadd.bindas@ertcorp.com" },
-  { name = "Sylvia Chin", email = "sylvia.c.chin@rtx.com" },
   { name = "Daniel Cumpton", email = "dcumpton@rtx.com" },
   { name = "Quercus Hamlin", email = "qhamlin@asrcfederal.com" },
   { name = "Brock Hinkson", email = "brock.w.hinkson@rtx.com" },
@@ -34,62 +34,35 @@ maintainers = [
 ]
 
 dependencies = [
-  "ambiance==1.3.1",
-  "click==8.2.1",
-  "dask==2025.5.1",
-  "fiona==1.10.1",
-  "fsspec==2025.5.1",
-  "geodatasets==2024.8.0",
-  "geopandas==1.0.1",
-  "h5netcdf==1.6.1",
-  "h5py==3.13.0",
-  "icechunk==1.1.4",
-  "ipywidgets==8.1.6",
-  "jupytergis==0.5.0",
-  "jupyterlab==4.4.3",
-  "kerchunk==0.2.8",
-  "mapclassify==2.9.0",
-  "matplotlib==3.10.3",
-  "netCDF4==1.7.2",
-  "numpy==2.3.2",
-  "pandas==2.2.3",
-  "polars==1.31.0",
-  "pyarrow==20.0.0",
-  "pyiceberg[s3fs,glue,sql-sqlite]==0.9.1",
+  "geopandas>=1.0.1",
+  "numpy>=1.26.3",
+  "pydantic~=2.11",
   "pyprojroot==0.3.0",
   "python-dotenv==1.1.0",
-  "rioxarray==0.19.0",
-  "rustworkx==0.16.0",
-  "s3fs==2025.5.1",
-  "scipy==1.15.3",
-  "tifffile==2025.5.21",
+  "pyiceberg[glue,pandas,polars,s3fs,sql-sqlite]>=0.9.1",
+  "rustworkx>=0.16.0",
   "tqdm==4.67.1",
-  "virtualizarr==1.3.2",
-  "xarray==2025.07.1",
-  "zarr==3.1.0",
 ]
 
 [project.scripts]
 icefabric = "icefabric.cli.main:cli"
 
-[project.optional-dependencies]
+[dependency-groups]
+app = [
+  "fastapi[standard]>=0.115.12",
+]
+dev = [
+  "pre-commit>=3.0",
+  "ruff>=0.1",
+  "black>=23.0",
+  "mypy>=1.5",
+  "nbstripout>=0.6",
+  "hatch-calver",
+  "icefabric[complete]",
+]
 docs = [
   "mkdocs-material==9.6.14",
   "sympy==1.14.0"
-]
-
-[dependency-groups]
-app = [
-    "fastapi[standard]>=0.115.12",
-    "pydantic==2.11.5",
-    "pydantic-settings==2.9.1",
-]
-dev = [
-  "pre-commit==3.8.0",
-  "ruff==0.11.13",
-  "black==25.1.0",
-  "mypy==1.15.0",
-  "nbstripout==0.8.1",
 ]
 examples = [
   "folium==0.19.5",
@@ -100,14 +73,10 @@ examples = [
   "matplotlib==3.10.3",
 ]
 tests = [
-    "moto==5.1.8",
     "pytest==8.4.1",
     "pytest-asyncio==1.1.0",
     "pytest-cov==6.1.1",
 ]
-
-[tool.uv]
-default-groups = ["app", "dev", "examples", "tests"]
 
 [tool.black]
 line-length = 110
@@ -184,5 +153,5 @@ show_error_codes = true
 warn_unused_ignores = true
 
 [tool.pytest.ini_options]
-pythonpath = ["tests", "src/icefabric_api", "src/icefabric_tools"]
-testpaths = ["src/icefabric_api/tests", "src/icefabric_tools/tests", "tests"]
+pythonpath = ["tests", "src/icefabric"]
+testpaths = ["tests"]

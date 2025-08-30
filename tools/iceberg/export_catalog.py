@@ -17,15 +17,13 @@ from icefabric.schemas import HydrofabricSnapshot
 load_creds()
 
 
-def export(namespace: str, snapshot: int | None = None):
+def export(namespace: str):
     """Exports the catalog to a local SQL file based on the .pyiceberg.yaml in the project root
 
     Parameters
     ----------
     namespace : str
         The namespace to be exported
-    snapshot : str | None, optional
-        The snapshot ID to export from, by default None and using the latest
     """
     # Creates the local dir for the warehouse if it does not exist
     with open(os.environ["PYICEBERG_HOME"]) as f:
@@ -53,7 +51,7 @@ def export(namespace: str, snapshot: int | None = None):
         is_hf = False
 
     for _, table in tqdm(namespace_tables, desc=f"Exporting {namespace} tables", total=len(namespace_tables)):
-        _table = glue_catalog.load_table(f"{namespace}.{table}").scan(snapshot_id=snapshot)
+        _table = glue_catalog.load_table(f"{namespace}.{table}")
         _arrow = _table.to_arrow()
         iceberg_table = local_catalog.create_table_if_not_exists(
             f"{namespace}.{table}",
@@ -85,12 +83,11 @@ def export(namespace: str, snapshot: int | None = None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="A script to export the S3 tables catalog based on a namespace and snapshot id. If no snapshot, assuming the latest"
+        description="A script to export the S3 tables catalog based on a namespace. Assumes you want the latest data"
     )
 
     parser.add_argument("--namespace", help="The namespace repo that is being exported")
-    parser.add_argument("--snapshot", help="The snapshot ID for the namespace")
 
     args = parser.parse_args()
-    export(namespace=args.namespace, snapshot=args.snapshot)
+    export(namespace=args.namespace)
     # export(namespace="conus_hf")
