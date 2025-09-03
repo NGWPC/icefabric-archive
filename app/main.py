@@ -1,11 +1,11 @@
 import argparse
-import os
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, status
 from pydantic import BaseModel
 from pyiceberg.catalog import load_catalog
+from pyiceberg.exceptions import NoSuchTableError
 from pyprojroot import here
 
 from app.routers.hydrofabric.router import api_router as hydrofabric_api_router
@@ -43,6 +43,17 @@ tags_metadata = [
     },
 ]
 
+parser = argparse.ArgumentParser(description="The FastAPI App instance for querying versioned EDFS data")
+
+# Glue = S3 Tables; Sql is a local iceberg catalog
+parser.add_argument(
+    "--catalog",
+    choices=["glue", "sql"],
+    help="The catalog information for querying versioned EDFS data",
+    default="glue",
+)  # Setting the default to read from S3
+args, _ = parser.parse_known_args()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,15 +64,20 @@ async def lifespan(app: FastAPI):
     app: FastAPI
         The FastAPI app instance
     """
-    catalog_path = os.getenv("CATALOG_PATH")
-    catalog = load_catalog(catalog_path)
+    load_creds()
+    catalog = load_catalog(args.catalog)
     hydrofabric_namespaces = ["conus_hf", "ak_hf", "gl_hf", "hi_hf", "prvi_hf"]
     app.state.catalog = catalog
-    app.state.network_graphs = load_upstream_json(
-        catalog=catalog,
-        namespaces=hydrofabric_namespaces,
-        output_path=here() / "data",
-    )
+    try:
+        app.state.network_graphs = load_upstream_json(
+            catalog=catalog,
+            namespaces=hydrofabric_namespaces,
+            output_path=here() / "data",
+        )
+    except NoSuchTableError:
+        raise NotImplementedError(
+            "Cannot load API as the Hydrofabric Database/Namespace cannot be connected to. Please ensure you are have access to the correct hydrofabric namespaces"
+        ) from None
     yield
 
 
@@ -113,19 +129,4 @@ def get_health() -> HealthCheck:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="The FastAPI App instance for querying versioned EDFS data")
-
-    # Glue = S3 Tables; Sql is a local iceberg catalog
-    parser.add_argument(
-        "--catalog",
-        choices=["glue", "sql"],
-        help="The catalog information for querying versioned EDFS data",
-        default="glue",
-    )  # Setting the default to read from S3
-
-    args = parser.parse_args()
-
-    os.environ["CATALOG_PATH"] = args.catalog
-
-    load_creds()
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
