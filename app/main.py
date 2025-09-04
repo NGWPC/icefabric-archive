@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
     """
     load_creds()
     catalog = load_catalog(args.catalog)
-    hydrofabric_namespaces = ["conus_hf", "ak_hf", "gl_hf", "hi_hf", "prvi_hf"]
+    hydrofabric_namespaces = ["conus_hf", "ak_hf", "hi_hf", "prvi_hf"]
     app.state.catalog = catalog
     try:
         app.state.network_graphs = load_upstream_json(
