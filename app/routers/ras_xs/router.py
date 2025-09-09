@@ -142,10 +142,10 @@ async def get_xs_subset_gpkg(
             filename=download_filename,
             media_type="application/geopackage+sqlite3",
             headers={
-                "Data Source": f"ras_xs.{schema_type.value}",
-                "Flowpath ID": identifier,
-                "Description": f"RAS XS ({schema_type.value} schema) Geopackage",
-                "Total Records": f"{len(data_gdf)}",
+                "data-source": f"ras_xs.{schema_type.value}",
+                "flowpath-id": identifier,
+                "description": f"RAS XS ({schema_type.value} schema) Geopackage",
+                "total-records": f"{len(data_gdf)}",
             },
             background=BackgroundTask(lambda: tmp_path.unlink(missing_ok=True)),
         )
@@ -203,10 +203,10 @@ async def get_by_geospatial_query(
             filename=download_filename,
             media_type="application/geopackage+sqlite3",
             headers={
-                "Data Source": f"ras_xs.{schema_type.value}",
-                "Bounding Box": str(bbox),
-                "Description": f"RAS XS ({schema_type.value} schema) Geopackage",
-                "Total Records": f"{len(data_gdf)}",
+                "data-source": f"ras_xs.{schema_type.value}",
+                "bounding-box": str(bbox),
+                "description": f"RAS XS ({schema_type.value} schema) Geopackage",
+                "total-records": f"{len(data_gdf)}",
             },
             background=BackgroundTask(lambda: tmp_path.unlink(missing_ok=True)),
         )
