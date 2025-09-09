@@ -20,6 +20,10 @@ class RepresentativeRasXS:
     - ftype: Feature type classification. ex: ['StreamRiver', 'CanalDitch', 'ArtificialPath', 'Connector', None, 'Pipeline']
     - streamorde: Stream order of the mapped reference flowpath
     - geometry: Binary Linestring geometry data (WKB format)
+    - min_x: The minimum longitude associated with the linestring geometry data
+    - min_y: The minimum latitude associated with the linestring geometry data
+    - max_x: The maximum longitude associated with the linestring geometry data
+    - max_y: The maximum latitude associated with the linestring geometry data
     """
 
     @classmethod
@@ -45,6 +49,10 @@ class RepresentativeRasXS:
             "metdata_units",
             "epsg",
             "crs_units",
+            "min_x",
+            "min_y",
+            "max_x",
+            "max_y",
         ]
 
     @classmethod
@@ -70,6 +78,10 @@ class RepresentativeRasXS:
             NestedField(11, "metdata_units", StringType(), required=False),
             NestedField(12, "epsg", DoubleType(), required=False),
             NestedField(13, "crs_units", StringType(), required=False),
+            NestedField(14, "min_x", DoubleType(), required=False),
+            NestedField(15, "min_y", DoubleType(), required=False),
+            NestedField(16, "max_x", DoubleType(), required=False),
+            NestedField(17, "max_y", DoubleType(), required=False),
             identifier_field_ids=[1],
         )
 
@@ -97,6 +109,10 @@ class RepresentativeRasXS:
                 pa.field("metdata_units", pa.string(), nullable=True),
                 pa.field("epsg", pa.float64(), nullable=True),
                 pa.field("crs_units", pa.string(), nullable=True),
+                pa.field("min_x", pa.float64(), nullable=True),
+                pa.field("min_y", pa.float64(), nullable=True),
+                pa.field("max_x", pa.float64(), nullable=True),
+                pa.field("max_y", pa.float64(), nullable=True),
             ]
         )
 
@@ -126,6 +142,10 @@ class ConflatedRasXS:
     - metdata_units: Metadata units
     - epsg: EPSG coordinate system code
     - crs_units: Coordinate reference system units
+    - min_x: The minimum longitude associated with the linestring geometry data
+    - min_y: The minimum latitude associated with the linestring geometry data
+    - max_x: The maximum longitude associated with the linestring geometry data
+    - max_y: The maximum latitude associated with the linestring geometry data
     """
 
     @classmethod
@@ -158,6 +178,10 @@ class ConflatedRasXS:
             "ftype",
             "streamorde",
             "geometry",
+            "min_x",
+            "min_y",
+            "max_x",
+            "max_y",
         ]
 
     @classmethod
@@ -190,6 +214,10 @@ class ConflatedRasXS:
             NestedField(18, "ftype", StringType(), required=False),
             NestedField(19, "streamorde", DoubleType(), required=False),
             NestedField(20, "geometry", BinaryType(), required=False),
+            NestedField(21, "min_x", DoubleType(), required=False),
+            NestedField(22, "min_y", DoubleType(), required=False),
+            NestedField(23, "max_x", DoubleType(), required=False),
+            NestedField(24, "max_y", DoubleType(), required=False),
             identifier_field_ids=[3],
         )
 
@@ -224,5 +252,9 @@ class ConflatedRasXS:
                 pa.field("ftype", pa.string(), nullable=True),
                 pa.field("streamorde", pa.float64(), nullable=True),
                 pa.field("geometry", pa.binary(), nullable=True),
+                pa.field("min_x", pa.float64(), nullable=True),
+                pa.field("min_y", pa.float64(), nullable=True),
+                pa.field("max_x", pa.float64(), nullable=True),
+                pa.field("max_y", pa.float64(), nullable=True),
             ]
         )
