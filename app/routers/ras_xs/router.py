@@ -87,9 +87,11 @@ def filesystem_check(tmp_path: pathlib.PosixPath):
 async def get_xs_subset_gpkg(
     identifier: str = Path(
         ...,
-        description="The flowpath ID from the reference hydrofabric that the current RAS XS aligns is conflated to",
+        description="The flowpath ID from the reference hydrofabric that the current RAS XS aligns is conflated to. Must be numeric.",
+        pattern=r"^\d+$",
+        max_length=10,
         examples=["20059822"],
-        openapi_examples={"huc": {"summary": "XS Example", "value": "20059822"}},
+        openapi_examples={"flowpath_id": {"summary": "XS Example", "value": "20059822"}},
     ),
     schema_type: XsType = Query(
         XsType.CONFLATED, description="The schema type used to query the cross-sections"
