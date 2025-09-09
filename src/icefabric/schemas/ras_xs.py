@@ -8,11 +8,12 @@ class XsType(str, Enum):
 
     Attributes
     ----------
-    MIP : str
-        Mapping Information Platform
-    BLE : str
-        Base Level Engineering
+    CONFLATED : str
+        HEC-RAS data mapped to nearest hydrofabric flowpath.
+    REPRESENTATIVE : str
+        The median, representative, cross-sections - derived from
+        the conflated data set. Used as training/testing inputs for RiverML.
     """
 
-    MIP = "mip"
-    BLE = "ble"
+    CONFLATED = "conflated"
+    REPRESENTATIVE = "representative"

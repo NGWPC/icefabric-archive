@@ -41,6 +41,10 @@ tags_metadata = [
         "name": "NWM Modules",
         "description": "Functions that interact with NWM modules. Mainly supports IPE generation.",
     },
+    {
+        "name": "HEC-RAS XS",
+        "description": "Data querying functions for HEC-RAS cross-sectional data (i.e. per flowpath ID or geospatial queries)",
+    },
 ]
 
 
@@ -55,7 +59,7 @@ async def lifespan(app: FastAPI):
     """
     catalog_path = os.getenv("CATALOG_PATH")
     catalog = load_catalog(catalog_path)
-    hydrofabric_namespaces = ["conus_hf", "ak_hf", "gl_hf", "hi_hf", "prvi_hf"]
+    hydrofabric_namespaces = ["conus_hf", "ak_hf", "hi_hf", "prvi_hf"]
     app.state.catalog = catalog
     app.state.network_graphs = load_upstream_json(
         catalog=catalog,

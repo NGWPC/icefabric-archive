@@ -2,6 +2,7 @@ import argparse
 import os
 from pathlib import Path
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 import yaml
 from pyiceberg.catalog import load_catalog
@@ -46,20 +47,19 @@ def build_table(catalog_type: str, file_path: Path, schema_type: str) -> None:
     catalog = load_catalog(catalog_type)
     catalog.create_namespace_if_not_exists(NAMESPACE)
 
-    table_identifier = f"{NAMESPACE}.{schema_type}"
-
+    table_identifier = f"{NAMESPACE}.{schema_type}_min_max"
     if catalog.table_exists(table_identifier):
         print(f"Table {table_identifier} already exists. Skipping build")
         return
 
     print("Building XS table")
 
-    # Load data and create table
-    arrow_table = pq.read_table(file_path)
     if schema_type == "representative":
         schema = RepresentativeRasXS.schema()
+        pa_schema = RepresentativeRasXS.arrow_schema()
     elif schema_type == "conflated":
         schema = ConflatedRasXS.schema()
+        pa_schema = ConflatedRasXS.arrow_schema()
     else:
         raise ValueError("Schema not found for your inputted XS file")
 
@@ -68,7 +68,15 @@ def build_table(catalog_type: str, file_path: Path, schema_type: str) -> None:
         schema=schema,
         location=LOCATION[catalog_type],
     )
-    iceberg_table.append(arrow_table)
+
+    # Load data and create table
+    parquet_file = pq.ParquetFile(file_path)
+    for batch in parquet_file.iter_batches(batch_size=500000):
+        print("Adding batch...")
+        arrow_table = pa.Table.from_batches([batch])
+        arrow_table = arrow_table.cast(pa_schema)
+        iceberg_table.append(arrow_table)
+        print("Batch appended to iceberg table...")
 
     print(f"Build successful. Files written to metadata store @ {catalog.name}")
 
