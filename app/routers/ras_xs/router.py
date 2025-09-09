@@ -1,3 +1,4 @@
+import os
 import pathlib
 import tempfile
 import uuid
@@ -71,8 +72,16 @@ def get_bbox_query_params(
         raise HTTPException(status_code=422, detail=f"Bounding box validation failed - {e}") from e
 
 
-def filesystem_check(tmp_path: pathlib.PosixPath):
-    """Wraps temp file validations in a helper function"""
+def filesystem_check(tmp_path: pathlib.PosixPath, temp_dir: pathlib.PosixPath):
+    """Wraps temp file validations in a helper function. Ensures tmp_path is inside temp_dir."""
+    try:
+        normalized_tmp = tmp_path.resolve()
+        normalized_temp_dir = temp_dir.resolve()
+    except OSError as err:
+        raise HTTPException(status_code=400, detail="Invalid file path.") from err
+    if not str(normalized_tmp).startswith(str(normalized_temp_dir) + "/"):
+        raise HTTPException(status_code=400, detail="File path is outside of temp directory.")
+
     if not tmp_path.exists():
         raise HTTPException(status_code=500, detail=f"Failed to create geopackage file at {tmp_path}.")
     if tmp_path.stat().st_size == 0:
@@ -108,13 +117,19 @@ async def get_xs_subset_gpkg(
     unique_id = str(uuid.uuid4())[:8]
     temp_dir = pathlib.Path(tempfile.gettempdir())
     tmp_path = temp_dir / f"ras_xs_{identifier}_{unique_id}.gpkg"
+
+    # Normalize and ensure the path is contained within the temp_dir
+    normalized_path = os.path.normpath(str(tmp_path))
+    if not normalized_path.startswith(str(temp_dir)):
+        raise HTTPException(status_code=400, detail="Invalid path detected.")
+
     try:
         # Create data subset
         data_gdf = subset_xs(
             catalog=catalog, identifier=f"{identifier}", output_file=tmp_path, xstype=schema_type
         )
 
-        filesystem_check(tmp_path=tmp_path)
+        filesystem_check(tmp_path=tmp_path, temp_dir=temp_dir)
 
         print(f"Returning file: {tmp_path} (size: {tmp_path.stat().st_size} bytes)")
         download_filename = f"ras_xs_{identifier}.gpkg"
@@ -136,6 +151,14 @@ async def get_xs_subset_gpkg(
         # Clean up temp file if it exists
         if "tmp_path" in locals() and tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
+            # Double-check containment before deletion as a precaution
+            try:
+                normalized_tmp = tmp_path.resolve()
+                normalized_temp_dir = temp_dir.resolve()
+                if str(normalized_tmp).startswith(str(normalized_temp_dir) + "/"):
+                    tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
         raise
 
 
