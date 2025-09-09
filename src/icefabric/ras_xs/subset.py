@@ -46,7 +46,7 @@ def subset_xs(
         Subset of the cross-sectional data based on identifiers.
     """
     try:
-        xs_table = catalog.load_table(f"ras_xs.{xstype.value}_min_max")
+        xs_table = catalog.load_table(f"ras_xs.{xstype.value}")
     except ClientError as e:
         msg = "AWS Test account credentials expired. Can't access remote S3 Table"
         print(msg)

@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, field_validator
 from pyiceberg.catalog import load_catalog
 from shapely.geometry import box
 from starlette.background import BackgroundTask
@@ -14,36 +14,61 @@ from icefabric.schemas import XsType
 
 api_router = APIRouter(prefix="/ras_xs")
 
+NEW_MEXICO_BOUNDS = {
+    "min_lat": {"summary": "New Mexico Bounds", "value": 31.3323},
+    "min_lon": {"summary": "New Mexico Bounds", "value": -109.0502},
+    "max_lat": {"summary": "New Mexico Bounds", "value": 37.0002},
+    "max_lon": {"summary": "New Mexico Bounds", "value": -103.0020},
+}
+
 
 class BoundingBox(BaseModel):
     """Pydantic representation of a lat/lon geospatial bounding box."""
 
-    min_lat: float = Field(
-        ..., description="The minimum latitudinal coordinate that defines the bounding box."
-    )
-    min_lon: float = Field(
-        ..., description="The minimum longitudinal coordinate that defines the bounding box."
-    )
-    max_lat: float = Field(
-        ..., description="The maximum latitudinal coordinate that defines the bounding box."
-    )
-    max_lon: float = Field(
-        ..., description="The maximum longitudinal coordinate that defines the bounding box."
-    )
+    min_lat: float
+    min_lon: float
+    max_lat: float
+    max_lon: float
 
-    @validator("max_lat")
-    def max_lat_must_be_greater(cls, v, values):
-        """Validation function to make sure that min latitude values are less than max values"""
-        if "min_lat" in values and v <= values["min_lat"]:
-            raise ValueError("max_lat must be greater than min_lat")
-        return v
+    @field_validator("max_lat", "max_lon", mode="after")
+    @classmethod
+    def max_must_be_greater(cls, v, values):
+        """Validation function to make sure that the max bounds values are less than min bounds values"""
+        max_name, max_val = values.field_name, v
+        min_name = f"min_{max_name[4:]}"
+        min_val = values.data[min_name]
+        if max_val <= min_val:
+            raise ValueError(f"{max_name} must be greater than {min_name}")
+        return max_val
 
-    @validator("max_lon")
-    def max_lon_must_be_greater(cls, v, values):
-        """Validation function to make sure that min longitude values are less than max values"""
-        if "min_lon" in values and v <= values["min_lon"]:
-            raise ValueError("max_lon must be greater than min_lon")
-        return v
+
+def get_bbox_query_params(
+    min_lat: float = Query(
+        ...,
+        description="The minimum latitudinal coordinate that defines the bounding box.",
+        openapi_examples={"New Mexico Bounds Example": NEW_MEXICO_BOUNDS["min_lat"]},
+    ),
+    min_lon: float = Query(
+        ...,
+        description="The minimum longitudinal coordinate that defines the bounding box.",
+        openapi_examples={"New Mexico Bounds Example": NEW_MEXICO_BOUNDS["min_lon"]},
+    ),
+    max_lat: float = Query(
+        ...,
+        description="The maximum latitudinal coordinate that defines the bounding box.",
+        openapi_examples={"New Mexico Bounds Example": NEW_MEXICO_BOUNDS["max_lat"]},
+    ),
+    max_lon: float = Query(
+        ...,
+        description="The maximum longitudinal coordinate that defines the bounding box.",
+        openapi_examples={"New Mexico Bounds Example": NEW_MEXICO_BOUNDS["max_lon"]},
+    ),
+) -> BoundingBox:
+    """Dependency function that parses BoundingBox query parameters"""
+    try:
+        return BoundingBox(min_lat=min_lat, min_lon=min_lon, max_lat=max_lat, max_lon=max_lon)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Bounding box validation failed - {e}") from e
 
 
 def filesystem_check(tmp_path: pathlib.PosixPath):
@@ -114,7 +139,7 @@ async def get_xs_subset_gpkg(
 
 @api_router.get("/within", tags=["HEC-RAS XS"])
 async def get_by_geospatial_query(
-    bbox: BoundingBox = Depends(),
+    bbox: BoundingBox = Depends(get_bbox_query_params),
     schema_type: XsType = Query(
         XsType.CONFLATED, description="The schema type used to query the cross-sections"
     ),
