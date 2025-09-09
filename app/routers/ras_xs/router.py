@@ -116,7 +116,7 @@ async def get_xs_subset_gpkg(
     catalog = load_catalog("glue")
     unique_id = str(uuid.uuid4())[:8]
     temp_dir = pathlib.Path(tempfile.gettempdir())
-    tmp_path = temp_dir / f"ras_xs_{identifier}_{unique_id}.gpkg"
+    tmp_path = temp_dir / f"ras_xs_{unique_id}.gpkg"
 
     # Normalize and ensure the path is contained within the temp_dir
     normalized_path = os.path.normpath(str(tmp_path))
@@ -128,11 +128,15 @@ async def get_xs_subset_gpkg(
         data_gdf = subset_xs(
             catalog=catalog, identifier=f"{identifier}", output_file=tmp_path, xstype=schema_type
         )
+        if len(data_gdf) == 0:
+            raise HTTPException(
+                status_code=422, detail="Query returned no cross-sectional data. Try a different flowpath ID."
+            )
 
         filesystem_check(tmp_path=tmp_path, temp_dir=temp_dir)
 
         print(f"Returning file: {tmp_path} (size: {tmp_path.stat().st_size} bytes)")
-        download_filename = f"ras_xs_{identifier}.gpkg"
+        download_filename = f"ras_xs_{unique_id}.gpkg"
         return FileResponse(
             path=str(tmp_path),
             filename=download_filename,
@@ -184,11 +188,16 @@ async def get_by_geospatial_query(
         # Create data subset
         bbox = box(bbox.min_lat, bbox.min_lon, bbox.max_lat, bbox.max_lon)
         data_gdf = subset_xs(catalog=catalog, bbox=bbox, output_file=tmp_path, xstype=schema_type)
+        if len(data_gdf) == 0:
+            raise HTTPException(
+                status_code=422,
+                detail="Query returned no cross-sectional data. Try a different bounding box definition.",
+            )
 
-        filesystem_check(tmp_path=tmp_path)
+        filesystem_check(tmp_path=tmp_path, temp_dir=temp_dir)
 
         print(f"Returning file: {tmp_path} (size: {tmp_path.stat().st_size} bytes)")
-        download_filename = f"ras_xs_{unique_id}.gpkg"
+        download_filename = f"ras_xs_bbox_{unique_id}.gpkg"
         return FileResponse(
             path=str(tmp_path),
             filename=download_filename,
