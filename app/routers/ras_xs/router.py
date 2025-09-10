@@ -6,10 +6,10 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, field_validator
-from pyiceberg.catalog import load_catalog
 from shapely.geometry import box
 from starlette.background import BackgroundTask
 
+from app import get_catalog
 from icefabric.ras_xs import subset_xs
 from icefabric.schemas import XsType
 
@@ -105,6 +105,7 @@ async def get_xs_subset_gpkg(
     schema_type: XsType = Query(
         XsType.CONFLATED, description="The schema type used to query the cross-sections"
     ),
+    catalog=Depends(get_catalog),
 ):
     """
     Get geopackage subset from the HEC-RAS XS iceberg catalog by table identifier (aka flowpath ID).
@@ -113,7 +114,6 @@ async def get_xs_subset_gpkg(
     the data subset as a downloadable geopackage file.
 
     """
-    catalog = load_catalog("glue")
     unique_id = str(uuid.uuid4())[:8]
     temp_dir = pathlib.Path(tempfile.gettempdir())
     tmp_path = temp_dir / f"ras_xs_{unique_id}.gpkg"
@@ -142,10 +142,10 @@ async def get_xs_subset_gpkg(
             filename=download_filename,
             media_type="application/geopackage+sqlite3",
             headers={
-                "Data Source": f"ras_xs.{schema_type.value}",
-                "Flowpath ID": identifier,
-                "Description": f"RAS XS ({schema_type.value} schema) Geopackage",
-                "Total Records": f"{len(data_gdf)}",
+                "data-source": f"ras_xs.{schema_type.value}",
+                "flowpath-id": identifier,
+                "description": f"RAS XS ({schema_type.value} schema) Geopackage",
+                "total-records": f"{len(data_gdf)}",
             },
             background=BackgroundTask(lambda: tmp_path.unlink(missing_ok=True)),
         )
@@ -172,6 +172,7 @@ async def get_by_geospatial_query(
     schema_type: XsType = Query(
         XsType.CONFLATED, description="The schema type used to query the cross-sections"
     ),
+    catalog=Depends(get_catalog),
 ):
     """
     Get geopackage subset from a lat/lon bounding box geospatial query.
@@ -180,7 +181,6 @@ async def get_by_geospatial_query(
     data selected will be within the bounding box. Returns the data subset as a downloadable
     geopackage file.
     """
-    catalog = load_catalog("glue")
     unique_id = str(uuid.uuid4())[:8]
     temp_dir = pathlib.Path(tempfile.gettempdir())
     tmp_path = temp_dir / f"ras_xs_bbox_{unique_id}.gpkg"
@@ -203,10 +203,10 @@ async def get_by_geospatial_query(
             filename=download_filename,
             media_type="application/geopackage+sqlite3",
             headers={
-                "Data Source": f"ras_xs.{schema_type.value}",
-                "Bounding Box": str(bbox),
-                "Description": f"RAS XS ({schema_type.value} schema) Geopackage",
-                "Total Records": f"{len(data_gdf)}",
+                "data-source": f"ras_xs.{schema_type.value}",
+                "bounding-box": str(bbox),
+                "description": f"RAS XS ({schema_type.value} schema) Geopackage",
+                "total-records": f"{len(data_gdf)}",
             },
             background=BackgroundTask(lambda: tmp_path.unlink(missing_ok=True)),
         )
