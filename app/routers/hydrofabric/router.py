@@ -77,7 +77,6 @@ async def get_hydrofabric_subset_gpkg(
     tmp_path = temp_dir / f"subset_{identifier}_{unique_id}.gpkg"
 
     try:
-
         # Create the subset (same as CLI logic)
         output_layers = subset_hydrofabric(
             catalog=catalog,
