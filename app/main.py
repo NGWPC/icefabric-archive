@@ -47,6 +47,10 @@ tags_metadata = [
         "name": "HEC-RAS XS",
         "description": "Data querying functions for HEC-RAS cross-sectional data (i.e. per flowpath ID or geospatial queries)",
     },
+    {
+        "name": "Streamflow Observations",
+        "description": "Data querying functions for observational streamflow time series (USGS, local agencies, etc.)",
+    },
 ]
 
 parser = argparse.ArgumentParser(description="The FastAPI App instance for querying versioned EDFS data")
