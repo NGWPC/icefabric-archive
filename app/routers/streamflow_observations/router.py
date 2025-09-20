@@ -9,7 +9,7 @@ import xarray as xr
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from fastapi.background import BackgroundTasks
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse
 from werkzeug.utils import secure_filename
 
 from app import get_logger
@@ -159,8 +159,6 @@ async def get_identifier_info(
         }
     except HTTPException:
         raise
-    except ValueError as e:
-        Response(content=f"Error: {str(e)}", status_code=500, media_type="text/plain")
 
 
 @api_router.get("/{identifier}/{output_format}", tags=["Streamflow Observations"])
