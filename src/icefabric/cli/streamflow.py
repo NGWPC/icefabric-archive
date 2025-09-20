@@ -1,4 +1,4 @@
-"""Contains all click CLI code for NWM modules"""
+"""Contains all click CLI code for accessing hourly streamflow data"""
 
 from pathlib import Path
 
@@ -9,12 +9,10 @@ import polars as pl
 import xarray as xr
 from dotenv import load_dotenv
 
-from icefabric.schemas.hydrofabric import StreamflowDataSources
-
 load_dotenv()
 
 BUCKET = "edfs-data"
-PREFIX = "streamflow_observations"
+PREFIX = "streamflow_observations/hourly_streamflow_observations"
 TIME_FORMATS = [
     "%Y",
     "%Y-%m",
@@ -44,12 +42,6 @@ def validate_file_extension(ctx, param, value):
 
 
 @click.command()
-@click.option(
-    "--data-source",
-    "-d",
-    type=click.Choice([module.value for module in StreamflowDataSources], case_sensitive=False),
-    help="The data source for the USGS gage id",
-)
 @click.option(
     "--gage-id",
     "-g",
@@ -86,17 +78,14 @@ def validate_file_extension(ctx, param, value):
     help="Flag to indicate you want CSV headers in the resulting file",
 )
 def streamflow_observations(
-    data_source: str, gage_id: str, start_date: str, end_date: str, output_file: Path, include_headers: bool
+    gage_id: str, start_date: str, end_date: str, output_file: Path, include_headers: bool
 ):
     """Generates a CSV or parquet file containing the hourly streamflow data for a specific gage ID"""
     if not output_file:
         output_file = Path.cwd() / f"{gage_id}.csv"
-    ic_store_type = "usgs" if data_source == "USGS" else "envca_cadwr_txdot"
 
     # Get the data from the icechunk store
-    storage_config = icechunk.s3_storage(
-        bucket=BUCKET, prefix=f"{PREFIX}/{ic_store_type}_observations", region="us-east-1", from_env=True
-    )
+    storage_config = icechunk.s3_storage(bucket=BUCKET, prefix=PREFIX, region="us-east-1", from_env=True)
     repo = icechunk.Repository.open(storage_config)
     session = repo.writable_session("main")
     ds = xr.open_zarr(session.store, consolidated=False)
@@ -105,9 +94,7 @@ def streamflow_observations(
     try:
         ds = ds.sel(time=slice(start_date, end_date), id=gage_id)
     except KeyError as e:
-        raise NoResultsFoundError(
-            f"Provided gage_id ({gage_id}) cannot be found in the {data_source} collection"
-        ) from e
+        raise NoResultsFoundError(f"Provided gage_id ({gage_id}) cannot be found in the collection") from e
 
     # Convert xarray dataset to pandas dataframe for greater control in querying the data
     df = ds.to_dataframe().reset_index()
@@ -115,7 +102,6 @@ def streamflow_observations(
 
     # Filter the dataframe based on gage ID and start/end time.
     # Don't include any entries with null q_cms entries
-    pl_df = pl_df.filter(pl.col("gage_type") == data_source)
     pl_df = pl_df.filter(pl.col("id") == gage_id)
     pl_df = pl_df.filter((pl.col("time") >= start_date) & (pl.col("time") <= end_date))
     pl_df = pl_df.drop_nulls(subset=["q_cms"])

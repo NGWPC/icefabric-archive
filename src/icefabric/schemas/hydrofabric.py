@@ -58,5 +58,19 @@ class StreamflowDataSources(str, Enum):
     TXDOT = "TXDOT"
 
 
+class StreamflowOutputFormats(str, Enum):
+    """The data formats that the API/CLI can return for hourly streamflow data"""
+
+    CSV = "csv"
+    PARQUET = "parquet"
+
+    def media_type(self):
+        """Returns media type for the specified output format"""
+        if self.value == "csv":
+            return "text/csv"
+        elif self.value == "parquet":
+            return "application/vnd.apache.parquet"
+
+
 # For catchments that may extend in many VPUs
 UPSTREAM_VPUS: dict[str, list[str]] = {"08": ["11", "10U", "10L", "08", "07", "05"]}

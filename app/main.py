@@ -1,4 +1,5 @@
 import argparse
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -28,6 +29,16 @@ from app.routers.rise_wrappers.router import api_router as rise_api_wrap_router
 from app.routers.streamflow_observations.router import api_router as streamflow_api_router
 from icefabric.builds import load_upstream_json
 from icefabric.helpers import load_creds
+
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s: %(asctime)s - %(name)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+# Create a logger instance
+main_logger = logging.getLogger(__name__)
 
 tags_metadata = [
     {
@@ -74,6 +85,8 @@ async def lifespan(app: FastAPI):
     app: FastAPI
         The FastAPI app instance
     """
+    app.state.main_logger = main_logger
+    app.state.main_logger.info("Application starting up.")
     load_creds()
     catalog = load_catalog(args.catalog)
     hydrofabric_namespaces = ["conus_hf", "ak_hf", "hi_hf", "prvi_hf"]
@@ -89,6 +102,7 @@ async def lifespan(app: FastAPI):
             "Cannot load API as the Hydrofabric Database/Namespace cannot be connected to. Please ensure you are have access to the correct hydrofabric namespaces"
         ) from None
     yield
+    app.state.main_logger.info("Application shutting down.")
 
 
 app = FastAPI(
