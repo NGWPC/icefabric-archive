@@ -28,7 +28,7 @@ RUN uv venv && uv sync
 
 # Install the local icefabric package itself in editable mode
 # This registers the package in the virtual environment
-RUN uv pip install -e .
+RUN uv pip install -e ".[app,cli,icechunk,ipe,io]"
 
 # Build docs into static site
 RUN uv pip install ".[docs]" && uv run mkdocs build -d /app/static/docs

@@ -5,13 +5,13 @@ from app import get_catalog, get_graphs
 from icefabric.modules import SmpModules, config_mapper
 from icefabric.schemas import HydrofabricDomains
 from icefabric.schemas.modules import (
-    Albedo,
     LASAM,
     LSTM,
-    NoahOwpModular,
-    SacSma,
     SFT,
     SMP,
+    Albedo,
+    NoahOwpModular,
+    SacSma,
     Snow17,
     Topmodel,
     TRoute,
@@ -157,7 +157,7 @@ async def get_smp_ipes(
         namespace=domain.value,
         identifier=f"gages-{identifier}",
         graph=network_graphs[domain],
-        module=module,
+        extra_module=module,
     )
 
 
