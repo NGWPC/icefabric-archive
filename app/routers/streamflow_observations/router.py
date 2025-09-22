@@ -1,343 +1,310 @@
-import io
+import os
+import re
 from datetime import datetime
-from enum import Enum
+from logging import Logger
 
+import icechunk
+import numpy as np
+import xarray as xr
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, HTTPException, Path, Query
-from fastapi.responses import Response
-from pyiceberg.catalog import load_catalog
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi.background import BackgroundTasks
+from fastapi.responses import FileResponse
+from werkzeug.utils import secure_filename
+
+from app import get_logger
+from icefabric.cli.streamflow import (
+    BUCKET,
+    PREFIX,
+    TIME_FORMATS,
+    NoResultsFoundError,
+    streamflow_observations,
+)
+from icefabric.schemas.hydrofabric import StreamflowOutputFormats
 
 api_router = APIRouter(prefix="/streamflow_observations")
 
-
-# TODO add other gauges used by NWM
-class DataSource(str, Enum):
-    """All observational streamflow sources"""
-
-    USGS = "usgs"
-
-
-# Configuration for each data source
-DATA_SOURCE_CONFIG = {
-    DataSource.USGS: {
-        "namespace": "streamflow_observations",
-        "table": "usgs_hourly",
-        "time_column": "time",
-        "units": "cms",
-        "description": "USGS stream gauge hourly data",
-    },
+STREAMFLOW_HEADERS = {
+    "repo": "hourly_streamflow_observations",
+    "description": "Stream gauge hourly data",
+    "units": str(["cms", "cms_denoted_3"]),
 }
 
 
-def get_catalog_and_table(data_source: DataSource):
-    """Get catalog and table for a given data source"""
-    config = DATA_SOURCE_CONFIG[data_source]
+def cleanup(file_path: str):
+    """Background task helper to cleanup CSV/Parquet files"""
     try:
-        catalog = load_catalog("glue")
-        table = catalog.load_table(f"{config['namespace']}.{config['table']}")
+        os.remove(file_path)
+    except OSError:
+        pass
+
+
+def validate_datetime(date_string: str, start_or_end: str):
+    """Validation helper function to make sure datetimes are in an acceptable format"""
+    for fmt in TIME_FORMATS:
+        try:
+            datetime_obj = datetime.strptime(date_string, fmt)
+            return datetime_obj
+        except ValueError:
+            continue
+    raise ValueError(
+        f"Suggested date formatted incorrectly: {start_or_end} must match one of the following formats: {', '.join(TIME_FORMATS)}"
+    )
+
+
+def sanitize_filename_component(s: str) -> str:
+    """
+    Sanitize filename
+
+    Remove unsafe characters from a string for safe filename use.
+    Only allows Unicode alphanumerics and underscore.
+    """
+    return re.sub(r"[^A-Za-z0-9_]", "_", s)
+
+
+def integrate_time_range(sd: str, ed: str, filename_parts: list, command_args: list, file_ext: str):
+    """Takes a time range (start/end times) and injects them into a filename/command args list"""
+    if sd:
+        sd = validate_datetime(sd, "start_date")
+        filename_parts.append(f"from_{sd.strftime('%Y%m%d_%H%M')}")
+        command_args.append("-s")
+        command_args.append(str(sd))
+    if ed:
+        ed = validate_datetime(ed, "end_date")
+        filename_parts.append(f"to_{ed.strftime('%Y%m%d_%H%M')}")
+        command_args.append("-e")
+        command_args.append(str(ed))
+    # Secure output directory
+    output_dir = os.path.join(os.getcwd(), "output")
+    os.makedirs(output_dir, exist_ok=True)
+    # Sanitize filename
+    safe_filename = sanitize_filename_component("_".join(filename_parts))
+    safe_ext = sanitize_filename_component(file_ext)
+    safe_file = f"{safe_filename}.{safe_ext}"
+    # Normalize path
+    output_file = os.path.normpath(os.path.join(output_dir, safe_file))
+    # Validate path is inside output_dir
+    if not output_file.startswith(os.path.abspath(output_dir)):
+        raise ValueError("Invalid filename/path.")
+    command_args.append("-o")
+    command_args.append(output_file)
+
+    return command_args, output_file
+
+
+def get_data_and_repo_hist():
+    """Get repo/data from icechunk for a given data source"""
+    try:
+        storage_config = icechunk.s3_storage(bucket=BUCKET, prefix=PREFIX, region="us-east-1", from_env=True)
+        repo = icechunk.Repository.open(storage_config)
+        session = repo.writable_session("main")
+        ds = xr.open_zarr(session.store, consolidated=False)
     except ClientError as e:
         msg = "AWS Test account credentials expired. Can't access remote S3 Table"
-        print(msg)
-        raise e
-    return catalog, table, config
+        raise ClientError(msg) from e
+    return ds, repo
 
 
-def validate_identifier(data_source: DataSource, identifier: str):
+def validate_identifier(identifier: str):
     """Check if identifier exists in the dataset"""
-    catalog, table, config = get_catalog_and_table(data_source)
-    schema = table.schema()
-    available_columns = [field.name for field in schema.fields]
-
-    if identifier not in available_columns:
-        available_ids = [col for col in available_columns if col != config["time_column"]]
+    ds, repo = get_data_and_repo_hist()
+    if identifier not in ds.coords["id"]:
         raise HTTPException(
             status_code=404,
-            detail=f"ID '{identifier}' not found in {data_source} dataset. Available IDs: {available_ids[:10]}...",
+            detail=f"ID '{identifier}' not found in dataset.",
         )
-
-    return catalog, table, config
-
-
-@api_router.get("/{data_source}/available")
-async def get_available_identifiers(
-    data_source: DataSource = Path(..., description="Data source type"),
-    limit: int = Query(100, description="Maximum number of IDs to return"),
-):
-    """
-    Get list of available identifiers for a data source
-
-    Examples
-    --------
-    GET /data/usgs/available
-    GET /data/usgs/available?limit=50
-    """
-    try:
-        _, table, config = get_catalog_and_table(data_source)
-
-        schema = table.schema()
-        # Get all columns except time column
-        identifier_columns = [field.name for field in schema.fields if field.name != config["time_column"]]
-
-        return {
-            "data_source": data_source.value,
-            "description": config["description"],
-            "total_identifiers": len(identifier_columns),
-            "identifiers": sorted(identifier_columns)[:limit],
-            "showing": min(limit, len(identifier_columns)),
-            "units": config["units"],
-        }
-
-    except HTTPException as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    return ds, repo
 
 
-@api_router.get("/{data_source}/csv")
-async def get_data_csv(
-    data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Query(
+@api_router.get("/{identifier}/info", tags=["Streamflow Observations"])
+async def get_identifier_info(
+    identifier: str = Path(
         ...,
         description="Station/gauge ID",
+        max_length=10,
+        pattern=r"^[a-zA-Z0-9]+$",
         examples=["01010000"],
         openapi_examples={"station_example": {"summary": "USGS Gauge", "value": "01010000"}},
     ),
-    start_date: datetime | None = Query(
-        None,
-        description="Start Date",
-        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2021-12-31T14:00:00"}},
-    ),
-    end_date: datetime | None = Query(
-        None,
-        description="End Date",
-        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2022-01-01T14:00:00"}},
-    ),
-    include_headers: bool = Query(True, description="Include CSV headers"),
 ):
     """
-    Get data as CSV file for any data source
+    GET ID Full Dataset Overview
+
+    Get information about dataset size for a specific gauge/station. Gives number of records,
+    date range, and estimated sizes of CSV/Parquet representations.
 
     Examples
     --------
-    GET /data/usgs_hourly/csv?identifier=01031500
+    - GET /v1/streamflow_observations/01010000/info
+    - GET /v1/streamflow_observations/JBR/info
+    - GET /v1/streamflow_observations/08102730/info
     """
     try:
-        _, table, config = validate_identifier(data_source, identifier)
-        scan_builder = table.scan(selected_fields=[config["time_column"], identifier])
-        if start_date:
-            scan_builder = scan_builder.filter(f"{config['time_column']} >= '{start_date.isoformat()}'")
-        if end_date:
-            scan_builder = scan_builder.filter(f"{config['time_column']} <= '{end_date.isoformat()}'")
+        ds, _ = validate_identifier(identifier)
+        df = ds.sel(id=identifier).to_dataframe().reset_index()
+        df.dropna(subset=["q_cms"], inplace=True)
 
-        df = scan_builder.to_pandas()
-
-        if df.empty:
-            return Response(
-                content="Error: No data available for the specified parameters",
-                status_code=404,
-                media_type="text/plain",
-            )
-
-        df = df.rename(columns={config["time_column"]: "time", identifier: "q_cms"})
-
-        csv_buffer = io.StringIO()
-        df.to_csv(csv_buffer, index=False, header=include_headers)
-        csv_data = csv_buffer.getvalue()
-
-        filename_parts = [data_source.value, identifier, "data"]
-        if start_date:
-            filename_parts.append(f"from_{start_date.strftime('%Y%m%d_%H%M')}")
-        if end_date:
-            filename_parts.append(f"to_{end_date.strftime('%Y%m%d_%H%M')}")
-        filename = "_".join(filename_parts) + ".csv"
-
-        return Response(
-            content=csv_data,
-            media_type="text/csv",
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}",
-                "X-Total-Records": str(len(df)),
-                "X-Data-Source": data_source.value,
-                "X-Units": config["units"],
+        return {
+            **STREAMFLOW_HEADERS,
+            "identifier": identifier,
+            "total_records": len(df),
+            "date_range": {
+                "start": df["time"].min().isoformat() if not df.empty else None,
+                "end": df["time"].max().isoformat() if not df.empty else None,
             },
-        )
-
+            "estimated_sizes": {
+                "csv_mb": round(len(df) * 25 / 1024 / 1024, 2),
+                "parquet_mb": round(len(df) * 8 / 1024 / 1024, 2),
+            },
+        }
     except HTTPException:
         raise
 
 
-@api_router.get("/{data_source}/parquet")
-async def get_data_parquet(
-    data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Query(
+@api_router.get("/{identifier}/{output_format}", tags=["Streamflow Observations"])
+async def get_data_time_range(
+    identifier: str = Path(
         ...,
         description="Station/gauge ID",
+        max_length=10,
+        pattern=r"^[a-zA-Z0-9]+$",
         examples=["01010000"],
         openapi_examples={"station_example": {"summary": "USGS Gauge", "value": "01010000"}},
     ),
-    start_date: datetime | None = Query(
+    output_format: StreamflowOutputFormats = Path(
+        ...,
+        description="Output/return format of the data",
+    ),
+    start_date: str | None = Query(
         None,
         description="Start Date",
-        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2021-12-31T14:00:00"}},
+        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2021-12-31 14:00:00"}},
     ),
-    end_date: datetime | None = Query(
+    end_date: str | None = Query(
         None,
         description="End Date",
-        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2022-01-01T14:00:00"}},
+        openapi_examples={"sample_date": {"summary": "Sample Date", "value": "2022-01-01 14:00:00"}},
     ),
+    include_headers: bool | None = Query(
+        True, description="Include CSV headers. Only applies if return format is CSV. Defaults to True."
+    ),
+    logger: Logger = Depends(get_logger),
 ):
     """
-    Get data as Parquet file for any data source
+    GET ID Data in Time Range
+
+    Returns hourly streamflow data for a specific gauge/station, over a specified time range. Returned
+    file can be either CSV or Parquet file format.
 
     Examples
     --------
-    GET /data/usgs/parquet?identifier=01031500
-    GET /data/usgs/parquet?identifier=01031500&start_date=2023-01-01T00:00:00&compression=gzip
+    - GET /v1/streamflow_observations/01031500/csv?include_headers=true
+    - GET /v1/streamflow_observations/02GC002/csv?start_date=2010&end_date=2011
+    - GET /v1/streamflow_observations/08102730/parquet?start_date=2023-06&end_date=2023-11
     """
+    secure_identifier = secure_filename(identifier)
     try:
-        _, table, config = validate_identifier(data_source, identifier)
+        # Construct filename and arg list for output file construction
+        filename_parts = [
+            "hourly_streamflow_data",
+            sanitize_filename_component(secure_identifier),
+        ]
+        command_args = ["-g", secure_identifier, "-h", include_headers]
+        command_args, output_path = integrate_time_range(
+            start_date, end_date, filename_parts, command_args, output_format.value
+        )
+        output_file = output_path.split("/")[-1]
+        logger.info(f"Output file: {output_file}")
 
-        scan_builder = table.scan(selected_fields=[config["time_column"], identifier])
+        # Call click command to create output file
+        total_records = streamflow_observations(command_args, standalone_mode=False)
+        logger.info(f"Total records received for {identifier}: {total_records}")
 
-        if start_date:
-            scan_builder = scan_builder.filter(f"{config['time_column']} >= '{start_date.isoformat()}'")
-        if end_date:
-            scan_builder = scan_builder.filter(f"{config['time_column']} <= '{end_date.isoformat()}'")
+        return_headers = {
+            **STREAMFLOW_HEADERS,
+            "Content-Disposition": f"attachment; filename={output_file}",
+            "X-Total-Records": str(total_records),
+        }
+        if output_format.value == "parquet":
+            return_headers["X-Compression"] = "lz4"
 
-        df = scan_builder.to_pandas()
-        if df.empty:
-            raise HTTPException(status_code=404, detail="No data available for the specified parameters")
-
-        # Prepare output with metadata
-        df = df.rename(columns={config["time_column"]: "time", identifier: "q_cms"}).copy()
-        df["data_source"] = data_source.value
-        df["identifier"] = identifier
-        df["units"] = config["units"]
-
-        parquet_buffer = io.BytesIO()
-        df.to_parquet(parquet_buffer, index=False, compression="lz4", engine="pyarrow")
-        parquet_data = parquet_buffer.getvalue()
-
-        # Fix filename generation with proper datetime formatting
-        filename_parts = [data_source.value, identifier, "data"]
-        if start_date:
-            filename_parts.append(f"from_{start_date.strftime('%Y%m%d_%H%M')}")
-        if end_date:
-            filename_parts.append(f"to_{end_date.strftime('%Y%m%d_%H%M')}")
-        filename = "_".join(filename_parts) + ".parquet"
-
-        return Response(
-            content=parquet_data,
-            media_type="application/octet-stream",
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}",
-                "X-Total-Records": str(len(df)),
-                "X-Data-Source": data_source.value,
-                "X-Compression": "lz4",
-                "X-Units": config["units"],
-            },
+        # Generate response
+        response = FileResponse(
+            output_path, media_type=output_format.media_type(), filename=output_file, headers=return_headers
         )
 
+        # Cleanup file after delivery
+        background_tasks = BackgroundTasks()
+        background_tasks.add_task(cleanup, output_path)
+        response.background = background_tasks
+
+        return response
     except HTTPException:
         raise
     except ValueError as e:
-        Response(content=f"Error: {str(e)}", status_code=500, media_type="text/plain")
+        raise HTTPException(status_code=422, detail=f"Problem with inputs - {e}") from e
+    except NoResultsFoundError as e:
+        raise HTTPException(status_code=404, detail=f"No records found - {e}") from e
 
 
-@api_router.get("/{data_source}/info")
-async def get_data_source_info(
-    data_source: DataSource = Path(..., description="Data source type"),
-):
+@api_router.get("/history", tags=["Streamflow Observations"])
+async def get_repo_history():
     """
-    Get information about dataset size and recommendations
+    GET Repo History/Snapshots
 
-    Examples
+    Get information about repo history. Includes latest snapshot and snapshot history.
+
+    Example
     --------
-    GET /data/usgs/info
+    - GET /v1/streamflow_observations/history
     """
     try:
-        _, table, config = get_catalog_and_table(data_source)
-
-        df = table.inspect.snapshots().to_pandas()
-
-        # Converting to an int rather than a numpy.int64
-        latest_snapshot_id = int(df.loc[df["committed_at"].idxmax(), "snapshot_id"])
-        snapshots = table.inspect.snapshots().to_pydict()
-
-        snapshots = dict(snapshots)
-        # Converting to an int rather than a numpy.int64
-        if "snapshot_id" in snapshots and snapshots["snapshot_id"]:
-            snapshots["snapshot_id"] = [int(sid) for sid in snapshots["snapshot_id"]]
+        _, repo = get_data_and_repo_hist()
+        snapshots = []
+        hist = repo.ancestry(branch="main")
+        for ancestor in hist:
+            snapshots.append(
+                {
+                    "snapshot_id": ancestor.id,
+                    "commit_message": ancestor.message,
+                    "timestamp": ancestor.written_at,
+                }
+            )
 
         return {
-            "data_source": data_source.value,
-            "latest_snapshot": latest_snapshot_id,
-            "description": config["description"],
-            "units": config["units"],
+            **STREAMFLOW_HEADERS,
+            "latest_snapshot": snapshots[0]["snapshot_id"],
             "snapshots": snapshots,
         }
     except HTTPException as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@api_router.get("/{data_source}/{identifier}/info")
-async def get_data_info(
-    data_source: DataSource = Path(..., description="Data source type"),
-    identifier: str = Path(..., description="Station/gauge ID", examples=["01031500"]),
+@api_router.get("/available", tags=["Streamflow Observations"])
+async def get_available_identifiers(
+    limit: int = Query(100, description="Maximum number of IDs to return"),
 ):
     """
-    Get information about dataset size and recommendations
+    GET All Available IDs
+
+    Get the list of available identifiers for querying the dataset. Can optionally
+    limit output.
 
     Examples
     --------
-    GET /data/usgs/01031500/info
+    - GET /v1/streamflow_observations/available
+    - GET /v1/streamflow_observations/available?limit=50
     """
     try:
-        _, table, config = validate_identifier(data_source, identifier)
-
-        # Get data info
-        df = table.scan(selected_fields=[config["time_column"], identifier]).to_pandas()
-        df_clean = df.dropna(subset=[identifier])  # Droping NA to determine full date range
+        ds, _ = get_data_and_repo_hist()
+        ds = ds.drop_vars(["q_cms", "q_cms_denoted_3"])
+        ids = np.unique(ds.coords["id"]).tolist()
 
         return {
-            "data_source": data_source.value,
-            "identifier": identifier,
-            "description": config["description"],
-            "total_records": len(df_clean),
-            "units": config["units"],
-            "date_range": {
-                "start": df_clean[config["time_column"]].min().isoformat() if not df_clean.empty else None,
-                "end": df_clean[config["time_column"]].max().isoformat() if not df_clean.empty else None,
-            },
-            "estimated_sizes": {
-                "csv_mb": round(len(df_clean) * 25 / 1024 / 1024, 2),
-                "parquet_mb": round(len(df_clean) * 8 / 1024 / 1024, 2),
-            },
+            **STREAMFLOW_HEADERS,
+            "total_identifiers": len(ids),
+            "identifiers": sorted(ids)[:limit],
+            "showing": min(limit, len(ids)),
         }
-
-    except HTTPException:
-        raise
-    except ValueError as e:
-        Response(content=f"Error: {str(e)}", status_code=500, media_type="text/plain")
-
-
-@api_router.get("/sources")
-async def get_available_sources():
-    """
-    Get list of all available data sources
-
-    Examples
-    --------
-    GET /data/sources
-    """
-    sources = []
-    for source, config in DATA_SOURCE_CONFIG.items():
-        sources.append(
-            {
-                "name": source.value,
-                "description": config["description"],
-                "namespace": config["namespace"],
-                "table": config["table"],
-                "units": config["units"],
-            }
-        )
-
-    return {"available_sources": sources, "total_sources": len(sources)}
+    except HTTPException as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
