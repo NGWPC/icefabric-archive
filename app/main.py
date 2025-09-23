@@ -42,13 +42,12 @@ main_logger = logging.getLogger(__name__)
 
 tags_metadata = [
     {
-        "name": "Hydrofabric Services",
-        "description": "Data Querying functions for the Hydrofabric",
+        "name": "Streamflow Observations",
+        "description": "Data querying functions for observational streamflow time series (USGS, local agencies, etc.)",
     },
     {
-        "name": "RISE",
-        "description": "An interface to the RISE API for querying reservoir outflow data",
-        "externalDocs": {"description": "Link to the RISE API", "url": "https://data.usbr.gov/rise-api"},
+        "name": "Hydrofabric Services",
+        "description": "Data Querying functions for the Hydrofabric",
     },
     {
         "name": "NWM Modules",
@@ -59,8 +58,9 @@ tags_metadata = [
         "description": "Data querying functions for HEC-RAS cross-sectional data (i.e. per flowpath ID or geospatial queries)",
     },
     {
-        "name": "Streamflow Observations",
-        "description": "Data querying functions for observational streamflow time series (USGS, local agencies, etc.)",
+        "name": "RISE",
+        "description": "An interface to the RISE API for querying reservoir outflow data",
+        "externalDocs": {"description": "Link to the RISE API", "url": "https://data.usbr.gov/rise-api"},
     },
 ]
 

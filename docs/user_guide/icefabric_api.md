@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Icefabric API is a FastAPI-based service that provides access to EDFS data stored in Apache Iceberg format. The API offers multiple data export formats and metadata endpoints for the hydrofabric and streamflow observations.
+The Icefabric API is a FastAPI-based service that provides access to EDFS data stored in both Apache Iceberg & Icechunk format. The API offers multiple data export formats and metadata endpoints for the hydrofabric and streamflow observations.
 
 ## Architecture
 
@@ -10,6 +10,7 @@ The API consists of several key components:
 
 1. **Main Application** (`app/main.py`) - FastAPI application with health checks and router configuration
 2. **Data Routers** - Handles all data endpoints. Streamflow observations, Hydrofabric subsetting, National Water Model module configuration, and HEC-RAS cross-section retrieval are supported.
+   - **RISE Wrapper API** - Also has a wrapper API to the RISE API from the Bureau of Reclamation
 3. **Apache Iceberg Backend** - Defaults to hosted AWS Glue catalog. Local SQLite-backed catalog may be built using instructions below.
 
 ### Running the API locally
@@ -59,16 +60,19 @@ This should spin up the API services
 ### Data Flow
 
 1. **Request Processing** - Validates data source and identifier parameters
-2. **Data Filtering** - Applies optional date range filters to Iceberg tables
+2. **Data Filtering** - Applies optional date range filters to Icechunk datasets
 3. **Format Conversion** - Exports data in requested format (CSV/Parquet)
 4. **Response Generation** - Returns data with appropriate headers and metadata
 
 ### Supported Data Sources
 
 #### Observations
-Currently supports:
+Download hourly data from (and get info on) the Icechunk streamflow repository. Currently has data from the following sources:
 
-- **USGS** - United States Geological Survey hourly streamflow data
+- **USGS** - 'United States Geological Survey' hourly streamflow data
+- **ENVCA** - 'Environmental California' hourly streamflow data
+- **CADWR** - 'California Department of Water Resources' hourly streamflow data
+- **TXDOT** - 'Texas Department of Transportation' hourly streamflow data
 
 #### Hydrofabric
 Provides geospatial watershed data:
@@ -99,12 +103,13 @@ Currently supports:
 - **TopoFlow-Glacier Albedo** - Return TopoFlow-Glacier albedo value for given catchment state (snow, ice, or other)
 
 ### RAS Cross-sections
-Retrieves geopackage data of HEC-RAS cross-sections
+Retrieves geopackage data of HEC-RAS cross-sections. The cross-sectional data is in two schemas:
+- **Conflated**: HEC-RAS data mapped to nearest reference hydrofabric flowpath. Many per flowpath ID.
+- **Representative**: The median, representative, cross-sections - derived from the conflated data set. As such, there is one per reference hydrofabric flowpath ID.
 
-Currently supports:
-
-- **HUC ID**: Download a geopackage for given HUC ID
-- **HUC ID** and **Reach ID**: Download a geopackage for a given HUC ID and Reach ID
+Currently supports the following query types (both can retrieve data from either conflated or representative datasets):
+- **Flowpath ID**: Download a geopackage for given flowpath ID.
+- **Geospatial Query**: Download a geopackage that contains every instance of XS line-data inside a provided lat/lon bounding box.
 
 ## Usage Examples
 
@@ -117,23 +122,19 @@ from io import StringIO, BytesIO
 
 base_url = "http://localhost:8000/v1/streamflow_observations"
 
-# Get available data sources
-sources = requests.get(f"{base_url}/sources").json()
-
-# Get available identifiers for USGS
-identifiers = requests.get(f"{base_url}/usgs/available", params={"limit": 10}).json()
+# Get available identifiers
+identifiers = requests.get(f"{base_url}/available", params={"limit": 10}).json()
 
 # Get station information
-station_info = requests.get(f"{base_url}/usgs/01031500/info").json()
+station_info = requests.get(f"{base_url}/01031500/info").json()
 print(f"Station has {station_info['total_records']} records")
 
 # Download CSV data with date filtering
 csv_response = requests.get(
-    f"{base_url}/usgs/csv",
+    f"{base_url}/01031500/csv",
     params={
-        "identifier": "01031500",
-        "start_date": "2023-01-01T00:00:00",
-        "end_date": "2023-01-31T00:00:00",
+        "start_date": "2023-01-01 00:00:00",
+        "end_date": "2023-01-31 00:00:00",
         "include_headers": True
     }
 )
@@ -141,9 +142,8 @@ df_csv = pd.read_csv(StringIO(csv_response.text))
 
 # Download Parquet data (recommended for large datasets)
 parquet_response = requests.get(
-    f"{base_url}/usgs/parquet",
+    f"{base_url}/01031500/parquet",
     params={
-        "identifier": "01031500",
         "start_date": "2023-01-01T00:00:00"
     }
 )
@@ -164,6 +164,66 @@ if response.status_code == 200:
     print(f"Downloaded {len(response.content)} bytes")
 else:
     print(f"Error: {response.status_code}")
+```
+
+### RAS-XS
+
+```python
+import geopandas as gpd
+import httpx
+
+from icefabric.schemas import XsType
+from pyiceberg.expressions import In
+
+# Set up parameters for the API call
+flowpath_id = "20059822"
+url = f"http://0.0.0.0:8000/v1/ras_xs/{flowpath_id}/"
+schema_type = XsType.CONFLATED
+params = {
+    "schema_type": schema_type.value,
+}
+headers = {"Content-Type": "application/json"}
+
+# Use HTTPX to stream the resulting geopackage response
+with (
+    httpx.stream(
+        method="GET",
+        url=url,
+        params=params,
+        headers=headers,
+        timeout=60.0,  # GLUE API requests can be slow depending on the network speed. Adding a 60s timeout to ensure requests go through
+    ) as response
+):
+    response.raise_for_status()  # Ensure the request was successful
+    with open(f"ras_xs_{flowpath_id}.gpkg", "wb") as file:
+        for chunk in response.iter_bytes():
+            file.write(chunk)
+
+# Load geopackage into geopandas
+gdf = gpd.read_file(f"ras_xs_{flowpath_id}.gpkg")
+
+# Pull and filter reference divides/flowpaths from the catalog
+reference_divides = to_geopandas(
+    catalog.load_table("conus_reference.reference_divides")
+    .scan(row_filter=In("flowpath_id", gdf["flowpath_id"]))
+    .to_pandas()
+)
+reference_flowpaths = to_geopandas(
+    catalog.load_table("conus_reference.reference_flowpaths")
+    .scan(row_filter=In("flowpath_id", gdf["flowpath_id"]))
+    .to_pandas()
+)
+
+# Convert all data to the EPSG:4326 coordinate reference system
+reference_divides = reference_divides.to_crs(epsg=4326)
+reference_flowpaths = reference_flowpaths.to_crs(epsg=4326)
+gdf = gdf.to_crs(epsg=4326)
+
+ref_div_ex = reference_divides.explore(color="grey")
+ref_flo_ex = reference_flowpaths.explore(m=ref_div_ex, color="blue")
+
+# View the data
+gdf.explore(m=ref_flo_ex, color="black")
 ```
 
 ## Performance Considerations
@@ -188,29 +248,6 @@ uv sync
 python -m app.main
 ```
 
-### Adding New Data Observation Sources
-
-To add a new data source, update the configuration in your router:
-
-Below is an example for the observations router
-
-```python
-class DataSource(str, Enum):
-    USGS = "usgs"
-    NEW_SOURCE = "new_source"  # Add new source
-
-# Add configuration
-DATA_SOURCE_CONFIG = {
-    DataSource.NEW_SOURCE: {
-        "namespace": "observations",
-        "table": "new_source_table",
-        "time_column": "timestamp",
-        "units": "m³/s",
-        "description": "New data source description",
-    },
-}
-```
-
 ## API Documentation
 
 ### Interactive Documentation
@@ -226,33 +263,36 @@ Access the OpenAPI schema at: `http://localhost:8000/openapi.json`
 
 ## Verification
 
-### Observations
+### Hourly Streamflow Observations
 
+Interface for querying the hourly streamflow dataset. Includes USGS/ENVCA/CADWR/TXDOT gages. Can return data as CSV or Parquet files in specified date ranges.
+
+#### Endpoint Examples
 ```bash
-# List available data sources
-curl http://localhost:8000/v1/streamflow_observations/sources
-
 # Get available identifiers (limit results)
-curl "http://localhost:8000/v1/streamflow_observations/usgs/available?limit=5"
+curl "http://localhost:8000/v1/streamflow_observations/available?limit=5"
 
-# Get data source information
-curl http://localhost:8000/v1/streamflow_observations/usgs/info
+# Get dataset repo history (snapshots, commit messages, etc.)
+curl "http://localhost:8000/v1/streamflow_observations/history"
 
 # Get specific station information
-curl http://localhost:8000/v1/streamflow_observations/usgs/01010000/info
+curl "http://localhost:8000/v1/streamflow_observations/JBR/info"
 
-# Download CSV with headers
-curl "http://localhost:8000/v1/streamflow_observations/usgs/csv?identifier=01010000&include_headers=true"
+# Download gage data (full set) CSV with headers
+curl "http://localhost:8000/v1/streamflow_observations/01031500/csv?include_headers=true"
 
-# Download CSV with date filtering
-curl "http://localhost:8000/v1/streamflow_observations/usgs/csv?identifier=01010000&start_date=2021-12-31T14%3A00%3A00&end_date=2022-01-01T14%3A00%3A00&include_headers=true"
+# Download CSV with date filtering - 2010 to 2011
+curl "http://localhost:8000/v1/streamflow_observations/02GC002/csv?start_date=2010&end_date=2011"
 
-# Download Parquet file
-curl "http://localhost:8000/v1/streamflow_observations/usgs/parquet?identifier=01010000&start_date=2021-12-31T14%3A00%3A00&end_date=2022-01-01T14%3A00%3A00" -o "output.parquet"
+# Download Parquet file with date filtering - June 2023 to November 2023
+curl "http://localhost:8000/v1/streamflow_observations/08102730/parquet?start_date=2023-06&end_date=2023-11"
 ```
 
 ### Hydrofabric
 
+Interface for querying the Hydrofabric service.
+
+#### Endpoint Examples
 ```bash
 # Download hydrofabric subset
 curl "http://localhost:8000/v1/hydrofabric/01010000/gpkg" -o "subset.gpkg"
@@ -267,6 +307,10 @@ curl "http://localhost:8000/v1/hydrofabric/history?domain=conus_hf
 ```
 
 ### NWM Modules
+
+Interface for NWM modules. Each module supports IPE return, given a gage ID and module-appropriate extra information.
+
+#### Endpoint Examples
 ```bash
 # Return parameters for SFT (Soil Freeze-Thaw) by catchment
 curl "http://localhost:8000/v1/modules/sft/?identifier=01010000&domain=conus_hf&use_schaake=false"
@@ -300,12 +344,49 @@ curl "http://localhost:8000/v1/modules/topoflow/albedo?landcover=snow"
 ```
 
 ### RAS Cross-sections
-```bash
-# Download RAS cross-sections for a HUC ID
-curl "http://localhost:8000/v1/ras_xs/02040106/" -o "ras_02040106.gpkg"
 
-# Download RAS cross-sections for a HUC ID and Reach ID
-curl "http://localhost:8000/v1/ras_xs/02040106/dsreachid=4188251" -o "ras_02040106_4188251.gpkg"
+Interface for querying HEC-RAS cross-sectional data. Supports per-flowpath-ID queries and lat/lon bounding box queries.
+Each flowpath is composed of conflated cross-sections. Each flowpath has one 'averaged' representative cross-section.
+
+#### Endpoint Examples
+```bash
+# Download conflated RAS cross-sections for a flowpath ID
+curl "http://localhost:8000/v1/ras_xs/20059822/?schema_type=conflated"
+
+# Download representative RAS cross-sections for a flowpath ID
+curl "http://localhost:8000/v1/ras_xs/20059822/?schema_type=representative"
+
+# Download RAS cross-sections that lie within a geospatial lat/lon bounding box
+# NOTE - can also get representative cross-sections when querying by bounding-box
+curl "http://localhost:8000/v1/ras_xs/within?schema_type=conflated&min_lat=31.3323&min_lon=-109.0502&max_lat=37.0002&max_lon=-103.002"
+```
+
+### RISE API Wrapper
+
+A wrapper interface to the [RISE API](https://data.usbr.gov/rise-api). Used to query reservoir outflow data.
+
+#### Endpoint Examples
+```bash
+# Get the collection of 'CatalogItem' resources - customize response by setting page quantity and items per page.
+curl "http://localhost:8000/v1/rise/catalog-item?page=1&itemsPerPage=25"
+
+# Get a 'CatalogItem' resource, per a given ID.
+curl "http://localhost:8000/v1/rise/catalog-item/10833"
+
+# Get the collection of 'CatalogRecord' resources - customize response by setting page quantity and items per page.
+curl "http://localhost:8000/v1/rise/catalog-record?page=1&itemsPerPage=25"
+
+# Get a 'CatalogRecord' resource, per a given ID.
+curl "http://localhost:8000/v1/rise/catalog-record/8134"
+
+# Get the collection of 'Location' resources - customize response by setting page quantity and items per page.
+curl "http://localhost:8000/v1/rise/location?page=1&itemsPerPage=25"
+
+# Get a 'Location' resource, per a given ID.
+curl "http://localhost:8000/v1/rise/location/3708"
+
+# Get a 'Result' resource, per a given ID.
+curl "http://localhost:8000/v1/rise/result/8000"
 ```
 
 ### Health Check
