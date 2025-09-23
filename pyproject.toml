@@ -40,6 +40,7 @@ dependencies = [
   "pyiceberg[sql-sqlite]==0.9.1",
   "pyprojroot==0.3.0",
   "python-dotenv>=1.0.0",
+  "pyyaml==6.0.2",
   "rustworkx==0.16.0",
   "tqdm==4.67.1",
   "xarray>=2025.07.1",
@@ -57,6 +58,16 @@ app = [
   "python-dotenv==1.1.0",
 ]
 cli = ["click==8.2.1"]
+examples = [
+  "folium==0.19.5",
+  "httpx==0.28.1",
+  "ipykernel==6.29.5",
+  "ipywidgets==8.1.6",
+  "jupyterlab==4.4.3",
+  "jupytergis==0.5.0",
+  "mapclassify==2.9.0",
+  "matplotlib==3.10.3",
+]
 icechunk = [
   "dask==2025.5.1",
   "icechunk==1.1.4",
@@ -64,12 +75,11 @@ icechunk = [
   "tifffile==2025.5.21",
   "rioxarray==0.19.0",
   "virtualizarr==1.3.2",
-  "xarray==2025.07.1",
+  "xarray>=2025.07.1",
 ]
 ipe = ["ambiance==1.3.1"]
 io = [
   "pyiceberg[s3fs,glue]==0.9.1",
-  "s3fs==2025.5.1",
   "fsspec==2025.5.1",
 ]
 
@@ -80,16 +90,6 @@ dev = [
   "black==25.1.0",
   "mypy==1.15.0",
   "nbstripout==0.8.1",
-]
-examples = [
-  "folium==0.19.5",
-  "httpx==0.28.1",
-  "ipykernel==6.29.5",
-  "ipywidgets==8.1.6",
-  "jupyterlab==4.4.3",
-  "jupytergis==0.5.0",
-  "mapclassify==2.9.0",
-  "matplotlib==3.10.3",
 ]
 tests = [
   "moto==5.1.8",
@@ -103,7 +103,7 @@ tests = [
 icefabric = "icefabric.cli.main:cli"
 
 [tool.uv]
-default-groups = ["dev", "examples", "tests"]
+default-groups = ["dev", "tests"]
 
 [tool.black]
 line-length = 110
