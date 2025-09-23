@@ -2,6 +2,7 @@ import argparse
 import os
 from pathlib import Path
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 import yaml
 from pyiceberg.catalog import load_catalog
@@ -9,7 +10,7 @@ from pyiceberg.catalog import load_catalog
 from icefabric.helpers import load_creds
 from icefabric.schemas import ConflatedRasXS, RepresentativeRasXS
 
-load_creds(dir=Path.cwd())
+load_creds()
 with open(os.environ["PYICEBERG_HOME"]) as f:
     CONFIG = yaml.safe_load(f)
 WAREHOUSE = Path(CONFIG["catalog"]["sql"]["warehouse"].replace("file://", ""))
@@ -22,7 +23,7 @@ LOCATION = {
 NAMESPACE = "ras_xs"
 
 
-def build_table(catalog_type: str, file_path: Path, schema_type: str) -> None:
+def build_table(catalog_type: str, file_path: Path, schema_type: str, overwrite: bool) -> None:
     """Build the RAS XS table in a PyIceberg warehouse.
 
     Parameters
@@ -47,28 +48,57 @@ def build_table(catalog_type: str, file_path: Path, schema_type: str) -> None:
     catalog.create_namespace_if_not_exists(NAMESPACE)
 
     table_identifier = f"{NAMESPACE}.{schema_type}"
-
     if catalog.table_exists(table_identifier):
-        print(f"Table {table_identifier} already exists. Skipping build")
-        return
+        if not overwrite:
+            print(f"Table {table_identifier} already exists. Skipping build")
+            return
+        else:
+            print(f"Table {table_identifier} will be overwritten.")
 
     print("Building XS table")
 
-    # Load data and create table
-    arrow_table = pq.read_table(file_path)
     if schema_type == "representative":
         schema = RepresentativeRasXS.schema()
+        pa_schema = RepresentativeRasXS.arrow_schema()
     elif schema_type == "conflated":
         schema = ConflatedRasXS.schema()
+        pa_schema = ConflatedRasXS.arrow_schema()
     else:
         raise ValueError("Schema not found for your inputted XS file")
 
-    iceberg_table = catalog.create_table(
-        table_identifier,
-        schema=schema,
-        location=LOCATION[catalog_type],
-    )
-    iceberg_table.append(arrow_table)
+    if not overwrite:
+        iceberg_table = catalog.create_table(
+            table_identifier,
+            schema=schema,
+            location=LOCATION[catalog_type],
+        )
+    else:
+        iceberg_table = catalog.load_table(table_identifier)
+        with iceberg_table.update_schema() as update:
+            update.union_by_name(schema)
+
+    # Load data and create table
+    parquet_file = pq.ParquetFile(file_path)
+    if not overwrite:
+        for batch in parquet_file.iter_batches(batch_size=500000):
+            print("Adding batch...")
+            arrow_table = pa.Table.from_batches([batch])
+            arrow_table = arrow_table.cast(pa_schema)
+            iceberg_table.append(arrow_table)
+            print("Batch appended to iceberg table...")
+    else:
+        first_thru = True
+        for batch in parquet_file.iter_batches(batch_size=500000):
+            print("Adding batch...")
+            arrow_table = pa.Table.from_batches([batch])
+            arrow_table = arrow_table.cast(pa_schema)
+            if first_thru:
+                print("Overwriting table with first batch...")
+                iceberg_table.overwrite(arrow_table)
+                first_thru = False
+            else:
+                iceberg_table.append(arrow_table)
+                print("Batch appended to iceberg table...")
 
     print(f"Build successful. Files written to metadata store @ {catalog.name}")
 
@@ -77,7 +107,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Build a PyIceberg catalog in the S3 Table for FEMA-BLE data"
     )
-
     parser.add_argument(
         "--catalog",
         choices=["sql", "glue"],
@@ -97,7 +126,15 @@ if __name__ == "__main__":
         required=True,
         help="Path to the parquet file containing processed cross sections",
     )
-
+    parser.add_argument(
+        "--overwrite",
+        type=bool,
+        required=False,
+        default=False,
+        help="Flag to indicate that it is okay to overwrite an existing table",
+    )
     args = parser.parse_args()
 
-    build_table(catalog_type=args.catalog, file_path=args.file, schema_type=args.schema)
+    build_table(
+        catalog_type=args.catalog, file_path=args.file, schema_type=args.schema, overwrite=args.overwrite
+    )

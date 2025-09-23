@@ -4,11 +4,12 @@ import json
 import geopandas as gpd
 import pandas as pd
 import polars as pl
+import rustworkx as rx
 from ambiance import Atmosphere
 from pyiceberg.catalog import Catalog
 from pyproj import Transformer
 
-from icefabric.hydrofabric import load_upstream_connections, subset_hydrofabric
+from icefabric.hydrofabric import subset_hydrofabric
 from icefabric.schemas.hydrofabric import IdType
 from icefabric.schemas.modules import (
     CFE,
@@ -47,7 +48,8 @@ def get_sft_parameters(
     catalog: Catalog,
     namespace: str,
     identifier: str,
-    use_schaake: bool | None = False,
+    graph: rx.PyDiGraph,
+    use_schaake: bool = False,
 ) -> list[SFT]:
     """Creates the initial parameter estimates for the SFT module
 
@@ -67,14 +69,13 @@ def get_sft_parameters(
     list[SFT]
         The list of all initial parameters for catchments using SFT
     """
-    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"smcmax": "mean.smcmax", "bexp": "mode.bexp", "psisat": "geom_mean.psisat"}
 
@@ -114,7 +115,7 @@ def get_sft_parameters(
 
 
 def get_snow17_parameters(
-    catalog: Catalog, namespace: str, identifier: str, envca: bool | None = False
+    catalog: Catalog, namespace: str, identifier: str, envca: bool, graph: rx.PyDiGraph
 ) -> list[Snow17]:
     """Creates the initial parameter estimates for the Snow17 module
 
@@ -134,14 +135,13 @@ def get_snow17_parameters(
     list[Snow17]
         The list of all initial parameters for catchments using Snow17
     """
-    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"elevation_mean": "mean.elevation", "lat": "centroid_y", "lon": "centroid_x"}
 
@@ -210,7 +210,8 @@ def get_smp_parameters(
     catalog: Catalog,
     namespace: str,
     identifier: str,
-    module: str | None = None,
+    graph: rx.PyDiGraph,
+    extra_module: str | None = None,
 ) -> list[SMP]:
     """Creates the initial parameter estimates for the SMP module
 
@@ -222,7 +223,7 @@ def get_smp_parameters(
         the hydrofabric namespace
     identifier : str
         the gauge identifier
-    module : str, optional
+    extra_module : str, optional
         A setting to determine if a module should be specified to obtain additional SMP parameters.
         Available modules declared for addt'l SMP parameters: 'CFE-S', 'CFE-X', 'LASAM', 'TopModel'
 
@@ -231,14 +232,13 @@ def get_smp_parameters(
     list[SMP]
         The list of all initial parameters for catchments using SMP
     """
-    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"smcmax": "mean.smcmax", "bexp": "mode.bexp", "psisat": "geom_mean.psisat"}
 
@@ -267,20 +267,20 @@ def get_smp_parameters(
     water_depth_layers = "NA"
     water_table_depth = "NA"
 
-    if module:
-        if module == "CFE-S" or module == "CFE-X":
+    if extra_module:
+        if extra_module == "CFE-S" or extra_module == "CFE-X":
             soil_storage_model = SoilScheme.CFE_SOIL_STORAGE.value
             soil_storage_depth = SoilScheme.CFE_STORAGE_DEPTH.value
-        elif module == "TopModel":
+        elif extra_module == "TopModel":
             soil_storage_model = SoilScheme.TOPMODEL_SOIL_STORAGE.value
             water_table_based_method = SoilScheme.TOPMODEL_WATER_TABLE_METHOD.value
-        elif module == "LASAM":
+        elif extra_module == "LASAM":
             soil_storage_model = SoilScheme.LASAM_SOIL_STORAGE.value
             soil_moisture_profile_option = SoilScheme.LASAM_SOIL_MOISTURE.value
             soil_depth_layers = SoilScheme.LASAM_SOIL_DEPTH_LAYERS.value
             water_table_depth = SoilScheme.LASAM_WATER_TABLE_DEPTH.value
         else:
-            raise ValueError(f"Passing unsupported module into endpoint: {module}")
+            raise ValueError(f"Passing unsupported module into endpoint: {extra_module}")
 
     pydantic_models = []
     for row_dict in result_df.iter_rows(named=True):
@@ -302,7 +302,7 @@ def get_smp_parameters(
     return pydantic_models
 
 
-def get_lstm_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[LSTM]:
+def get_lstm_parameters(catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph) -> list[LSTM]:
     """Creates the initial parameter estimates for the LSTM module
 
     Parameters
@@ -322,14 +322,13 @@ def get_lstm_parameters(catalog: Catalog, namespace: str, identifier: str) -> li
     *Note: Per HF API, the following attributes for LSTM does not carry any relvant information:
     'train_cfg_file' & basin_name' -- remove if desire
     """
-    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {
         "slope": "mean.slope",
@@ -389,8 +388,9 @@ def get_lasam_parameters(
     catalog: Catalog,
     namespace: str,
     identifier: str,
-    sft_included: bool | None = False,
-    soil_params_file: str | None = "vG_default_params_HYDRUS.dat",
+    sft_included: bool,
+    graph: rx.PyDiGraph,
+    soil_params_file: str = "vG_default_params_HYDRUS.dat",
 ) -> list[LASAM]:
     """Creates the initial parameter estimates for the LASAM module
 
@@ -413,14 +413,13 @@ def get_lasam_parameters(
     list[LASAM]
         The list of all initial parameters for catchments using LASAM
     """
-    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"soil_type": "mode.ISLTYP"}
 
@@ -452,7 +451,9 @@ def get_lasam_parameters(
     return pydantic_models
 
 
-def get_noahowp_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[NoahOwpModular]:
+def get_noahowp_parameters(
+    catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph
+) -> list[NoahOwpModular]:
     """Creates the initial parameter estimates for the Noah OWP Modular module
 
     Parameters
@@ -469,14 +470,13 @@ def get_noahowp_parameters(catalog: Catalog, namespace: str, identifier: str) ->
     list[NoahOwpModular]
         The list of all initial parameters for catchments using NoahOwpModular
     """
-    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {
         "slope": "mean.slope",
@@ -527,7 +527,7 @@ def get_noahowp_parameters(catalog: Catalog, namespace: str, identifier: str) ->
 
 
 def get_sacsma_parameters(
-    catalog: Catalog, namespace: str, identifier: str, envca: bool | None = False
+    catalog: Catalog, namespace: str, identifier: str, envca: bool, graph: rx.PyDiGraph
 ) -> list[SacSma]:
     """Creates the initial parameter estimates for the SAC SMA module
 
@@ -548,14 +548,13 @@ def get_sacsma_parameters(
     list[SacSma]
         The list of all initial parameters for catchments using SacSma
     """
-    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
 
     # Extraction of relevant features from divides layer
@@ -629,7 +628,9 @@ def get_sacsma_parameters(
     return pydantic_models
 
 
-def get_troute_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[TRoute]:
+def get_troute_parameters(
+    catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph
+) -> list[TRoute]:
     """Creates the initial parameter estimates for the T-Route
 
     Parameters
@@ -646,14 +647,13 @@ def get_troute_parameters(catalog: Catalog, namespace: str, identifier: str) -> 
     list[TRoute]
         The list of all initial parameters for catchments using TRoute
     """
-    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
 
     # Extraction of relevant features from divide attributes layer
@@ -671,7 +671,9 @@ def get_troute_parameters(catalog: Catalog, namespace: str, identifier: str) -> 
     return pydantic_models
 
 
-def get_topmodel_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[Topmodel]:
+def get_topmodel_parameters(
+    catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph
+) -> list[Topmodel]:
     """Creates the initial parameter estimates for the Topmodel
 
     Parameters
@@ -697,14 +699,13 @@ def get_topmodel_parameters(catalog: Catalog, namespace: str, identifier: str) -
     - The divide_id is the same as catchment, but will return divide_id variable name here
     since expected from HF API - remove if needed.
     """
-    upstream_dict = load_upstream_connections(namespace)
     gauge: dict[str, pd.DataFrame | gpd.GeoDataFrame] = subset_hydrofabric(
         catalog=catalog,
         identifier=identifier,
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {"twi": "dist_4.twi"}
 
@@ -743,7 +744,9 @@ def get_topmodel_parameters(catalog: Catalog, namespace: str, identifier: str) -
     return pydantic_models
 
 
-def get_topoflow_parameters(catalog: Catalog, namespace: str, identifier: str) -> list[Topoflow]:
+def get_topoflow_parameters(
+    catalog: Catalog, namespace: str, identifier: str, graph: rx.PyDiGraph
+) -> list[Topoflow]:
     """Creates the initial parameter estimates for the Topoflow module
 
     Parameters
@@ -767,7 +770,11 @@ def get_topoflow_parameters(catalog: Catalog, namespace: str, identifier: str) -
 
 
 def get_ueb_parameters(
-    catalog: Catalog, namespace: str, identifier: str, envca: bool, upstream_dict: dict[str, list[str]]
+    catalog: Catalog,
+    namespace: str,
+    identifier: str,
+    envca: bool,
+    graph: rx.PyDiGraph,
 ) -> list[UEB]:
     """Creates the initial parameter estimates for the UEB module
 
@@ -793,7 +800,7 @@ def get_ueb_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
     attr = {
         "slope": "mean.slope",
@@ -900,8 +907,8 @@ def get_cfe_parameters(
     catalog: Catalog,
     namespace: str,
     identifier: str,
-    module: str,
-    upstream_dict: dict[str, list[str]],
+    cfe_version: str,
+    graph: rx.PyDiGraph,
     sft_included: bool = False,
 ) -> list[CFE]:
     """Creates the initial parameter estimates for the CFE module
@@ -914,7 +921,7 @@ def get_cfe_parameters(
         the hydrofabric namespace
     identifier : str
         the gauge identifier
-    module: str
+    cfe_version: str
         the CFE module type (e.g. CFE-X, CFE-S) for which determines whether
         to use Shaake or Xinanjiang for surface partitioning.
     sft_included: bool
@@ -931,7 +938,7 @@ def get_cfe_parameters(
         id_type=IdType.HL_URI,
         namespace=namespace,
         layers=["flowpaths", "nexus", "divides", "divide-attributes", "network"],
-        upstream_dict=upstream_dict,
+        graph=graph,
     )
 
     # CFE
@@ -943,11 +950,11 @@ def get_cfe_parameters(
     conus_param_df = params_df.filter(pl.col("divide_id").is_in(divides_list)).collect().to_pandas()
     df = pd.merge(conus_param_df, df, on="divide_id", how="left")
 
-    if module == "CFE-X":
+    if cfe_version == "CFE-X":
         surface_partitioning_scheme = CFEValues.XINANJIANG.value
         urban_decimal_fraction = CFEValues.URBAN_FRACT.value
         is_sft_coupled = "NA"
-    elif module == "CFE-S":
+    elif cfe_version == "CFE-S":
         surface_partitioning_scheme = CFEValues.SCHAAKE.value
         a_Xinanjiang_inflection_point_parameter = "NA"
         b_Xinanjiang_shape_parameter = "NA"
@@ -958,7 +965,7 @@ def get_cfe_parameters(
         else:
             is_sft_coupled = 0
     else:
-        raise ValueError(f"Passing unsupported module into endpoint: {module}")
+        raise ValueError(f"Passing unsupported cfe_version into endpoint: {cfe_version}")
 
     pydantic_models = []
     for _, row_dict in df.iterrows():
@@ -977,13 +984,13 @@ def get_cfe_parameters(
             Cgw=row_dict["mean.Coeff"],
             expon=row_dict["mode.Expon"],
             a_Xinanjiang_inflection_point_parameter=str(row_dict["a_Xinanjiang_inflection_point_parameter"])
-            if module == "CFE-X"
+            if cfe_version == "CFE-X"
             else a_Xinanjiang_inflection_point_parameter,
             b_Xinanjiang_shape_parameter=str(row_dict["b_Xinanjiang_shape_parameter"])
-            if module == "CFE-X"
+            if cfe_version == "CFE-X"
             else b_Xinanjiang_shape_parameter,
             x_Xinanjiang_shape_parameter=str(row_dict["x_Xinanjiang_shape_parameter"])
-            if module == "CFE-X"
+            if cfe_version == "CFE-X"
             else x_Xinanjiang_shape_parameter,
             urban_decimal_fraction=str(urban_decimal_fraction),
             refkdt=row_dict["mean.refkdt"],

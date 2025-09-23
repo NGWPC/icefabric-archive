@@ -4,8 +4,9 @@
 import click
 
 from icefabric import __version__
-from icefabric.cli.hydrofabric import build_upstream_connections, subset
+from icefabric.cli.hydrofabric import subset
 from icefabric.cli.modules import params
+from icefabric.cli.streamflow import streamflow_observations
 
 
 def get_version():
@@ -29,7 +30,7 @@ def cli(ctx):
 # Add subcommands
 cli.add_command(params)
 cli.add_command(subset)
-cli.add_command(build_upstream_connections)
+cli.add_command(streamflow_observations)
 
 # Main entry point for when run as a script
 if __name__ == "__main__":

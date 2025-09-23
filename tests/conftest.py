@@ -1,4 +1,3 @@
-import json
 import os
 from pathlib import Path
 from typing import Any
@@ -7,22 +6,35 @@ import pandas as pd
 import polars as pl
 import pyarrow as pa
 import pytest
+import rustworkx as rx
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from pyiceberg.catalog import Catalog, load_catalog
 from pyiceberg.expressions import EqualTo, In
+from pyprojroot import here
 
 from app.main import app
+from icefabric.builds import load_upstream_json
+from icefabric.builds.graph_connectivity import read_edge_attrs, read_node_attrs
 from icefabric.schemas import NGWPCTestLocations
 
 """
-Unified Mock PyIceberg Catalog Test Suite for Hydrofabric v2.2 Data
+Unified Mock PyIceberg Catalog Test Suite for Hydrofabric v2.2 Data using RustworkX Graph
 """
 
-# Sample upstream connections data structure (Hawaii subset)
-SAMPLE_UPSTREAM_CONNECTIONS = json.loads(
-    (Path(__file__).parents[0] / "data/sample_connections.json").read_text()
-)
+# Load the sample graph from the actual graph file
+SAMPLE_GRAPH: rx.PyDiGraph = rx.from_node_link_json_file(
+    str(here() / "tests/data/hi_hf_graph_network.json"),
+    edge_attrs=read_edge_attrs,
+    node_attrs=read_node_attrs,
+)  # type: ignore
+
+
+class MockSnapshot:
+    """Mock Pyiceberg snapshot"""
+
+    def __init__(self):
+        self.snapshot_id = "0"
 
 
 class MockTable:
@@ -31,6 +43,7 @@ class MockTable:
     def __init__(self, table_name: str, data: pd.DataFrame):
         self.table_name = table_name
         self.data = data
+        self.current_snapshot = MockSnapshot
         self._polars_data = pl.from_pandas(data).lazy()
 
     def scan(self, row_filter=None):
@@ -80,10 +93,12 @@ class MockScan:
 
 
 class MockCatalog:
-    """Mock PyIceberg Catalog with sample Hawaii hydrofabric data"""
+    """Mock PyIceberg Catalog with sample Hawaii hydrofabric data based on RustworkX graph"""
 
     def __init__(self, catalog_type: str = "glue"):
         self.catalog_type = catalog_type
+        self.connectivity_graph = SAMPLE_GRAPH
+        self.name = "mock_hf"
         self.tables = self._create_sample_tables()
 
     def load_table(self, table_name: str) -> MockTable:
@@ -92,12 +107,36 @@ class MockCatalog:
             raise ValueError(f"Table {table_name} not found")
         return self.tables[table_name]
 
+    def get_connectivity_graph(self, namespace: str = "mock_hf") -> rx.PyDiGraph:
+        """Get the pre-built connectivity graph for the given namespace"""
+        return self.connectivity_graph
+
+    def _extract_graph_relationships(self) -> dict[str, Any]:
+        """Extract connectivity relationships from the RustworkX graph"""
+        nodes = self.connectivity_graph.nodes()
+
+        # Build node relationships from the graph
+        node_to_downstream = {}
+
+        for edge_idx in self.connectivity_graph.edge_indices():
+            source_idx, target_idx = self.connectivity_graph.get_edge_endpoints_by_index(edge_idx)
+            source_node = self.connectivity_graph.get_node_data(source_idx)
+            target_node = self.connectivity_graph.get_node_data(target_idx)
+            nexus_id = self.connectivity_graph.get_edge_data_by_index(edge_idx)
+
+            node_to_downstream[source_node] = {"target": target_node, "nexus": nexus_id}
+
+        return {"nodes": nodes, "relationships": node_to_downstream}
+
     def _create_sample_tables(self) -> dict[str, MockTable]:
-        """Create sample hydrofabric tables with realistic data"""
+        """Create sample hydrofabric tables based on the RustworkX graph"""
         tables = {}
 
+        # Extract relationships from the graph
+        graph_info = self._extract_graph_relationships()
+
         # Network table - core connectivity data
-        network_data = self._create_network_data()
+        network_data = self._create_network_data_from_graph(graph_info)
         tables["mock_hf.network"] = MockTable("mock_hf.network", network_data)
 
         # Flowpaths table - stream geometry
@@ -132,35 +171,33 @@ class MockCatalog:
         )
 
         tables["divide_parameters.sac-sma_conus"] = MockTable(
-            "mock_hf.pois", self._create_sac_sma_divide_parameters(network_data)
+            "divide_parameters.sac-sma_conus", self._create_sac_sma_divide_parameters(network_data)
         )
         tables["divide_parameters.snow-17_conus"] = MockTable(
-            "mock_hf.pois", self._create_snow17_divide_parameters(network_data)
+            "divide_parameters.snow-17_conus", self._create_snow17_divide_parameters(network_data)
         )
 
         return tables
 
-    def _create_network_data(self) -> pd.DataFrame:
-        """Create sample network connectivity data"""
-        upstream_connections = SAMPLE_UPSTREAM_CONNECTIONS["upstream_connections"]
-
+    def _create_network_data_from_graph(self, graph_info: dict[str, Any]) -> pd.DataFrame:
+        """Create network data based on the actual RustworkX graph structure"""
         network_data = []
         poi_counter = 0
         hydroseq_counter = 1
 
-        # Collect all unique watershed IDs
-        all_wb_ids = set()
-        for parent, children in upstream_connections.items():
-            all_wb_ids.add(parent)
-            for child in children:
-                all_wb_ids.add(child)
+        nodes = graph_info["nodes"]
+        relationships = graph_info["relationships"]
 
-        # Create flowpath records for each watershed (wb-*)
-        for wb_id in all_wb_ids:
-            wb_num = int(wb_id.split("-")[1])
+        # Create flowpath records for each node in the graph
+        for node_id in nodes:
+            if not node_id.startswith("wb-"):
+                continue
 
-            # Determine the toid (nexus point this watershed flows to)
-            toid = f"nex-{wb_num}"  # Each watershed flows to its corresponding nexus
+            wb_num = int(node_id.split("-")[1])
+
+            # Get downstream connection from graph
+            downstream_info = relationships.get(node_id, {})
+            toid = downstream_info.get("nexus")  # The nexus this wb flows to
 
             # Some records have POIs
             has_poi = poi_counter % 10 == 0  # Every 10th watershed has a POI
@@ -169,7 +206,7 @@ class MockCatalog:
 
             # Create the flowpath record
             record = {
-                "id": wb_id,
+                "id": node_id,
                 "toid": toid,
                 "divide_id": f"cat-{wb_num}",
                 "ds_id": None,
@@ -183,128 +220,76 @@ class MockCatalog:
                 "tot_drainage_areasqkm": round(10.0 + (wb_num % 5000) / 10.0, 2),
                 "type": "waterbody",
                 "vpuid": "hi",
-                "topo": "fl-nex",  # All records in Hawaii are fl-nex
+                "topo": "fl-nex",
                 "hl_uri": f"gages-{wb_num:06d}" if has_poi else None,
             }
 
             network_data.append(record)
             hydroseq_counter += 1
 
-        # Create nexus records that connect upstream to downstream
-        for parent, children in upstream_connections.items():
-            # Create nexus points for each child that flows to the parent
-            for child in children:
-                child_num = int(child.split("-")[1])
+        # Create nexus records based on the edges in the graph
+        for source_node, info in relationships.items():
+            if not source_node.startswith("wb-"):
+                continue
 
-                # The nexus point for this child flows to the parent watershed
+            nexus_id = info.get("nexus")
+            target_node = info.get("target")
+
+            if nexus_id and target_node:
+                source_num = int(source_node.split("-")[1])
+
+                # Determine nexus type based on target
+                if target_node == "wb-0":
+                    nexus_type = "terminal"
+                elif target_node.startswith("cnx-"):
+                    nexus_type = "coastal"
+                else:
+                    nexus_type = "network"
+
                 nexus_record = {
-                    "id": f"nex-{child_num}",  # Nexus point for the child
-                    "toid": parent,  # Points to parent watershed
-                    "divide_id": f"cat-{child_num}",
+                    "id": nexus_id,
+                    "toid": target_node,
+                    "divide_id": f"cat-{source_num}",
                     "ds_id": None,
                     "mainstem": None,
                     "poi_id": None,
                     "hydroseq": float(hydroseq_counter),
                     "hf_source": "NHDPlusHR",
-                    "hf_id": str(child_num),
-                    "lengthkm": 0.01,  # Nexus points have minimal length
-                    "areasqkm": 0.001,
-                    "tot_drainage_areasqkm": 0.01,
-                    "type": "nexus",
+                    "hf_id": str(source_num),
+                    "lengthkm": 0.01 if nexus_type != "terminal" else 0.001,
+                    "areasqkm": 0.001 if nexus_type != "terminal" else 0.0001,
+                    "tot_drainage_areasqkm": 0.01 if nexus_type != "terminal" else 0.001,
+                    "type": nexus_type,
                     "vpuid": "hi",
                     "topo": "fl-nex",
-                    "hl_uri": None,  # Nexus points don't have hl_uri
+                    "hl_uri": None,
                 }
 
                 network_data.append(nexus_record)
                 hydroseq_counter += 1
 
-        # Create outlet nexus points for watersheds that don't flow to other watersheds
-        outlet_watersheds = set()
-        upstream_watersheds = set()
-
-        for parent, children in upstream_connections.items():
-            outlet_watersheds.add(parent)
-            for child in children:
-                upstream_watersheds.add(child)
-
-        # True outlets are watersheds that are not upstream of anything
-        true_outlets = outlet_watersheds - upstream_watersheds
-
-        for outlet_wb in true_outlets:
-            outlet_num = int(outlet_wb.split("-")[1])
-
-            # Create nexus point for outlet that flows to coastal connection
-            outlet_nexus_record = {
-                "id": f"nex-{outlet_num}",
-                "toid": f"cnx-{outlet_num % 100}",  # Points to coastal nexus (can overlap)
-                "divide_id": f"cat-{outlet_num}",
+        # Add wb-0 if not present (the ultimate outlet)
+        wb_ids = [record["id"] for record in network_data if record["id"] and record["id"].startswith("wb-")]
+        if "wb-0" not in wb_ids:
+            wb0_record = {
+                "id": "wb-0",
+                "toid": None,
+                "divide_id": "cat-0",
                 "ds_id": None,
                 "mainstem": None,
                 "poi_id": None,
                 "hydroseq": float(hydroseq_counter),
                 "hf_source": "NHDPlusHR",
-                "hf_id": str(outlet_num),
-                "lengthkm": 0.01,
-                "areasqkm": 0.001,
-                "tot_drainage_areasqkm": 0.01,
-                "type": "nexus",
+                "hf_id": "0",
+                "lengthkm": 0.0,
+                "areasqkm": 0.0,
+                "tot_drainage_areasqkm": 0.0,
+                "type": "outlet",
                 "vpuid": "hi",
                 "topo": "fl-nex",
                 "hl_uri": None,
             }
-
-            network_data.append(outlet_nexus_record)
-            hydroseq_counter += 1
-
-        # Add terminal nexus points (tnx-) for flowlines that are ending
-        # These represent the actual terminus of flowlines
-        for outlet_wb in true_outlets:
-            outlet_num = int(outlet_wb.split("-")[1])
-
-            terminal_nexus_record = {
-                "id": f"tnx-{1000000000 + outlet_num}",  # Terminal nexus with large ID
-                "toid": f"cnx-{(outlet_num % 50) + 1}",  # Points to coastal, can overlap
-                "divide_id": f"cat-{outlet_num}",
-                "ds_id": None,
-                "mainstem": None,
-                "poi_id": None,
-                "hydroseq": float(hydroseq_counter),
-                "hf_source": "NHDPlusHR",
-                "hf_id": str(1000000000 + outlet_num),
-                "lengthkm": 0.001,  # Very small for terminal points
-                "areasqkm": 0.0001,
-                "tot_drainage_areasqkm": 0.001,
-                "type": "terminal",
-                "vpuid": "hi",
-                "topo": "fl-nex",
-                "hl_uri": None,
-            }
-
-            network_data.append(terminal_nexus_record)
-            hydroseq_counter += 1
-
-        # Add coastal nexus points (records with null ID) - these are the final outlets
-        for i in range(1, 51):  # Add 50 coastal outlets (CNX points can be shared)
-            record = {
-                "id": None,  # Null ID for coastal nexus
-                "toid": f"cnx-{i}",
-                "divide_id": f"cat-coastal-{i}",
-                "ds_id": None,
-                "mainstem": None,
-                "poi_id": None,
-                "hydroseq": None,
-                "hf_source": None,
-                "hf_id": None,
-                "lengthkm": None,
-                "areasqkm": None,
-                "tot_drainage_areasqkm": None,
-                "type": "coastal",
-                "vpuid": "hi",
-                "topo": "fl-nex",
-                "hl_uri": None,
-            }
-            network_data.append(record)
+            network_data.append(wb0_record)
 
         return pd.DataFrame(network_data)
 
@@ -312,16 +297,8 @@ class MockCatalog:
         """Create sample flowpath geometry data"""
         flowpaths = []
 
-        upstream_connections = SAMPLE_UPSTREAM_CONNECTIONS["upstream_connections"]
-
-        # Collect all unique watershed IDs
-        all_wb_ids = set()
-        for parent, children in upstream_connections.items():
-            all_wb_ids.add(parent)
-            for child in children:
-                all_wb_ids.add(child)
-
-        wb_records = network_df[network_df["id"].isin(all_wb_ids)]
+        # Filter to only wb-* records (flowpaths)
+        wb_records = network_df[network_df["id"].str.startswith("wb-", na=False)]
 
         for _, row in wb_records.iterrows():
             # Create a simple LineString geometry as binary (matching real schema)
@@ -339,9 +316,7 @@ class MockCatalog:
                     "tot_drainage_areasqkm": row["tot_drainage_areasqkm"],  # DoubleType
                     "has_divide": True,  # BooleanType
                     "divide_id": row["divide_id"],  # StringType
-                    "poi_id": str(int(row["poi_id"]))
-                    if pd.isna(row["poi_id"]) is False
-                    else pd.NA,  # StringType
+                    "poi_id": str(int(row["poi_id"])) if pd.notna(row["poi_id"]) else None,  # StringType
                     "vpuid": "hi",  # StringType
                     "geometry": geometry_binary,  # BinaryType
                 }
@@ -353,7 +328,7 @@ class MockCatalog:
         """Create sample nexus point data matching Hawaii schema"""
         nexus_points = []
 
-        # Create nexus points for toids and add some coastal nexus points
+        # Create nexus points for toids
         unique_toids = network_df["toid"].dropna().unique()
 
         counter = 1
@@ -369,14 +344,17 @@ class MockCatalog:
                 elif toid.startswith("nex-"):
                     nexus_type = "network"
                     poi_id = str(counter) if counter % 3 == 0 else None
-                else:
+                elif toid.startswith("tnx-"):
                     nexus_type = "terminal"
+                    poi_id = None
+                else:
+                    nexus_type = "network"
                     poi_id = None
 
                 nexus_points.append(
                     {
                         "id": toid,
-                        "toid": "wb-0" if nexus_type == "coastal" else None,  # Coastal points flow to wb-0
+                        "toid": "wb-0" if nexus_type == "coastal" else None,
                         "poi_id": poi_id,  # StringType
                         "type": nexus_type,  # StringType
                         "vpuid": "hi",  # StringType
@@ -385,44 +363,26 @@ class MockCatalog:
                 )
                 counter += 1
 
-        # Add a few specific coastal nexus points (like in real data)
-        for i in range(1, 6):
-            geometry_binary = b"\x01\x01\x00\x00\x00fl#\xd5g\xaf\x13\xc1\x96!\x8e\xa5\xfe\x14.A"
-
-            nexus_points.append(
-                {
-                    "id": f"cnx-{i}",
-                    "toid": "wb-0",
-                    "poi_id": None,
-                    "type": "coastal",
-                    "vpuid": "hi",
-                    "geometry": geometry_binary,
-                }
-            )
-
         return pd.DataFrame(nexus_points)
 
     def _create_divides_data(self, network_df: pd.DataFrame) -> pd.DataFrame:
         """Create sample watershed divide geometry data matching Hawaii schema"""
         divides = []
-        upstream_connections = SAMPLE_UPSTREAM_CONNECTIONS["upstream_connections"]
 
-        all_wb_ids = set()
-        for parent, children in upstream_connections.items():
-            all_wb_ids.add(parent)
-            for child in children:
-                all_wb_ids.add(child)
-
-        wb_records = network_df[network_df["id"].isin(all_wb_ids)]
+        # Filter to only wb-* records (flowpaths have divides)
+        wb_records = network_df[network_df["id"].str.startswith("wb-", na=False)]
 
         for _, row in wb_records.iterrows():
             # Create a simple polygon for the watershed boundary as binary
             geometry_binary = b"\x01\x01\x00\x00\x00fl#\xd5g\xaf\x13\xc1\x96!\x8e\xa5\xfe\x14.A"
 
-            # Determine toid and type
-            if row["toid"] and row["toid"].startswith("cnx-"):
+            # Determine toid and type based on actual network structure
+            if pd.isna(row["toid"]) or row["toid"] == "wb-0":
                 divide_type = "terminal"
                 toid = f"tnx-{hash(row['id']) % 1000000}"  # Terminal nexus
+            elif row["toid"] and row["toid"].startswith("cnx-"):
+                divide_type = "coastal"
+                toid = row["toid"]
             else:
                 divide_type = "network"
                 toid = row["toid"]
@@ -445,6 +405,7 @@ class MockCatalog:
 
         return pd.DataFrame(divides)
 
+    # ... (rest of the helper methods remain the same)
     def _create_lakes_data(self) -> pd.DataFrame:
         """Create sample lakes data matching Hawaii schema"""
         lakes = []
@@ -539,55 +500,47 @@ class MockCatalog:
 
         return pd.DataFrame(attributes)
 
-    def _create_sac_sma_divide_parameters(self, divides_df: pd.DataFrame) -> pd.DataFrame:
+    def _create_sac_sma_divide_parameters(self, network_df: pd.DataFrame) -> pd.DataFrame:
         """Create sample SAC-SMA divide parameters data matching CONUS schema"""
         attributes = []
-        for _, row in divides_df.iterrows():
+        wb_records = network_df[network_df["id"].str.startswith("wb-", na=False)]
+
+        for _, row in wb_records.iterrows():
             # Create realistic SAC-SMA parameters using hash for reproducible variation
             divide_hash = hash(row["divide_id"])
             attributes.append(
                 {
                     "divide_id": row["divide_id"],  # StringType
-                    "lzfpm": 80.0
-                    + (divide_hash % 500) / 10.0,  # DoubleType - Lower zone free primary maximum
-                    "lzfsm": 5.0
-                    + (divide_hash % 200) / 20.0,  # DoubleType - Lower zone free secondary maximum
-                    "lzpk": 0.01 + (divide_hash % 50) / 2000.0,  # DoubleType - Lower zone primary recession
-                    "lzsk": 0.10
-                    + (divide_hash % 100) / 1000.0,  # DoubleType - Lower zone secondary recession
-                    "lztwm": 100.0
-                    + (divide_hash % 600) / 10.0,  # DoubleType - Lower zone tension water maximum
-                    "pfree": 0.05
-                    + (divide_hash % 200)
-                    / 1000.0,  # DoubleType - Fraction of percolation from upper zone free water storage that goes directly to lower zone free water storage
-                    "rexp": 1.0
-                    + (divide_hash % 150) / 100.0,  # DoubleType - Exponent of the percolation equation
-                    "uzfwm": 20.0 + (divide_hash % 200) / 10.0,  # DoubleType - Upper zone free water maximum
-                    "uzk": 0.30
-                    + (divide_hash % 200)
-                    / 1000.0,  # DoubleType - Upper zone free water lateral depletion rate
-                    "uztwm": 30.0
-                    + (divide_hash % 300) / 10.0,  # DoubleType - Upper zone tension water maximum
-                    "zperc": 40.0 + (divide_hash % 800) / 10.0,  # DoubleType - Maximum percolation rate
+                    "lzfpm": 80.0 + (divide_hash % 500) / 10.0,  # DoubleType
+                    "lzfsm": 5.0 + (divide_hash % 200) / 20.0,  # DoubleType
+                    "lzpk": 0.01 + (divide_hash % 50) / 2000.0,  # DoubleType
+                    "lzsk": 0.10 + (divide_hash % 100) / 1000.0,  # DoubleType
+                    "lztwm": 100.0 + (divide_hash % 600) / 10.0,  # DoubleType
+                    "pfree": 0.05 + (divide_hash % 200) / 1000.0,  # DoubleType
+                    "rexp": 1.0 + (divide_hash % 150) / 100.0,  # DoubleType
+                    "uzfwm": 20.0 + (divide_hash % 200) / 10.0,  # DoubleType
+                    "uzk": 0.30 + (divide_hash % 200) / 1000.0,  # DoubleType
+                    "uztwm": 30.0 + (divide_hash % 300) / 10.0,  # DoubleType
+                    "zperc": 40.0 + (divide_hash % 800) / 10.0,  # DoubleType
                 }
             )
 
         return pd.DataFrame(attributes)
 
-    def _create_snow17_divide_parameters(self, divides_df: pd.DataFrame) -> pd.DataFrame:
+    def _create_snow17_divide_parameters(self, network_df: pd.DataFrame) -> pd.DataFrame:
         """Create sample Snow-17 divide parameters data matching CONUS schema"""
         attributes = []
-        for _, row in divides_df.iterrows():
+        wb_records = network_df[network_df["id"].str.startswith("wb-", na=False)]
+
+        for _, row in wb_records.iterrows():
             # Create realistic Snow-17 parameters using hash for reproducible variation
             divide_hash = hash(row["divide_id"])
             attributes.append(
                 {
                     "divide_id": row["divide_id"],  # StringType
-                    "mfmax": 1.5 + (divide_hash % 300) / 1000.0,  # DoubleType - Maximum melt factor
-                    "mfmin": 0.3 + (divide_hash % 100) / 1000.0,  # DoubleType - Minimum melt factor
-                    "uadj": 0.05
-                    + (divide_hash % 50)
-                    / 1000.0,  # DoubleType - Average wind function during rain-on-snow events
+                    "mfmax": 1.5 + (divide_hash % 300) / 1000.0,  # DoubleType
+                    "mfmin": 0.3 + (divide_hash % 100) / 1000.0,  # DoubleType
+                    "uadj": 0.05 + (divide_hash % 50) / 1000.0,  # DoubleType
                 }
             )
 
@@ -660,66 +613,41 @@ class MockCatalog:
         """Create sample hydrolocations data matching Hawaii schema"""
         hydrolocations = []
 
-        # Create some realistic hydrolocations (gages and coastal points)
-        sample_hydrolocations = [
-            {
-                "poi_id": 47,
-                "id": "wb-1385",
-                "nex_id": "tnx-1000001264",
-                "hl_link": "HI2",
-                "hl_reference": "coastal",
-                "hl_source": "NOAAOWP",
-                "hl_uri": "coastal-HI2",
-            },
-            {
-                "poi_id": 38,
-                "id": "wb-1384",
-                "nex_id": "tnx-1000001226",
-                "hl_link": "HI50",
-                "hl_reference": "coastal",
-                "hl_source": "NOAAOWP",
-                "hl_uri": "coastal-HI50",
-            },
-            {
-                "poi_id": 90,
-                "id": "wb-1370",
-                "nex_id": "nex-1371",
-                "hl_link": "16717000",
-                "hl_reference": "Gages",
-                "hl_source": "NWIS",
-                "hl_uri": "Gages-16717000",
-            },
-            {
-                "poi_id": 26,
-                "id": "wb-1365",
-                "nex_id": "nex-1366",
-                "hl_link": "16704000",
-                "hl_reference": "Gages",
-                "hl_source": "NWIS",
-                "hl_uri": "Gages-16704000",
-            },
-            {
-                "poi_id": 12,
-                "id": "wb-1366",
-                "nex_id": "tnx-1000001261",
-                "hl_link": "HI19",
-                "hl_reference": "coastal",
-                "hl_source": "NOAAOWP",
-                "hl_uri": "coastal-HI19",
-            },
-        ]
+        # Create some realistic hydrolocations based on graph nodes
+        nodes = self.connectivity_graph.nodes()
+        sample_nodes = [node for node in nodes if node.startswith("wb-")][:10]  # Take first 10
 
-        for hl in sample_hydrolocations:
+        for i, node_id in enumerate(sample_nodes):
+            wb_num = int(node_id.split("-")[1])
+
+            # Determine if this is a coastal or gage location
+            is_coastal = i % 3 == 0
+
+            if is_coastal:
+                hl_data = {
+                    "poi_id": i + 20,
+                    "id": node_id,
+                    "nex_id": f"tnx-{1000000000 + wb_num}",
+                    "hl_link": f"HI{i + 1}",
+                    "hl_reference": "coastal",
+                    "hl_source": "NOAAOWP",
+                    "hl_uri": f"coastal-HI{i + 1}",
+                }
+            else:
+                hl_data = {
+                    "poi_id": i + 20,
+                    "id": node_id,
+                    "nex_id": f"nex-{wb_num}",
+                    "hl_link": f"167{wb_num:05d}",
+                    "hl_reference": "gages",
+                    "hl_source": "NWIS",
+                    "hl_uri": f"gages-167{wb_num:05d}",
+                }
+
             hydrolocations.append(
                 {
-                    "poi_id": hl["poi_id"],  # IntegerType
-                    "id": hl["id"],  # StringType
-                    "nex_id": hl["nex_id"],  # StringType
-                    "hl_link": hl["hl_link"],  # StringType
-                    "hl_reference": hl["hl_reference"],  # StringType
-                    "hl_source": hl["hl_source"],  # StringType
+                    **hl_data,
                     "hf_id": 8.000010e13,  # DoubleType
-                    "hl_uri": hl["hl_uri"],  # StringType
                     "vpuid": "hi",  # StringType
                 }
             )
@@ -729,14 +657,40 @@ class MockCatalog:
 
 # Utility functions for test setup
 def create_test_environment(tmp_path: Path) -> dict[str, Any]:
-    """Create a complete test environment with mock catalogs and data files"""
+    """Create a complete test environment with mock catalogs and graph data"""
 
-    # Create upstream connections file for Hawaii
-    connections_file = tmp_path / "data" / "hydrofabric" / "hi_upstream_connections.json"
-    connections_file.parent.mkdir(parents=True, exist_ok=True)
+    # Create a test graph file path
+    graph_file = tmp_path / "data" / "hydrofabric" / "hi_hf_graph_network.json"
+    graph_file.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(connections_file, "w") as f:
-        json.dump(SAMPLE_UPSTREAM_CONNECTIONS, f)
+    # Create a simple test graph if the file doesn't exist
+    if not graph_file.exists():
+        test_graph = rx.PyDiGraph()
+        # Add some test nodes and edges
+        node1 = test_graph.add_node("wb-1001")
+        node2 = test_graph.add_node("wb-1002")
+        node3 = test_graph.add_node("wb-0")
+        test_graph.add_edge(node1, node2, "nex-1001")
+        test_graph.add_edge(node2, node3, "nex-1002")
+
+        # Add metadata
+        test_graph.attrs = {
+            "generated_at": "2024-01-01T00:00:00+00:00",
+            "catalog_name": "test",
+            "flowpath_snapshot_id": "test_snapshot_123",
+            "network_snapshot_id": "test_snapshot_456",
+        }
+
+        # Save the test graph
+        from icefabric.builds.graph_connectivity import serialize_edge_attrs, serialize_node_attrs
+
+        rx.node_link_json(
+            test_graph,
+            path=str(graph_file),
+            graph_attrs=lambda attrs: dict(attrs),
+            edge_attrs=serialize_edge_attrs,
+            node_attrs=serialize_node_attrs,
+        )
 
     # Create mock catalogs
     glue_catalog = MockCatalog("glue")
@@ -745,7 +699,7 @@ def create_test_environment(tmp_path: Path) -> dict[str, Any]:
     return {
         "glue_catalog": glue_catalog,
         "sql_catalog": sql_catalog,
-        "connections_file": connections_file,
+        "graph_file": graph_file,
         "tmp_path": tmp_path,
     }
 
@@ -755,7 +709,7 @@ env_path = Path.cwd() / ".env"
 load_dotenv(dotenv_path=env_path)
 pyiceberg_file = Path.cwd() / ".pyiceberg.yaml"
 if pyiceberg_file.exists():
-    os.environ["PYICEBERG_HOME"] = str(Path(__file__).parents[1])
+    os.environ["PYICEBERG_HOME"] = str(here())
 else:
     raise FileNotFoundError(
         "Cannot find .pyiceberg.yaml. Please download this from NGWPC confluence or create "
@@ -781,45 +735,68 @@ sample_hf_uri = [
 
 test_ic_rasters = [f for f in NGWPCTestLocations._member_names_ if "TOPO" in f]
 local_ic_rasters = [
-    Path(__file__).parent / "data/topo_tifs/nws-nos-surveys/Albemarle_Sound_NOS_NCEI",
-    Path(__file__).parent / "data/topo_tifs/nws-nos-surveys/Chesapeake_Bay_NOS_NCEI",
-    Path(__file__).parent / "data/topo_tifs/nws-nos-surveys/Mobile_Bay_NOS_NCEI",
-    Path(__file__).parent / "data/topo_tifs/nws-nos-surveys/Tangier_Sound_NOS_NCEI",
-    Path(__file__).parent / "data/topo_tifs/tbdem_alaska_10m",
-    Path(__file__).parent / "data/topo_tifs/tbdem_alaska_30m",
-    Path(__file__).parent / "data/topo_tifs/tbdem_conus_atlantic_gulf_30m",
-    Path(__file__).parent / "data/topo_tifs/tbdem_conus_pacific_30m",
-    Path(__file__).parent / "data/topo_tifs/tbdem_great_lakes_30m",
-    Path(__file__).parent / "data/topo_tifs/tbdem_hawaii_10m",
-    Path(__file__).parent / "data/topo_tifs/tbdem_hawaii_30m",
-    Path(__file__).parent / "data/topo_tifs/tbdem_pr_usvi_10m",
-    Path(__file__).parent / "data/topo_tifs/tbdem_pr_usvi_30m",
+    here() / "tests/data/topo_tifs/nws-nos-surveys/Albemarle_Sound_NOS_NCEI",
+    here() / "tests/data/topo_tifs/nws-nos-surveys/Chesapeake_Bay_NOS_NCEI",
+    here() / "tests/data/topo_tifs/nws-nos-surveys/Mobile_Bay_NOS_NCEI",
+    here() / "tests/data/topo_tifs/nws-nos-surveys/Tangier_Sound_NOS_NCEI",
+    here() / "tests/data/topo_tifs/tbdem_alaska_10m",
+    here() / "tests/data/topo_tifs/tbdem_alaska_30m",
+    here() / "tests/data/topo_tifs/tbdem_conus_atlantic_gulf_30m",
+    here() / "tests/data/topo_tifs/tbdem_conus_pacific_30m",
+    here() / "tests/data/topo_tifs/tbdem_great_lakes_30m",
+    here() / "tests/data/topo_tifs/tbdem_hawaii_10m",
+    here() / "tests/data/topo_tifs/tbdem_hawaii_30m",
+    here() / "tests/data/topo_tifs/tbdem_pr_usvi_10m",
+    here() / "tests/data/topo_tifs/tbdem_pr_usvi_30m",
 ]
 
 
 # Pytest fixtures
 @pytest.fixture
 def mock_catalog():
-    """Fixture providing a mock Glue catalog"""
+    """Fixture providing a mock Glue catalog with RustworkX graph"""
     return MockCatalog
 
 
 @pytest.fixture
-def sample_upstream_connections():
-    """Fixture providing sample upstream connections data"""
-    return SAMPLE_UPSTREAM_CONNECTIONS["upstream_connections"]
+def sample_graph() -> rx.PyDiGraph:
+    """Fixture providing the sample RustworkX graph"""
+    return SAMPLE_GRAPH
 
 
 @pytest.fixture
-def temp_upstream_connections_file(tmp_path):
-    """Fixture creating a temporary upstream connections JSON file"""
-    connections_file = tmp_path / "hi_upstream_connections.json"
-    connections_file.parent.mkdir(parents=True, exist_ok=True)
+def temp_graph_file(tmp_path):
+    """Fixture creating a temporary graph file for testing"""
+    graph_file = tmp_path / "hi_hf_graph_network.json"
+    graph_file.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(connections_file, "w") as f:
-        json.dump(SAMPLE_UPSTREAM_CONNECTIONS, f)
+    # Create a simple test graph
+    test_graph = rx.PyDiGraph()
+    node1 = test_graph.add_node("wb-1001")
+    node2 = test_graph.add_node("wb-1002")
+    node3 = test_graph.add_node("wb-0")
+    test_graph.add_edge(node1, node2, "nex-1001")
+    test_graph.add_edge(node2, node3, "nex-1002")
 
-    return connections_file
+    test_graph.attrs = {
+        "generated_at": "2024-01-01T00:00:00+00:00",
+        "catalog_name": "test",
+        "flowpath_snapshot_id": "test_snapshot_123",
+        "network_snapshot_id": "test_snapshot_456",
+    }
+
+    # Save using the same serialization functions
+    from icefabric.builds.graph_connectivity import serialize_edge_attrs, serialize_node_attrs
+
+    rx.node_link_json(
+        test_graph,
+        path=str(graph_file),
+        graph_attrs=lambda attrs: dict(attrs),
+        edge_attrs=serialize_edge_attrs,
+        node_attrs=serialize_node_attrs,
+    )
+
+    return graph_file
 
 
 @pytest.fixture(params=test_ic_rasters)
@@ -843,13 +820,20 @@ def gauge_hf_uri(request) -> str:
 @pytest.fixture
 def testing_dir() -> Path:
     """Returns the testing data dir"""
-    return Path(__file__).parent / "data/"
+    return here() / "tests/data/"
 
 
 @pytest.fixture(scope="session")
 def remote_client():
     """Create a test client for the FastAPI app with real Glue catalog."""
-    app.state.catalog = load_catalog("glue")  # defaulting to use the glue
+    catalog = load_catalog("glue")
+    hydrofabric_namespaces = ["conus_hf", "ak_hf", "gl_hf", "hi_hf", "prvi_hf"]
+    app.state.catalog = catalog
+    app.state.network_graphs = load_upstream_json(
+        catalog=catalog,
+        namespaces=hydrofabric_namespaces,
+        output_path=here() / "data",
+    )
     return TestClient(app)
 
 
@@ -863,14 +847,14 @@ def client():
 @pytest.fixture
 def local_usgs_streamflow_csv():
     """Returns a locally downloaded CSV file from a specific gauge and time"""
-    file_path = Path(__file__).parent / "data/usgs_01010000_data_from_20211231_1400_to_20220101_1400.csv"
+    file_path = here() / "tests/data/usgs_01010000_data_from_20211231_1400_to_20220101_1400.csv"
     return pd.read_csv(file_path)
 
 
 @pytest.fixture
 def local_usgs_streamflow_parquet():
     """Returns a locally downloaded Parquet file from a specific gauge and time"""
-    file_path = Path(__file__).parent / "data/usgs_01010000_data_from_20211231_1400_to_20220101_1400.parquet"
+    file_path = here() / "tests/data/usgs_01010000_data_from_20211231_1400_to_20220101_1400.parquet"
     return pd.read_parquet(file_path)
 
 
@@ -878,6 +862,12 @@ def local_usgs_streamflow_parquet():
 def hydrofabric_catalog() -> Catalog:
     """Returns an iceberg catalog object for the hydrofabric"""
     return load_catalog("glue")
+
+
+@pytest.fixture(params=["wb-1435", "wb-1440", "wb-1686", "wb-1961"])
+def test_wb_id(request):
+    """Fixture providing test watershed IDs for parameterized tests"""
+    return request.param
 
 
 # Pytest configuration functions

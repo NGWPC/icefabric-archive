@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends, Query
 from pyiceberg.catalog import Catalog
 
-from app import get_catalog
+from app import get_catalog, get_graphs
 from icefabric.modules import SmpModules, config_mapper
 from icefabric.schemas import HydrofabricDomains
 from icefabric.schemas.modules import (
+    Albedo,
     LASAM,
     LSTM,
-    SFT,
-    SMP,
-    Albedo,
     NoahOwpModular,
     SacSma,
+    SFT,
+    SMP,
     Snow17,
     Topmodel,
     TRoute,
@@ -29,7 +29,7 @@ topmodel_router = APIRouter(prefix="/modules/topmodel")
 topoflow_router = APIRouter(prefix="/modules/topoflow")
 
 
-@sft_router.get("/", tags=["NWM Modules"])
+@sft_router.get("/", tags=["HF Modules"])
 async def get_sft_ipes(
     identifier: str = Query(
         ...,
@@ -48,6 +48,7 @@ async def get_sft_ipes(
         openapi_examples={"sft_example": {"summary": "SFT Example", "value": False}},
     ),
     catalog: Catalog = Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ) -> list[SFT]:
     """
     An endpoint to return configurations for SFT.
@@ -67,6 +68,7 @@ async def get_sft_ipes(
         catalog=catalog,
         namespace=domain.value,
         identifier=f"gages-{identifier}",
+        graph=network_graphs[domain],
         use_schaake=use_schaake,
     )
 
@@ -90,6 +92,7 @@ async def get_snow17_ipes(
         openapi_examples={"sft_example": {"summary": "SNOW-17 Example", "value": False}},
     ),
     catalog: Catalog = Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ) -> list[Snow17]:
     """
     An endpoint to return configurations for SNOW-17.
@@ -109,6 +112,7 @@ async def get_snow17_ipes(
         catalog=catalog,
         namespace=domain.value,
         identifier=f"gages-{identifier}",
+        graph=network_graphs[domain],
         envca=envca,
     )
 
@@ -132,6 +136,7 @@ async def get_smp_ipes(
         openapi_examples={"smp_example": {"summary": "SMP Example", "value": None}},
     ),
     catalog: Catalog = Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ) -> list[SMP]:
     """
     An endpoint to return configurations for SMP.
@@ -151,6 +156,7 @@ async def get_smp_ipes(
         catalog=catalog,
         namespace=domain.value,
         identifier=f"gages-{identifier}",
+        graph=network_graphs[domain],
         module=module,
     )
 
@@ -169,6 +175,7 @@ async def get_lstm_ipes(
         openapi_examples={"lstm_example": {"summary": "LSTM Example", "value": "conus_hf"}},
     ),
     catalog: Catalog = Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ) -> list[LSTM]:
     """
     An endpoint to return configurations for LSTM.
@@ -187,6 +194,7 @@ async def get_lstm_ipes(
         catalog=catalog,
         namespace=domain.value,
         identifier=f"gages-{identifier}",
+        graph=network_graphs[domain],
     )
 
 
@@ -216,6 +224,7 @@ async def get_lasam_ipes(
         },
     ),
     catalog: Catalog = Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ) -> list[LASAM]:
     r"""
     An endpoint to return configurations for LASAM.
@@ -236,6 +245,7 @@ async def get_lasam_ipes(
         catalog=catalog,
         namespace=domain.value,
         identifier=f"gages-{identifier}",
+        graph=network_graphs[domain],
         sft_included=sft_included,
         soil_params_file=soil_params_file,
     )
@@ -255,6 +265,7 @@ async def get_noahowp_ipes(
         openapi_examples={"noahowp_example": {"summary": "Noah-OWP-Modular Example", "value": "conus_hf"}},
     ),
     catalog: Catalog = Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ) -> list[NoahOwpModular]:
     """
     An endpoint to return configurations for Noah-OWP-Modular.
@@ -273,6 +284,7 @@ async def get_noahowp_ipes(
         catalog=catalog,
         namespace=domain.value,
         identifier=f"gages-{identifier}",
+        graph=network_graphs[domain],
     )
 
 
@@ -295,6 +307,7 @@ async def get_sacsma_ipes(
         openapi_examples={"sacsma_example": {"summary": "SAC-SMA Example", "value": False}},
     ),
     catalog: Catalog = Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ) -> list[SacSma]:
     """
     An endpoint to return configurations for SAC-SMA.
@@ -314,6 +327,7 @@ async def get_sacsma_ipes(
         catalog=catalog,
         namespace=domain.value,
         identifier=f"gages-{identifier}",
+        graph=network_graphs[domain],
         envca=envca,
     )
 
@@ -332,6 +346,7 @@ async def get_troute_ipes(
         openapi_examples={"troute_example": {"summary": "T-Route Example", "value": "conus_hf"}},
     ),
     catalog: Catalog = Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ) -> list[TRoute]:
     """
     An endpoint to return configurations for T-Route.
@@ -350,6 +365,7 @@ async def get_troute_ipes(
         catalog=catalog,
         namespace=domain.value,
         identifier=f"gages-{identifier}",
+        graph=network_graphs[domain],
     )
 
 
@@ -367,6 +383,7 @@ async def get_topmodel_ipes(
         openapi_examples={"topmodel_example": {"summary": "TOPMODEL Example", "value": "conus_hf"}},
     ),
     catalog: Catalog = Depends(get_catalog),
+    network_graphs=Depends(get_graphs),
 ) -> list[Topmodel]:
     """
     An endpoint to return configurations for TOPMODEL.
@@ -385,6 +402,7 @@ async def get_topmodel_ipes(
         catalog=catalog,
         namespace=domain.value,
         identifier=f"gages-{identifier}",
+        graph=network_graphs[domain],
     )
 
 
@@ -421,6 +439,7 @@ async def get_topmodel_ipes(
 #         catalog=catalog,
 #         namespace=domain.value,
 #         identifier=f"gages-{identifier}",
+#         graph=network_graphs[domain],
 #     )
 
 

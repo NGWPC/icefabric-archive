@@ -3,6 +3,7 @@
 import geopandas as gpd
 import pandas as pd
 import polars as pl
+import rustworkx as rx
 from pyiceberg.catalog import Catalog
 from pyiceberg.expressions import EqualTo, In
 
@@ -11,14 +12,14 @@ from icefabric.hydrofabric.origin import find_origin
 from icefabric.schemas.hydrofabric import UPSTREAM_VPUS, IdType
 
 
-def get_upstream_segments(origin: str, upstream_dict: dict[str, list[str]]) -> set[str]:
+def get_upstream_segments(origin: str, graph: rx.PyDiGraph) -> set[str]:
     """Subsets the hydrofabric to find all upstream watershed boundaries upstream of the origin fp
 
     Parameters
     ----------
     origin: str
         The starting point where we're tracing upstream
-    upstream_dict: dict[str, list[str]]
+    graph: rx.PyDiGraph
         a dictionary which preprocesses all toid -> id relationships
 
     Returns
@@ -26,24 +27,22 @@ def get_upstream_segments(origin: str, upstream_dict: dict[str, list[str]]) -> s
     set[str]
         The watershed boundary connections that make up the subset
     """
-    upstream_ids = set()
-    stack = [origin]
+    indices = graph.node_indices()
+    data_list = graph.nodes()
+    node_to_index = dict(zip(data_list, indices, strict=False))
 
-    while stack:
-        current_id = stack.pop()
+    start_idx = node_to_index.get(origin)
 
-        if current_id in upstream_ids:
-            continue
+    if start_idx is None:
+        return set()
 
-        upstream_ids.add(current_id)
+    upstream_indices = rx.bfs_predecessors(graph, start_idx)
+    flattened = set()
+    for key, values in upstream_indices:
+        flattened.add(key)
+        flattened.update(values)
 
-        # Add all upstream segments to the stack
-        if current_id in upstream_dict:
-            for upstream_id in upstream_dict[current_id]:
-                if upstream_id not in upstream_ids:
-                    stack.append(upstream_id)
-
-    return upstream_ids
+    return flattened
 
 
 def subset_layers(
@@ -64,14 +63,14 @@ def subset_layers(
     layers : list[str]
         The layers to read into a file
     upstream_ids : set[str]
-        _description_
+        Upstream IDs queried
     vpu_id : str
-        _description_
+        VPU of query
 
     Returns
     -------
     dict[str, pd.DataFrame | gpd.GeoDataFrame]
-        _description_
+        Dictionary of layer name to dataframe
     """
     # Ensuring there are always divides, flowpaths, network, and nexus layers
     if layers is None:
@@ -179,13 +178,126 @@ def subset_layers(
     return output_layers
 
 
+def subset_hydrofabric_vpu(
+    catalog: Catalog,
+    namespace: str,
+    layers: list[str],
+    vpu_id: str,
+) -> dict[str, pd.DataFrame | gpd.GeoDataFrame]:
+    """Subsets layers by VPU ID
+
+    Parameters
+    ----------
+    catalog : Catalog
+        The pyiceberg catalog
+    namespace : str
+        the domain / namespace we're reading from in the catalog
+    layers : list[str]
+        The layers to read into a file
+    vpu_id : str
+        Desired VPU
+
+    Returns
+    -------
+    dict[str, pd.DataFrame | gpd.GeoDataFrame]
+        Dictionary of layer name to dataframe
+    """
+    # Ensuring there are always divides, flowpaths, network, and nexus layers
+    if layers is None:
+        layers = []
+    layers.extend(["divides", "flowpaths", "network", "nexus"])
+    layers = list(set(layers))
+
+    # Use single VPU filter
+    vpu_filter = EqualTo("vpuid", vpu_id)
+
+    print("Subsetting network layer")
+    network = catalog.load_table(f"{namespace}.network").scan(row_filter=vpu_filter).to_polars()
+    filtered_network = network.with_columns(
+        pl.col("poi_id").map_elements(lambda x: str(int(x)) if x is not None else None, return_dtype=pl.Utf8)
+    )
+    valid_hf_id = (
+        filtered_network.select(pl.col("hf_id").drop_nulls().unique().cast(pl.Float64)).to_series().to_list()
+    )
+    assert filtered_network.height > 0, "No network records found"
+
+    print("Subsetting flowpaths layer")
+    filtered_flowpaths = catalog.load_table(f"{namespace}.flowpaths").scan(row_filter=vpu_filter).to_polars()
+
+    assert filtered_flowpaths.height > 0, "No flowpaths found"
+    filtered_flowpaths_geo = to_geopandas(filtered_flowpaths.to_pandas())
+
+    print("Subsetting nexus layer")
+    nexus = catalog.load_table(f"{namespace}.nexus").scan(row_filter=vpu_filter).to_polars()
+    filtered_nexus_points = nexus.with_columns(
+        pl.col("poi_id").map_elements(lambda x: str(int(x)) if x is not None else None, return_dtype=pl.Utf8)
+    )
+    filtered_nexus_points_geo = to_geopandas(filtered_nexus_points.to_pandas())
+
+    print("Subsetting divides layer")
+    valid_divide_ids = (
+        filtered_network.filter(pl.col("divide_id").is_not_null()).get_column("divide_id").unique().to_list()
+    )
+    assert valid_divide_ids, "No valid divide_ids found"
+    divides = catalog.load_table(f"{namespace}.divides").scan(row_filter=vpu_filter).to_polars()
+    filtered_divides_geo = to_geopandas(divides.to_pandas())
+
+    output_layers = {
+        "flowpaths": filtered_flowpaths_geo,
+        "nexus": filtered_nexus_points_geo,
+        "divides": filtered_divides_geo,
+        "network": filtered_network.to_pandas(),  # Convert to pandas for final output
+    }
+
+    if "lakes" in layers:
+        print("Subsetting lakes layer")
+        lakes = catalog.load_table(f"{namespace}.lakes").scan(row_filter=vpu_filter).to_polars()
+        filtered_lakes = lakes.filter(pl.col("hf_id").is_in(valid_hf_id))
+        filtered_lakes_geo = to_geopandas(filtered_lakes.to_pandas())
+        output_layers["lakes"] = filtered_lakes_geo
+
+    if "divide-attributes" in layers:
+        print("Subsetting divide-attributes layer")
+        divides_attr = (
+            catalog.load_table(f"{namespace}.divide-attributes").scan(row_filter=vpu_filter).to_polars()
+        )
+        filtered_divide_attr = divides_attr.filter(pl.col("divide_id").is_in(valid_divide_ids))
+        output_layers["divide-attributes"] = filtered_divide_attr.to_pandas()
+
+    if "flowpath-attributes" in layers:
+        print("Subsetting flowpath-attributes layer")
+        output_layers["flowpath-attributes"] = (
+            catalog.load_table(f"{namespace}.flowpath-attributes").scan(row_filter=vpu_filter).to_pandas()
+        )
+
+    if "flowpath-attributes-ml" in layers:
+        print("Subsetting flowpath-attributes-ml layer")
+        output_layers["flowpath-attributes-ml"] = (
+            catalog.load_table(f"{namespace}.flowpath-attributes-ml").scan(row_filter=vpu_filter).to_pandas()
+        )
+
+    if "pois" in layers:
+        print("Subsetting pois layer")
+        output_layers["pois"] = (
+            catalog.load_table(f"{namespace}.pois").scan(row_filter=vpu_filter).to_pandas()
+        )
+
+    if "hydrolocations" in layers:
+        print("Subsetting hydrolocations layer")
+        output_layers["hydrolocations"] = (
+            catalog.load_table(f"{namespace}.hydrolocations").scan(row_filter=vpu_filter).to_pandas()
+        )
+
+    return output_layers
+
+
 def subset_hydrofabric(
     catalog: Catalog,
     identifier: str | float,
     id_type: IdType,
     layers: list[str],
     namespace: str,
-    upstream_dict: dict[str, list[str]],
+    graph: rx.PyDiGraph,
 ) -> dict[str, pd.DataFrame | gpd.GeoDataFrame]:
     """
     Main subset function using pre-computed upstream lookup
@@ -207,21 +319,26 @@ def subset_hydrofabric(
 
     Returns
     -------
-    Dict[str, pl.LazyFrame]
-        Dictionary of layer names to their subsetted lazy frames
+    Dict[str, pd.DataFrame | gpd.GeoDataFrame]
+        Dictionary of layer names to their subsetted dataframes
     """
     print(f"Starting subset for {identifier}")
 
     network_table = catalog.load_table(f"{namespace}.network").to_polars()
-    origin_row = find_origin(network_table, identifier, id_type)
-    origin_id = origin_row.select(pl.col("id")).item()
-    to_id = origin_row.select(pl.col("toid")).item()
-    vpu_id = origin_row.select(pl.col("vpuid")).item()
-    print(f"Found origin flowpath: {origin_id}")
-
-    upstream_ids = get_upstream_segments(origin_id, upstream_dict)
-    print(f"Found {len(upstream_ids)} upstream segments")
-    upstream_ids.add(to_id)  # Adding the nexus point to ensure it's captured in the network table
+    origin_row = find_origin(network_table, identifier, id_type, return_all=True)
+    origin_ids = origin_row.select(pl.col("id")).to_series()
+    to_ids = origin_row.select(pl.col("toid")).to_series()
+    vpu_id = origin_row.select(pl.col("vpuid")).to_series()[0]  # only need the first
+    upstream_ids = set()
+    for origin_id, to_id in zip(origin_ids, to_ids, strict=False):
+        print(f"Found origin flowpath: {origin_id}")
+        _upstream_ids = get_upstream_segments(origin_id, graph)
+        upstream_ids |= _upstream_ids  # in-place union
+        if len(upstream_ids) == 0:
+            upstream_ids.add(origin_id)  # Ensuring the origin WB is captured
+        else:
+            upstream_ids.add(to_id)  # Adding the nexus point to ensure it's captured in the network table
+        print(f"Tracking {len(upstream_ids)} total upstream segments")
 
     output_layers = subset_layers(
         catalog=catalog, namespace=namespace, layers=layers, upstream_ids=upstream_ids, vpu_id=vpu_id

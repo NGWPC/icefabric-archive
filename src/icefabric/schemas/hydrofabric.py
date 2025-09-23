@@ -22,6 +22,7 @@ class IdType(str, Enum):
     HF_ID = "hf_id"
     ID = "id"
     POI_ID = "poi_id"
+    VPU_ID = "vpu_id"
 
 
 class HydrofabricDomains(str, Enum):
@@ -46,6 +47,29 @@ class HydrofabricDomains(str, Enum):
     GL = "gl_hf"
     HI = "hi_hf"
     PRVI = "prvi_hf"
+
+
+class StreamflowDataSources(str, Enum):
+    """The data sources used for hourly streamflow data"""
+
+    USGS = "USGS"
+    ENVCA = "ENVCA"
+    CADWR = "CADWR"
+    TXDOT = "TXDOT"
+
+
+class StreamflowOutputFormats(str, Enum):
+    """The data formats that the API/CLI can return for hourly streamflow data"""
+
+    CSV = "csv"
+    PARQUET = "parquet"
+
+    def media_type(self):
+        """Returns media type for the specified output format"""
+        if self.value == "csv":
+            return "text/csv"
+        elif self.value == "parquet":
+            return "application/vnd.apache.parquet"
 
 
 # For catchments that may extend in many VPUs
