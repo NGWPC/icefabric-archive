@@ -827,7 +827,7 @@ def testing_dir() -> Path:
 def remote_client():
     """Create a test client for the FastAPI app with real Glue catalog."""
     catalog = load_catalog("glue")
-    hydrofabric_namespaces = ["conus_hf", "ak_hf", "gl_hf", "hi_hf", "prvi_hf"]
+    hydrofabric_namespaces = ["conus_hf", "ak_hf", "hi_hf", "prvi_hf"]
     app.state.catalog = catalog
     app.state.network_graphs = load_upstream_json(
         catalog=catalog,
