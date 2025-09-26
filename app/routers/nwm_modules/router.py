@@ -5,13 +5,13 @@ from app import get_catalog, get_graphs
 from icefabric.modules import SmpModules, config_mapper
 from icefabric.schemas import HydrofabricDomains
 from icefabric.schemas.modules import (
-    Albedo,
     LASAM,
     LSTM,
-    NoahOwpModular,
-    SacSma,
     SFT,
     SMP,
+    Albedo,
+    NoahOwpModular,
+    SacSma,
     Snow17,
     Topmodel,
     TRoute,
@@ -29,7 +29,7 @@ topmodel_router = APIRouter(prefix="/modules/topmodel")
 topoflow_router = APIRouter(prefix="/modules/topoflow")
 
 
-@sft_router.get("/", tags=["HF Modules"])
+@sft_router.get("/", tags=["NWM Modules"])
 async def get_sft_ipes(
     identifier: str = Query(
         ...,
