@@ -157,7 +157,7 @@ async def get_smp_ipes(
         namespace=domain.value,
         identifier=f"gages-{identifier}",
         graph=network_graphs[domain],
-        module=module,
+        extra_module=module,
     )
 
 
